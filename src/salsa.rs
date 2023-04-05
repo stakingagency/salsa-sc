@@ -24,10 +24,8 @@ pub trait SalsaContract<ContractReader>:
     #[init]
     fn init(
         &self,
-        provider_address: ManagedAddress,
     ) {
         self.state().set(State::Inactive);
-        self.provider_address().set(&provider_address);
     }
 
     // endpoints
@@ -263,6 +261,20 @@ pub trait SalsaContract<ContractReader>:
             .with_gas_limit(gas_for_async_call)
             .async_call()
             .call_and_exit()
+    }
+
+    #[only_owner]
+    #[endpoint(setProviderAddress)]
+    fn set_provider_address(
+        &self,
+        address: ManagedAddress
+    ) {
+        require!(
+            !self.is_state_active(),
+            ERROR_ACTIVE
+        );
+
+        self.provider_address().set(address);
     }
 
     fn get_gas_for_async_call(&self) -> u64 {
