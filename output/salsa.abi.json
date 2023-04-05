@@ -18,12 +18,7 @@
     },
     "name": "SalsaContract",
     "constructor": {
-        "inputs": [
-            {
-                "name": "provider_address",
-                "type": "Address"
-            }
-        ],
+        "inputs": [],
         "outputs": []
     },
     "endpoints": [
@@ -59,6 +54,18 @@
             "name": "compound",
             "mutability": "mutable",
             "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "setProviderAddress",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "address",
+                    "type": "Address"
+                }
+            ],
             "outputs": []
         },
         {
