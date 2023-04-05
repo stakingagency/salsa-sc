@@ -154,6 +154,13 @@ pub trait SalsaContract<ContractReader>:
                     .call_and_exit()
             }
             ManagedAsyncCallResult::Err(_) => {
+                let user_payment = self.mint_liquid_token(amount);
+                self.send().direct_esdt(
+                    &caller,
+                    &user_payment.token_identifier,
+                    user_payment.token_nonce,
+                    &user_payment.amount,
+                );
             }
         }
     }
