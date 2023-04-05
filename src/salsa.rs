@@ -112,7 +112,8 @@ pub trait SalsaContract<ContractReader>:
         let delegation_contract = self.provider_address().get();
         let this_contract = self.blockchain().get_sc_address();
         let caller = self.blockchain().get_caller();
-        let gas_for_async_call = self.get_gas_for_async_call();
+        let gas_for_async_call = self.get_gas_for_async_call2();
+        self.burn_liquid_token(&amount);
 
         self.delegation_proxy_obj()
             .contract(delegation_contract.clone())
@@ -137,7 +138,6 @@ pub trait SalsaContract<ContractReader>:
             ManagedAsyncCallResult::Ok(user_stake) => {
                 let ls_supply = self.liquid_token_supply().get();
                 let egld_amount = amount.clone() * user_stake / ls_supply;
-                self.burn_liquid_token(&amount);
 
                 let delegation_contract = self.provider_address().get();
                 let gas_for_async_call = self.get_gas_for_async_call();
@@ -290,7 +290,18 @@ pub trait SalsaContract<ContractReader>:
             gas_left > MIN_GAS_FOR_ASYNC_CALL + MIN_GAS_FOR_CALLBACK,
             ERROR_INSUFFICIENT_GAS
         );
+
         gas_left - MIN_GAS_FOR_CALLBACK
+    }
+
+    fn get_gas_for_async_call2(&self) -> u64 {
+        let gas_left = self.blockchain().get_gas_left();
+        require!(
+            gas_left > 2 * (MIN_GAS_FOR_ASYNC_CALL + MIN_GAS_FOR_CALLBACK),
+            ERROR_INSUFFICIENT_GAS
+        );
+
+        gas_left - 2 * MIN_GAS_FOR_CALLBACK - MIN_GAS_FOR_ASYNC_CALL
     }
 
     fn mint_liquid_token(&self, amount: BigUint) -> EsdtTokenPayment<Self::Api> {
