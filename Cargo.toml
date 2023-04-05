@@ -1,0 +1,21 @@
+[package]
+name = "salsa"
+version = "0.0.1"
+authors = [ "DrDelphi" ]
+edition = "2021"
+publish = false
+
+[lib]
+path = "src/salsa.rs"
+
+[dev-dependencies]
+num-bigint = "0.4.2"
+
+[dependencies.multiversx-sc]
+version = "0.39.8"
+
+[dependencies.multiversx-sc-modules]
+version = "0.39.8"
+
+[dev-dependencies.multiversx-sc-scenario]
+version = "0.39.8"

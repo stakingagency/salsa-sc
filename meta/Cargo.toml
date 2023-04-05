@@ -1,0 +1,17 @@
+[package]
+name = "salsa-meta"
+version = "0.0.1"
+edition = "2021"
+publish = false
+authors = [ "DrDelphi" ]
+
+[dev-dependencies]
+
+[dependencies.salsa]
+path = ".."
+
+[dependencies.multiversx-sc]
+version = "0.39.8"
+
+[dependencies.multiversx-sc-meta]
+version = "0.39.8"

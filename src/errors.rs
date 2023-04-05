@@ -1,0 +1,9 @@
+pub static ERROR_INSUFFICIENT_DELEGATE_AMOUNT: &[u8] = b"Insufficient delegation amount";
+pub static ERROR_INSUFFICIENT_GAS: &[u8] = b"Insufficient gas remaining for the callback";
+pub static ERROR_NOT_ACTIVE: &[u8] = b"Not active";
+pub static ERROR_ACTIVE: &[u8] = b"Active state";
+pub static ERROR_BAD_PAYMENT_TOKEN: &[u8] = b"Bad payment token";
+pub static ERROR_BAD_PAYMENT_AMOUNT: &[u8] = b"Insufficient undelegated amount";
+pub static ERROR_NOTHING_TO_WITHDRAW: &[u8] = b"Nothing to withdraw";
+pub static ERROR_NOT_ENOUGH_FUNDS: &[u8] = b"Not enough funds to withdraw";
+pub static ERROR_NOT_ENOUGH_LIQUID_SUPPLY: &[u8] = b"Not enough liquid token supply";
