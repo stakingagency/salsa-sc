@@ -22,15 +22,15 @@ multiversx_sc_wasm_adapter::endpoints! {
         unDelegate
         withdraw
         compound
-        setProviderAddress
-        getProviderAddress
-        getUndelegated
-        getLiquidTokenSupply
         registerLiquidToken
         setStateActive
         setStateInactive
+        setProviderAddress
         getState
         getLiquidTokenId
+        getProviderAddress
+        getUndelegated
+        getLiquidTokenSupply
         callBack
     )
 }

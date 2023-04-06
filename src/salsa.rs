@@ -3,7 +3,6 @@
 multiversx_sc::imports!();
 
 pub mod delegation_proxy;
-pub mod storage;
 pub mod config;
 pub mod consts;
 pub mod errors;
@@ -16,8 +15,7 @@ use crate::{
 
 #[multiversx_sc::contract]
 pub trait SalsaContract<ContractReader>:
-    storage::StorageModule
-    + config::ConfigModule
+    config::ConfigModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
 
@@ -91,12 +89,6 @@ pub trait SalsaContract<ContractReader>:
             ERROR_NOT_ACTIVE
         );
 
-        let ls_supply = self.liquid_token_supply().get();
-        require!(
-            ls_supply > 0,
-            ERROR_NOT_ENOUGH_LIQUID_SUPPLY
-        );
-
         let payment = self.call_value().single_esdt();
         let amount = payment.amount;
         let liquid_token_id = self.liquid_token_id().get_token_id();
@@ -137,7 +129,7 @@ pub trait SalsaContract<ContractReader>:
         match result {
             ManagedAsyncCallResult::Ok(user_stake) => {
                 let ls_supply = self.liquid_token_supply().get();
-                let egld_amount = amount.clone() * user_stake / ls_supply;
+                let egld_amount = amount.clone() * user_stake / (ls_supply + amount.clone());
 
                 let delegation_contract = self.provider_address().get();
                 let gas_for_async_call = self.get_gas_for_async_call();
@@ -149,6 +141,7 @@ pub trait SalsaContract<ContractReader>:
                     .async_call()
                     .with_callback(SalsaContract::callbacks(self).undelegate_callback(
                         caller,
+                        amount,
                         egld_amount,
                     ))
                     .call_and_exit()
@@ -170,6 +163,7 @@ pub trait SalsaContract<ContractReader>:
         &self,
         caller: ManagedAddress,
         amount: BigUint,
+        egld_amount: BigUint,
         #[call_result] result: ManagedAsyncCallResult<()>,
     ) {
         match result {
@@ -177,9 +171,9 @@ pub trait SalsaContract<ContractReader>:
                 let current_epoch = self.blockchain().get_block_epoch();
                 let unbond_epoch = current_epoch + UNBOND_PERIOD;
 
-                let undelegation = storage::Undelegation {
+                let undelegation = config::Undelegation {
                     address: caller,
-                    amount: amount,
+                    amount: egld_amount,
                     unbond_epoch: unbond_epoch,
                 };
                 self.undelegated().push(&undelegation);
@@ -268,20 +262,6 @@ pub trait SalsaContract<ContractReader>:
             .with_gas_limit(gas_for_async_call)
             .async_call()
             .call_and_exit()
-    }
-
-    #[only_owner]
-    #[endpoint(setProviderAddress)]
-    fn set_provider_address(
-        &self,
-        address: ManagedAddress
-    ) {
-        require!(
-            !self.is_state_active(),
-            ERROR_ACTIVE
-        );
-
-        self.provider_address().set(address);
     }
 
     fn get_gas_for_async_call(&self) -> u64 {
