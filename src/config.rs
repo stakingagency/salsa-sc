@@ -11,7 +11,18 @@ pub enum State {
     Active,
 }
 
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
+#[derive(
+    ManagedVecItem,
+    TopEncode,
+    TopDecode,
+    NestedEncode,
+    NestedDecode,
+    TypeAbi,
+    Clone,
+    PartialEq,
+    Eq,
+    Debug,
+)]
 pub struct Undelegation<M: ManagedTypeApi> {
     pub address: ManagedAddress<M>,
     pub amount: BigUint<M>,
@@ -22,7 +33,6 @@ pub struct Undelegation<M: ManagedTypeApi> {
 pub trait ConfigModule:
     multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
-
     #[only_owner]
     #[payable("EGLD")]
     #[endpoint(registerLiquidToken)]
@@ -32,10 +42,7 @@ pub trait ConfigModule:
         token_ticker: ManagedBuffer,
         num_decimals: usize,
     ) {
-        require!(
-            !self.is_state_active(),
-            ERROR_ACTIVE
-        );
+        require!(!self.is_state_active(), ERROR_ACTIVE);
 
         let payment_amount = self.call_value().egld_value();
         self.liquid_token_id().issue_and_set_all_roles(
@@ -67,15 +74,9 @@ pub trait ConfigModule:
 
     #[only_owner]
     #[endpoint(setProviderAddress)]
-    fn set_provider_address(
-        &self,
-        address: ManagedAddress
-    ) {
-        require!(
-            !self.is_state_active(),
-            ERROR_ACTIVE
-        );
-        
+    fn set_provider_address(self, address: ManagedAddress) {
+        require!(!self.is_state_active(), ERROR_ACTIVE);
+
         let provider_address = self.provider_address().get();
         require!(
             provider_address == ManagedAddress::zero(),
@@ -102,13 +103,15 @@ pub trait ConfigModule:
     #[view(getProviderAddress)]
     #[storage_mapper("provider_address")]
     fn provider_address(&self) -> SingleValueMapper<ManagedAddress>;
-   
-    #[view(getUndelegated)]
-    #[storage_mapper("undelegated")]
-    fn undelegated(&self) -> VecMapper<Undelegation<Self::Api>>;
-    
+
+    #[storage_mapper("userUndelegations")]
+    fn user_undelegations(
+        &self,
+        user: &ManagedAddress,
+    ) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
+
     #[view(getLiquidTokenSupply)]
-    #[storage_mapper("liquid_token_suuply")]
+    #[storage_mapper("liquid_token_supply")]
     fn liquid_token_supply(&self) -> SingleValueMapper<BigUint>;
 
 }

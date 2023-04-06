@@ -136,17 +136,6 @@
             ]
         },
         {
-            "name": "getUndelegated",
-            "mutability": "readonly",
-            "inputs": [],
-            "outputs": [
-                {
-                    "type": "variadic<Undelegation>",
-                    "multi_result": true
-                }
-            ]
-        },
-        {
             "name": "getLiquidTokenSupply",
             "mutability": "readonly",
             "inputs": [],
@@ -187,23 +176,6 @@
                 {
                     "name": "Active",
                     "discriminant": 1
-                }
-            ]
-        },
-        "Undelegation": {
-            "type": "struct",
-            "fields": [
-                {
-                    "name": "address",
-                    "type": "Address"
-                },
-                {
-                    "name": "amount",
-                    "type": "BigUint"
-                },
-                {
-                    "name": "unbond_epoch",
-                    "type": "u64"
                 }
             ]
         }

@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           13
+// Endpoints:                           12
 // Async Callback:                       1
-// Total number of exported functions:  15
+// Total number of exported functions:  14
 
 #![no_std]
 #![feature(alloc_error_handler, lang_items)]
@@ -29,7 +29,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         getState
         getLiquidTokenId
         getProviderAddress
-        getUndelegated
         getLiquidTokenSupply
         callBack
     )
