@@ -43,6 +43,7 @@ pub trait ConfigModule:
         num_decimals: usize,
     ) {
         require!(!self.is_state_active(), ERROR_ACTIVE);
+        require!(self.liquid_token_id().is_empty(), ERROR_TOKEN_ALREADY_SET);
 
         let payment_amount = self.call_value().egld_value();
         self.liquid_token_id().issue_and_set_all_roles(
@@ -57,11 +58,8 @@ pub trait ConfigModule:
     #[only_owner]
     #[endpoint(setStateActive)]
     fn set_state_active(&self) {
-        let provider_address = self.provider_address().get();
-        require!(
-            provider_address != ManagedAddress::zero(),
-            ERROR_PROVIDER_NOT_SET
-        );
+        require!(!self.provider_address().is_empty(), ERROR_PROVIDER_NOT_SET);
+        require!(!self.liquid_token_id().is_empty(), ERROR_TOKEN_NOT_SET);
 
         self.state().set(State::Active);
     }
@@ -77,13 +75,20 @@ pub trait ConfigModule:
     fn set_provider_address(self, address: ManagedAddress) {
         require!(!self.is_state_active(), ERROR_ACTIVE);
 
-        let provider_address = self.provider_address().get();
         require!(
-            provider_address == ManagedAddress::zero(),
+            self.provider_address().is_empty(),
             ERROR_PROVIDER_ALREADY_SET
         );
 
         self.provider_address().set(address);
+    }
+
+    #[only_owner]
+    #[endpoint(setUndelegateNowFee)]
+    fn set_undelegate_now_fee(&self, new_fee: u32) {
+        require!(new_fee < 10000u32, ERROR_INCORRECT_FEE);
+
+        self.undelegate_now_fee().set(new_fee);
     }
 
     #[inline]
@@ -113,5 +118,26 @@ pub trait ConfigModule:
     #[view(getLiquidTokenSupply)]
     #[storage_mapper("liquid_token_supply")]
     fn liquid_token_supply(&self) -> SingleValueMapper<BigUint>;
+
+    #[view(getTotalEgldStaked)]
+    #[storage_mapper("total_egld_staked")]
+    fn total_egld_staked(&self) -> SingleValueMapper<BigUint>;
+
+    #[view(getEgldReserve)]
+    #[storage_mapper("egld_reserve")]
+    fn egld_reserve(&self) -> SingleValueMapper<BigUint>;
+
+    #[storage_mapper("userReserves")]
+    fn user_reserves(
+        &self,
+        user: &ManagedAddress,
+    ) -> SingleValueMapper<BigUint<Self::Api>>;
+
+    #[storage_mapper("reservers")]
+    fn reservers(&self) -> UnorderedSetMapper<ManagedAddress>;
+
+    #[view(getUndelegateNowFee)]
+    #[storage_mapper("undelegate_now_fee")]
+    fn undelegate_now_fee(&self) -> SingleValueMapper<u32>;
 
 }

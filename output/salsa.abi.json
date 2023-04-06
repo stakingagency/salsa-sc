@@ -57,6 +57,47 @@
             "outputs": []
         },
         {
+            "name": "updateTotalEgldStaked",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "withdrawAll",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "addReserve",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "EGLD"
+            ],
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "removeReserve",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "amount",
+                    "type": "BigUint"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "unDelegateNow",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [],
+            "outputs": []
+        },
+        {
             "name": "registerLiquidToken",
             "onlyOwner": true,
             "mutability": "mutable",
@@ -106,6 +147,18 @@
             "outputs": []
         },
         {
+            "name": "setUndelegateNowFee",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "new_fee",
+                    "type": "u32"
+                }
+            ],
+            "outputs": []
+        },
+        {
             "name": "getState",
             "mutability": "readonly",
             "inputs": [],
@@ -142,6 +195,36 @@
             "outputs": [
                 {
                     "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "name": "getTotalEgldStaked",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "name": "getEgldReserve",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "name": "getUndelegateNowFee",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u32"
                 }
             ]
         }
