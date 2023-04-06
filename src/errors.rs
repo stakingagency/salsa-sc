@@ -6,4 +6,5 @@ pub static ERROR_BAD_PAYMENT_TOKEN: &[u8] = b"Bad payment token";
 pub static ERROR_BAD_PAYMENT_AMOUNT: &[u8] = b"Insufficient undelegated amount";
 pub static ERROR_NOTHING_TO_WITHDRAW: &[u8] = b"Nothing to withdraw";
 pub static ERROR_NOT_ENOUGH_FUNDS: &[u8] = b"Not enough funds to withdraw";
-pub static ERROR_NOT_ENOUGH_LIQUID_SUPPLY: &[u8] = b"Not enough liquid token supply";
+pub static ERROR_PROVIDER_ALREADY_SET: &[u8] = b"Provider address already set";
+pub static ERROR_PROVIDER_NOT_SET: &[u8] = b"Provider address not set";
