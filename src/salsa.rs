@@ -255,12 +255,27 @@ pub trait SalsaContract<ContractReader>:
 
         let caller = self.blockchain().get_caller();
         let reserve_amount = self.call_value().egld_value();
-        let user_reserve = self.user_reserves(&caller).get();
-        self.user_reserves(&caller)
-            .set(user_reserve + &reserve_amount);
+
+        let user_reserves = self.user_reserves().get();
+        let mut found = false;
+        for mut user_reserve in &user_reserves {
+            if user_reserve.address == caller {
+                user_reserve.amount += &reserve_amount;
+                found = true;
+                break;
+            }
+        }
+        if !found {
+            let reserve = config::Reserve {
+                address: caller.clone(),
+                amount: reserve_amount.clone(),
+            };
+            self.user_reserves()
+                .update(|reserves| reserves.push(reserve));
+        }
+
         self.egld_reserve()
             .update(|value| *value += reserve_amount);
-        self.reservers().insert(caller);
     }
 
     #[endpoint(removeReserve)]
@@ -268,22 +283,28 @@ pub trait SalsaContract<ContractReader>:
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         let caller = self.blockchain().get_caller();
-        let user_reserve = self.user_reserves(&caller).get();
-        require!(amount <= user_reserve, ERROR_NOT_ENOUGH_FUNDS);
 
         let sc_balance = self
             .blockchain()
             .get_sc_balance(&EgldOrEsdtTokenIdentifier::egld(), 0);
         require!(sc_balance >= amount, ERROR_NOT_ENOUGH_FUNDS);
 
+        let user_reserves = self.user_reserves().get();
+        let mut found = false;
+        for mut user_reserve in &user_reserves {
+            if user_reserve.address == caller {
+                require!(amount <= user_reserve.amount, ERROR_NOT_ENOUGH_FUNDS);
+
+                user_reserve.amount -= &amount;
+                found = true;
+                break;
+            }
+        }
+        require!(found, ERROR_NOT_ENOUGH_FUNDS);
+
         self.send().direct_egld(&caller, &amount);
-        self.user_reserves(&caller)
-            .set(&user_reserve - &amount);
         self.egld_reserve()
             .update(|value| *value -= &amount);
-        if user_reserve == amount {
-            self.reservers().swap_remove(&caller);
-        }
     }
 
     #[payable("*")]
@@ -314,6 +335,18 @@ pub trait SalsaContract<ContractReader>:
         require!(egld_to_unstake_with_fee <= egld_reserve, ERROR_NOT_ENOUGH_FUNDS);
         require!(egld_to_unstake <= total_egld_staked, ERROR_NOT_ENOUGH_FUNDS);
 
+        self.backup_user_reserves().clear();
+        let remaining = &egld_to_unstake - &egld_to_unstake_with_fee;
+        let user_reserves = self.backup_user_reserves().get();
+        for user_reserve in &user_reserves {
+            let reserve = config::Reserve {
+                address: user_reserve.address,
+                amount: user_reserve.amount.clone() + &user_reserve.amount * &remaining / &egld_reserve,
+            };
+            self.backup_user_reserves()
+                .update(|reserves| reserves.push(reserve));
+        }
+
         self.burn_liquid_token(&payment.amount);
         self.delegation_proxy_obj()
             .contract(delegation_contract)
@@ -336,16 +369,13 @@ pub trait SalsaContract<ContractReader>:
         match result {
             ManagedAsyncCallResult::Ok(()) => {
                 let fee = self.undelegate_now_fee().get();
-                let egld_reserve = self.egld_reserve().get();
                 let egld_to_unstake_with_fee = egld_to_unstake.clone() - egld_to_unstake.clone() * fee / 10000u32;
                 self.send().direct_egld(&caller, &egld_to_unstake_with_fee);
                 let remaining = &egld_to_unstake - &egld_to_unstake_with_fee;
-                for reserver in self.reservers().iter() {
-                    let old_reserve = self.user_reserves(&reserver).get();
-                    self.user_reserves(&reserver).set(old_reserve.clone() + &old_reserve * &remaining / &egld_reserve);
-                }
                 self.egld_reserve()
                     .update(|value| *value += remaining);
+                let reserves = self.backup_user_reserves().take();
+                self.user_reserves().set(reserves);
             }
             ManagedAsyncCallResult::Err(_) => {
                 let ls_token_amount = self.add_liquidity(&egld_to_unstake);
