@@ -256,23 +256,24 @@ pub trait SalsaContract<ContractReader>:
         let caller = self.blockchain().get_caller();
         let reserve_amount = self.call_value().egld_value();
 
-        let user_reserves = self.user_reserves().get();
-        let mut found = false;
-        for mut user_reserve in &user_reserves {
-            if user_reserve.address == caller {
-                user_reserve.amount += &reserve_amount;
-                found = true;
-                break;
+        self.user_reserves().update(|user_reserves| {
+            let mut user_found = false;
+            for mut user_reserve in user_reserves.into_iter() {
+                if user_reserve.address == caller {
+                    user_reserve.amount += &reserve_amount;
+                    user_found = true;
+                    break;
+                }
             }
-        }
-        if !found {
-            let reserve = config::Reserve {
-                address: caller.clone(),
-                amount: reserve_amount.clone(),
-            };
-            self.user_reserves()
-                .update(|reserves| reserves.push(reserve));
-        }
+
+            if !user_found {
+                let new_reserve = config::Reserve {
+                    address: caller.clone(),
+                    amount: reserve_amount.clone(),
+                };
+                user_reserves.push(new_reserve);
+            }
+        });
 
         self.egld_reserve()
             .update(|value| *value += reserve_amount);
@@ -289,19 +290,27 @@ pub trait SalsaContract<ContractReader>:
             .get_sc_balance(&EgldOrEsdtTokenIdentifier::egld(), 0);
         require!(sc_balance >= amount, ERROR_NOT_ENOUGH_FUNDS);
 
-        let user_reserves = self.user_reserves().get();
-        let mut found = false;
-        for mut user_reserve in &user_reserves {
-            if user_reserve.address == caller {
-                require!(amount <= user_reserve.amount, ERROR_NOT_ENOUGH_FUNDS);
+        let mut user_found = false;
+        self.backup_user_reserves().clear();
+        self.user_reserves().update(|user_reserves| {
+            for mut user_reserve in user_reserves.into_iter() {
+                if user_reserve.address == caller {
+                    require!(user_reserve.amount >= amount, ERROR_NOT_ENOUGH_FUNDS);
 
-                user_reserve.amount -= &amount;
-                found = true;
-                break;
+                    user_reserve.amount -= &amount;
+                    if user_reserve.amount > 0 {
+                        self.backup_user_reserves()
+                            .update(|backup_reserves| backup_reserves.push(user_reserve));
+                    }
+                    user_found = true;
+                    break;
+                }
             }
-        }
-        require!(found, ERROR_NOT_ENOUGH_FUNDS);
+        });
+        require!(user_found, ERROR_NOT_ENOUGH_FUNDS);
 
+        let reserves = self.backup_user_reserves().take();
+        self.user_reserves().set(reserves);
         self.send().direct_egld(&caller, &amount);
         self.egld_reserve()
             .update(|value| *value -= &amount);
@@ -335,17 +344,18 @@ pub trait SalsaContract<ContractReader>:
         require!(egld_to_unstake_with_fee <= egld_reserve, ERROR_NOT_ENOUGH_FUNDS);
         require!(egld_to_unstake <= total_egld_staked, ERROR_NOT_ENOUGH_FUNDS);
 
-        self.backup_user_reserves().clear();
         let remaining = &egld_to_unstake - &egld_to_unstake_with_fee;
-        let user_reserves = self.backup_user_reserves().get();
-        for user_reserve in &user_reserves {
-            let reserve = config::Reserve {
-                address: user_reserve.address,
-                amount: user_reserve.amount.clone() + &user_reserve.amount * &remaining / &egld_reserve,
-            };
-            self.backup_user_reserves()
-                .update(|reserves| reserves.push(reserve));
-        }
+        self.backup_user_reserves().clear();
+        let original_user_reserves = self.user_reserves().get();
+        self.backup_user_reserves().update(|user_reserves| {
+            for original_user_reserve in original_user_reserves.into_iter() {
+                let new_reserve = config::Reserve {
+                    address: original_user_reserve.address,
+                    amount: original_user_reserve.amount.clone() + &original_user_reserve.amount * &remaining / &egld_reserve,
+                };
+                user_reserves.push(new_reserve);
+            }
+        });
 
         self.burn_liquid_token(&payment.amount);
         self.delegation_proxy_obj()
