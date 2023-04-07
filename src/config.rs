@@ -29,6 +29,23 @@ pub struct Undelegation<M: ManagedTypeApi> {
     pub unbond_epoch: u64,
 }
 
+#[derive(
+    ManagedVecItem,
+    TopEncode,
+    TopDecode,
+    NestedEncode,
+    NestedDecode,
+    TypeAbi,
+    Clone,
+    PartialEq,
+    Eq,
+    Debug,
+)]
+pub struct Reserve<M: ManagedTypeApi> {
+    pub address: ManagedAddress<M>,
+    pub amount: BigUint<M>,
+}
+
 #[multiversx_sc::module]
 pub trait ConfigModule:
     multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
@@ -128,13 +145,10 @@ pub trait ConfigModule:
     fn egld_reserve(&self) -> SingleValueMapper<BigUint>;
 
     #[storage_mapper("userReserves")]
-    fn user_reserves(
-        &self,
-        user: &ManagedAddress,
-    ) -> SingleValueMapper<BigUint<Self::Api>>;
+    fn user_reserves(&self) -> SingleValueMapper<ManagedVec<Reserve<Self::Api>>>;
 
-    #[storage_mapper("reservers")]
-    fn reservers(&self) -> UnorderedSetMapper<ManagedAddress>;
+    #[storage_mapper("backupUserReserves")]
+    fn backup_user_reserves(&self) -> SingleValueMapper<ManagedVec<Reserve<Self::Api>>>;
 
     #[view(getUndelegateNowFee)]
     #[storage_mapper("undelegate_now_fee")]
