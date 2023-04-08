@@ -1,9 +1,7 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use crate::{
-    errors::*,
-};
+use crate::{consts::MAX_PERCENT, errors::*};
 
 #[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Eq, Copy, Clone, Debug)]
 pub enum State {
@@ -11,6 +9,8 @@ pub enum State {
     Active,
 }
 
+// Comment
+// No need for the address here
 #[derive(
     ManagedVecItem,
     TopEncode,
@@ -24,7 +24,6 @@ pub enum State {
     Debug,
 )]
 pub struct Undelegation<M: ManagedTypeApi> {
-    pub address: ManagedAddress<M>,
     pub amount: BigUint<M>,
     pub unbond_epoch: u64,
 }
@@ -87,6 +86,9 @@ pub trait ConfigModule:
         self.state().set(State::Inactive);
     }
 
+    // Comment
+    // This does not look like a storage that will be changed in the future
+    // You can set it in the init function, with set_if_empty() for future upgrades
     #[only_owner]
     #[endpoint(setProviderAddress)]
     fn set_provider_address(self, address: ManagedAddress) {
@@ -100,10 +102,13 @@ pub trait ConfigModule:
         self.provider_address().set(address);
     }
 
+    // Comment
+    // I would recommend to save a MAX_PERCENTAGE value as a constant (and maybe keep u64 for consistency?)
+    // Usually, we don't hardcode variables like so
     #[only_owner]
     #[endpoint(setUndelegateNowFee)]
-    fn set_undelegate_now_fee(&self, new_fee: u32) {
-        require!(new_fee < 10000u32, ERROR_INCORRECT_FEE);
+    fn set_undelegate_now_fee(&self, new_fee: u64) {
+        require!(new_fee < MAX_PERCENT, ERROR_INCORRECT_FEE);
 
         self.undelegate_now_fee().set(new_fee);
     }
@@ -140,9 +145,17 @@ pub trait ConfigModule:
     #[storage_mapper("total_egld_staked")]
     fn total_egld_staked(&self) -> SingleValueMapper<BigUint>;
 
+    #[view(getUserWithdrawnEgld)]
+    #[storage_mapper("user_withdrawn_egld")]
+    fn user_withdrawn_egld(&self) -> SingleValueMapper<BigUint>;
+
     #[view(getEgldReserve)]
     #[storage_mapper("egld_reserve")]
     fn egld_reserve(&self) -> SingleValueMapper<BigUint>;
+
+    #[view(getReservesWithdrawnEgld)]
+    #[storage_mapper("reserves_withdrawn_egld")]
+    fn reserves_withdrawn_egld(&self) -> SingleValueMapper<BigUint>;
 
     #[storage_mapper("userReserves")]
     fn user_reserves(&self) -> SingleValueMapper<ManagedVec<Reserve<Self::Api>>>;
@@ -152,6 +165,5 @@ pub trait ConfigModule:
 
     #[view(getUndelegateNowFee)]
     #[storage_mapper("undelegate_now_fee")]
-    fn undelegate_now_fee(&self) -> SingleValueMapper<u32>;
-
+    fn undelegate_now_fee(&self) -> SingleValueMapper<u64>;
 }
