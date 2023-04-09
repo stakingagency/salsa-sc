@@ -1,9 +1,7 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use crate::{
-    errors::*,
-};
+use crate::{consts::MAX_PERCENT, errors::*};
 
 #[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Eq, Copy, Clone, Debug)]
 pub enum State {
@@ -24,7 +22,6 @@ pub enum State {
     Debug,
 )]
 pub struct Undelegation<M: ManagedTypeApi> {
-    pub address: ManagedAddress<M>,
     pub amount: BigUint<M>,
     pub unbond_epoch: u64,
 }
@@ -102,8 +99,8 @@ pub trait ConfigModule:
 
     #[only_owner]
     #[endpoint(setUndelegateNowFee)]
-    fn set_undelegate_now_fee(&self, new_fee: u32) {
-        require!(new_fee < 10000u32, ERROR_INCORRECT_FEE);
+    fn set_undelegate_now_fee(&self, new_fee: u64) {
+        require!(new_fee < MAX_PERCENT, ERROR_INCORRECT_FEE);
 
         self.undelegate_now_fee().set(new_fee);
     }
@@ -132,6 +129,9 @@ pub trait ConfigModule:
         user: &ManagedAddress,
     ) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
 
+    #[storage_mapper("backupUserUndelegations")]
+    fn backup_user_undelegations(&self) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
+
     #[view(getLiquidTokenSupply)]
     #[storage_mapper("liquid_token_supply")]
     fn liquid_token_supply(&self) -> SingleValueMapper<BigUint>;
@@ -144,6 +144,16 @@ pub trait ConfigModule:
     #[storage_mapper("egld_reserve")]
     fn egld_reserve(&self) -> SingleValueMapper<BigUint>;
 
+    #[view(getAvailableEgldReserve)]
+    #[storage_mapper("available_egld_reserve")]
+    fn available_egld_reserve(&self) -> SingleValueMapper<BigUint>;
+
+    #[storage_mapper("reserveUndelegations")]
+    fn reserve_undelegations(&self) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
+
+    #[storage_mapper("backupReserveUndelegations")]
+    fn backup_reserve_undelegations(&self) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
+
     #[storage_mapper("userReserves")]
     fn user_reserves(&self) -> SingleValueMapper<ManagedVec<Reserve<Self::Api>>>;
 
@@ -152,6 +162,10 @@ pub trait ConfigModule:
 
     #[view(getUndelegateNowFee)]
     #[storage_mapper("undelegate_now_fee")]
-    fn undelegate_now_fee(&self) -> SingleValueMapper<u32>;
+    fn undelegate_now_fee(&self) -> SingleValueMapper<u64>;
+
+    #[view(getUserWithdrawnEgld)]
+    #[storage_mapper("user_withdrawn_egld")]
+    fn user_withdrawn_egld(&self) -> SingleValueMapper<BigUint>;
 
 }
