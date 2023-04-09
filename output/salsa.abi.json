@@ -63,12 +63,6 @@
             "outputs": []
         },
         {
-            "name": "withdrawAll",
-            "mutability": "mutable",
-            "inputs": [],
-            "outputs": []
-        },
-        {
             "name": "addReserve",
             "mutability": "mutable",
             "payableInTokens": [
@@ -94,6 +88,12 @@
             "payableInTokens": [
                 "*"
             ],
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "withdrawAll",
+            "mutability": "mutable",
             "inputs": [],
             "outputs": []
         },
@@ -153,7 +153,7 @@
             "inputs": [
                 {
                     "name": "new_fee",
-                    "type": "u32"
+                    "type": "u64"
                 }
             ],
             "outputs": []
@@ -219,12 +219,32 @@
             ]
         },
         {
+            "name": "getAvailableEgldReserve",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
             "name": "getUndelegateNowFee",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
                 {
-                    "type": "u32"
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "getUserWithdrawnEgld",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "BigUint"
                 }
             ]
         }
