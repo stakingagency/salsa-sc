@@ -145,10 +145,9 @@ pub trait SalsaContract<ContractReader>:
         let caller = self.blockchain().get_caller();
         let current_epoch = self.blockchain().get_block_epoch();
 
-        let backup_user_undelegations = self.user_undelegations(&caller).take();
-        self.backup_user_undelegations().set(backup_user_undelegations);
+        let user_undelegations = self.user_undelegations(&caller).take();
+        self.backup_user_undelegations().set(user_undelegations.clone());
 
-        let user_undelegations = self.user_undelegations(&caller).get();
         let mut remaining_undelegations: ManagedVec<Self::Api, config::Undelegation<Self::Api>> =
             ManagedVec::new();
         let mut withdraw_amount = BigUint::zero();
@@ -170,10 +169,9 @@ pub trait SalsaContract<ContractReader>:
             self.user_withdrawn_egld()
                 .update(|value| *value -= withdraw_amount);
         } else {
-            let backup_reserve_undelegations = self.reserve_undelegations().take();
-            self.backup_reserve_undelegations().set(backup_reserve_undelegations);
-    
-            let reserve_undelegations = self.reserve_undelegations().get();
+            let reserve_undelegations = self.reserve_undelegations().take();
+            self.backup_reserve_undelegations().set(reserve_undelegations.clone());
+
             let mut remaining_reserve_undelegations: ManagedVec<Self::Api, config::Undelegation<Self::Api>> =
                 ManagedVec::new();
             let mut reserve_withdraw_amount = BigUint::zero();
@@ -228,10 +226,10 @@ pub trait SalsaContract<ContractReader>:
                 }
             }
             ManagedAsyncCallResult::Err(_) => {
-                let backup_user_undelegations = self.backup_user_undelegations().get();
+                let backup_user_undelegations = self.backup_user_undelegations().take();
                 self.user_undelegations(&caller).set(backup_user_undelegations);
 
-                let backup_reserve_undelegations = self.backup_reserve_undelegations().get();
+                let backup_reserve_undelegations = self.backup_reserve_undelegations().take();
                 self.reserve_undelegations().set(backup_reserve_undelegations);
             }
         }
@@ -312,6 +310,10 @@ pub trait SalsaContract<ContractReader>:
         self.available_egld_reserve().update(|value| *value += reserve_amount);
     }
 
+    // Comment
+    // I would not allow sending the funds to the user, if egld_reserve has not enough egld
+    // This would overlap with the withdraw endpoint, if total_user_withdrawn_egld is > user_requested_amount, but user_requested_amount > sc_balance
+    // It is better to always keep the 2 flows independent, when sending tokens. It is ok to update them together only when calling withdraw
     #[endpoint(removeReserve)]
     fn remove_reserve(&self, amount: BigUint) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
@@ -353,6 +355,11 @@ pub trait SalsaContract<ContractReader>:
         self.available_egld_reserve().update(|value| *value -= amount);
     }
 
+    // Comment
+    // Why do we need 2 egld_reserve variables (egld_reserve and available_egld_reserve)
+    // I think it is ok to have only one, and to always update that one
+    // Also, again here, as we do not allow to undelegate if we don't have enough reserves,
+    // the check sc_balance >= egld_to_unstake_with_fee is not needed
     #[payable("*")]
     #[endpoint(unDelegateNow)]
     fn undelegate_now(&self) {
@@ -411,6 +418,8 @@ pub trait SalsaContract<ContractReader>:
             .call_and_exit()
     }
 
+    // Comment
+    // Not sure why we have 2 egld_reserve storages here
     #[callback]
     fn undelegate_now_callback(
         &self,
@@ -452,16 +461,17 @@ pub trait SalsaContract<ContractReader>:
         }
     }
 
+    // Comment
+    // Maybe take the code that is the same as in the withdraw endpoint and extract it in a separate function
+    // Maybe something like compute_and_backup_reserve_undelegations
     #[endpoint(withdrawAll)]
     fn withdraw_all(&self) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         let current_epoch = self.blockchain().get_block_epoch();
 
-        let backup_reserve_undelegations = self.reserve_undelegations().take();
-        self.backup_reserve_undelegations().set(backup_reserve_undelegations);
-
-        let reserve_undelegations = self.reserve_undelegations().get();
+        let reserve_undelegations = self.reserve_undelegations().take();
+        self.backup_reserve_undelegations().set(reserve_undelegations.clone());
         let mut remaining_reserve_undelegations: ManagedVec<Self::Api, config::Undelegation<Self::Api>> =
             ManagedVec::new();
         let mut reserve_withdraw_amount = BigUint::zero();
@@ -490,6 +500,9 @@ pub trait SalsaContract<ContractReader>:
             .call_and_exit()
     }
 
+    // Comment
+    // Also the same here, most of the code is the same as the one in the withdraw_callback
+    // So we can extract it in a separate function, that can be used in both callbacks
     #[callback]
     fn withdraw_all_callback(
         &self,
