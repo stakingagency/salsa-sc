@@ -123,13 +123,13 @@ pub trait ConfigModule:
     #[storage_mapper("provider_address")]
     fn provider_address(&self) -> SingleValueMapper<ManagedAddress>;
 
-    #[storage_mapper("userUndelegations")]
+    #[storage_mapper("user_undelegations")]
     fn user_undelegations(
         &self,
         user: &ManagedAddress,
     ) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
 
-    #[storage_mapper("backupUserUndelegations")]
+    #[storage_mapper("backup_user_undelegations")]
     fn backup_user_undelegations(&self) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
 
     #[view(getLiquidTokenSupply)]
@@ -148,16 +148,16 @@ pub trait ConfigModule:
     #[storage_mapper("available_egld_reserve")]
     fn available_egld_reserve(&self) -> SingleValueMapper<BigUint>;
 
-    #[storage_mapper("reserveUndelegations")]
+    #[storage_mapper("reserve_undelegations")]
     fn reserve_undelegations(&self) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
 
-    #[storage_mapper("backupReserveUndelegations")]
+    #[storage_mapper("backup_reserve_undelegations")]
     fn backup_reserve_undelegations(&self) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
 
-    #[storage_mapper("userReserves")]
+    #[storage_mapper("user_reserves")]
     fn user_reserves(&self) -> SingleValueMapper<ManagedVec<Reserve<Self::Api>>>;
 
-    #[storage_mapper("backupUserReserves")]
+    #[storage_mapper("backup_user_reserves")]
     fn backup_user_reserves(&self) -> SingleValueMapper<ManagedVec<Reserve<Self::Api>>>;
 
     #[view(getUndelegateNowFee)]
