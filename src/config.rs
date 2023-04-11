@@ -99,6 +99,7 @@ pub trait ConfigModule:
 
     // delegation
 
+    #[view(getUserUndelegations)]
     #[storage_mapper("user_undelegations")]
     fn user_undelegations(
         &self,
@@ -126,12 +127,14 @@ pub trait ConfigModule:
     #[storage_mapper("available_egld_reserve")]
     fn available_egld_reserve(&self) -> SingleValueMapper<BigUint>;
 
+    #[view(getReserveUndelegations)]
     #[storage_mapper("reserve_undelegations")]
     fn reserve_undelegations(&self) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
 
     #[storage_mapper("backup_reserve_undelegations")]
     fn backup_reserve_undelegations(&self) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
 
+    #[view(getUserReserves)]
     #[storage_mapper("user_reserves")]
     fn user_reserves(&self) -> SingleValueMapper<ManagedVec<Reserve<Self::Api>>>;
 

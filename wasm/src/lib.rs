@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           23
+// Endpoints:                           26
 // Async Callback:                       1
-// Total number of exported functions:  25
+// Total number of exported functions:  28
 
 #![no_std]
 #![feature(alloc_error_handler, lang_items)]
@@ -35,10 +35,13 @@ multiversx_sc_wasm_adapter::endpoints! {
         getState
         setProviderAddress
         getProviderAddress
+        getUserUndelegations
         getTotalEgldStaked
         getUserWithdrawnEgld
         getEgldReserve
         getAvailableEgldReserve
+        getReserveUndelegations
+        getUserReserves
         setUndelegateNowFee
         getUndelegateNowFee
         callBack
