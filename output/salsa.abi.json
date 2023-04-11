@@ -187,6 +187,21 @@
             ]
         },
         {
+            "name": "getUserUndelegations",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "user",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "List<Undelegation>"
+                }
+            ]
+        },
+        {
             "name": "getTotalEgldStaked",
             "mutability": "readonly",
             "inputs": [],
@@ -223,6 +238,26 @@
             "outputs": [
                 {
                     "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "name": "getReserveUndelegations",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "List<Undelegation>"
+                }
+            ]
+        },
+        {
+            "name": "getUserReserves",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "List<Reserve>"
                 }
             ]
         },
@@ -269,6 +304,19 @@
                 }
             ]
         },
+        "Reserve": {
+            "type": "struct",
+            "fields": [
+                {
+                    "name": "address",
+                    "type": "Address"
+                },
+                {
+                    "name": "amount",
+                    "type": "BigUint"
+                }
+            ]
+        },
         "State": {
             "type": "enum",
             "variants": [
@@ -279,6 +327,19 @@
                 {
                     "name": "Active",
                     "discriminant": 1
+                }
+            ]
+        },
+        "Undelegation": {
+            "type": "struct",
+            "fields": [
+                {
+                    "name": "amount",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "unbond_epoch",
+                    "type": "u64"
                 }
             ]
         }
