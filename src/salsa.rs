@@ -356,12 +356,21 @@ pub trait SalsaContract<ContractReader>:
         );
         require!(egld_to_unstake <= total_egld_staked, ERROR_NOT_ENOUGH_FUNDS);
 
-        let remaining = &egld_to_unstake - &egld_to_unstake_with_fee;
+        let total_rewards = &egld_to_unstake - &egld_to_unstake_with_fee;
         self.backup_user_reserves().clear();
         let original_user_reserves = self.user_reserves().get();
+        let mut distributed_rewards = BigUint::zero();
+        let n = original_user_reserves.len();
+        let mut i: usize = 0;
         self.backup_user_reserves().update(|user_reserves| {
             for mut new_reserve in original_user_reserves.into_iter() {
-                new_reserve.amount += &new_reserve.amount * &remaining / &egld_reserve;
+                i += 1;
+                let mut reward = &new_reserve.amount * &total_rewards / &egld_reserve;
+                if i == n {
+                    reward = &total_rewards - &distributed_rewards;
+                }
+                new_reserve.amount += &reward;
+                distributed_rewards += reward;
                 user_reserves.push(new_reserve);
             }
         });
@@ -373,7 +382,7 @@ pub trait SalsaContract<ContractReader>:
             .with_gas_limit(gas_for_async_call)
             .async_call()
             .with_callback(
-                SalsaContract::callbacks(self).undelegate_now_callback(caller, egld_to_unstake),
+                SalsaContract::callbacks(self).undelegate_now_callback(caller, egld_to_unstake, egld_to_unstake_with_fee),
             )
             .call_and_exit()
     }
@@ -383,16 +392,14 @@ pub trait SalsaContract<ContractReader>:
         &self,
         caller: ManagedAddress,
         egld_to_unstake: BigUint,
+        egld_to_unstake_with_fee: BigUint,
         #[call_result] result: ManagedAsyncCallResult<()>,
     ) {
         match result {
             ManagedAsyncCallResult::Ok(()) => {
-                let fee = self.undelegate_now_fee().get();
-                let egld_to_unstake_with_fee =
-                    egld_to_unstake.clone() - egld_to_unstake.clone() * fee / MAX_PERCENT;
                 self.send().direct_egld(&caller, &egld_to_unstake_with_fee);
-                let remaining = &egld_to_unstake - &egld_to_unstake_with_fee;
-                self.egld_reserve().update(|value| *value += remaining);
+                let total_rewards = &egld_to_unstake - &egld_to_unstake_with_fee;
+                self.egld_reserve().update(|value| *value += total_rewards);
                 let reserves = self.backup_user_reserves().take();
                 self.user_reserves().set(reserves);
                 self.available_egld_reserve().update(|value| *value -= &egld_to_unstake_with_fee);
@@ -542,10 +549,13 @@ pub trait SalsaContract<ContractReader>:
     }
 
     fn update_withdrawn_amount(&self, reserve_withdraw_amount: &BigUint) {
-        let total_withdrawn_amount = self.call_value().egld_value();
-        let total_user_withdrawn_amount = total_withdrawn_amount - reserve_withdraw_amount;
+        let withdrawn_amount = self.call_value().egld_value();
+        let mut user_withdrawn_amount = &withdrawn_amount - reserve_withdraw_amount;
+        if reserve_withdraw_amount > &withdrawn_amount { // should never be true
+            user_withdrawn_amount = BigUint::zero();
+        }
         let user_withdrawn_egld_mapper = self.user_withdrawn_egld();
-        user_withdrawn_egld_mapper.update(|value| *value += total_user_withdrawn_amount);
+        user_withdrawn_egld_mapper.update(|value| *value += user_withdrawn_amount);
         let available_egld_reserve_mapper = self.available_egld_reserve();
         available_egld_reserve_mapper.update(|value| *value += reserve_withdraw_amount);
     }
