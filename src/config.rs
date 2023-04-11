@@ -9,35 +9,13 @@ pub enum State {
     Active,
 }
 
-#[derive(
-    ManagedVecItem,
-    TopEncode,
-    TopDecode,
-    NestedEncode,
-    NestedDecode,
-    TypeAbi,
-    Clone,
-    PartialEq,
-    Eq,
-    Debug,
-)]
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
 pub struct Undelegation<M: ManagedTypeApi> {
     pub amount: BigUint<M>,
     pub unbond_epoch: u64,
 }
 
-#[derive(
-    ManagedVecItem,
-    TopEncode,
-    TopDecode,
-    NestedEncode,
-    NestedDecode,
-    TypeAbi,
-    Clone,
-    PartialEq,
-    Eq,
-    Debug,
-)]
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
 pub struct Reserve<M: ManagedTypeApi> {
     pub address: ManagedAddress<M>,
     pub amount: BigUint<M>,
@@ -69,6 +47,14 @@ pub trait ConfigModule:
         );
     }
 
+    #[view(getLiquidTokenId)]
+    #[storage_mapper("liquid_token_id")]
+    fn liquid_token_id(&self) -> FungibleTokenMapper<Self::Api>;
+
+    #[view(getLiquidTokenSupply)]
+    #[storage_mapper("liquid_token_supply")]
+    fn liquid_token_supply(&self) -> SingleValueMapper<BigUint>;
+
     #[only_owner]
     #[endpoint(setStateActive)]
     fn set_state_active(&self) {
@@ -84,6 +70,16 @@ pub trait ConfigModule:
         self.state().set(State::Inactive);
     }
 
+    #[inline]
+    fn is_state_active(&self) -> bool {
+        let state = self.state().get();
+        state == State::Active
+    }
+
+    #[view(getState)]
+    #[storage_mapper("state")]
+    fn state(&self) -> SingleValueMapper<State>;
+
     #[only_owner]
     #[endpoint(setProviderAddress)]
     fn set_provider_address(self, address: ManagedAddress) {
@@ -97,31 +93,11 @@ pub trait ConfigModule:
         self.provider_address().set(address);
     }
 
-    #[only_owner]
-    #[endpoint(setUndelegateNowFee)]
-    fn set_undelegate_now_fee(&self, new_fee: u64) {
-        require!(new_fee < MAX_PERCENT, ERROR_INCORRECT_FEE);
-
-        self.undelegate_now_fee().set(new_fee);
-    }
-
-    #[inline]
-    fn is_state_active(&self) -> bool {
-        let state = self.state().get();
-        state == State::Active
-    }
-
-    #[view(getState)]
-    #[storage_mapper("state")]
-    fn state(&self) -> SingleValueMapper<State>;
-
-    #[view(getLiquidTokenId)]
-    #[storage_mapper("liquid_token_id")]
-    fn liquid_token_id(&self) -> FungibleTokenMapper<Self::Api>;
-
     #[view(getProviderAddress)]
     #[storage_mapper("provider_address")]
     fn provider_address(&self) -> SingleValueMapper<ManagedAddress>;
+
+    // delegation
 
     #[storage_mapper("user_undelegations")]
     fn user_undelegations(
@@ -132,13 +108,15 @@ pub trait ConfigModule:
     #[storage_mapper("backup_user_undelegations")]
     fn backup_user_undelegations(&self) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
 
-    #[view(getLiquidTokenSupply)]
-    #[storage_mapper("liquid_token_supply")]
-    fn liquid_token_supply(&self) -> SingleValueMapper<BigUint>;
-
     #[view(getTotalEgldStaked)]
     #[storage_mapper("total_egld_staked")]
     fn total_egld_staked(&self) -> SingleValueMapper<BigUint>;
+
+    #[view(getUserWithdrawnEgld)]
+    #[storage_mapper("user_withdrawn_egld")]
+    fn user_withdrawn_egld(&self) -> SingleValueMapper<BigUint>;
+
+    // reserves
 
     #[view(getEgldReserve)]
     #[storage_mapper("egld_reserve")]
@@ -160,12 +138,16 @@ pub trait ConfigModule:
     #[storage_mapper("backup_user_reserves")]
     fn backup_user_reserves(&self) -> SingleValueMapper<ManagedVec<Reserve<Self::Api>>>;
 
+    #[only_owner]
+    #[endpoint(setUndelegateNowFee)]
+    fn set_undelegate_now_fee(&self, new_fee: u64) {
+        require!(new_fee < MAX_PERCENT, ERROR_INCORRECT_FEE);
+
+        self.undelegate_now_fee().set(new_fee);
+    }
+
     #[view(getUndelegateNowFee)]
     #[storage_mapper("undelegate_now_fee")]
     fn undelegate_now_fee(&self) -> SingleValueMapper<u64>;
-
-    #[view(getUserWithdrawnEgld)]
-    #[storage_mapper("user_withdrawn_egld")]
-    fn user_withdrawn_egld(&self) -> SingleValueMapper<BigUint>;
 
 }

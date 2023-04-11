@@ -84,11 +84,9 @@ func scenario1() error {
 		return err
 	}
 
-	// return withdrawAll(30000000, int64(nonce))
+	return updateTotalEgldStaked(30000000, int64(nonce))
 
-	// return removeReserve(10, 5000000, int64(nonce))
-
-	return configSC("TESTTEST", "TEST", 18, "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqphllllsndz99p", 10, int64(nonce))
+	// return configSC("TESTTEST", "TEST", 18, "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqphllllsndz99p", 5, int64(nonce))
 
 	// for i := 0; i < 100; i++ {
 	// 	if err = delegate(10, 30000000, int64(nonce)); err != nil {

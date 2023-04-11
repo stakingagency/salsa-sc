@@ -28,19 +28,19 @@ multiversx_sc_wasm_adapter::endpoints! {
         unDelegateNow
         withdrawAll
         registerLiquidToken
+        getLiquidTokenId
+        getLiquidTokenSupply
         setStateActive
         setStateInactive
-        setProviderAddress
-        setUndelegateNowFee
         getState
-        getLiquidTokenId
+        setProviderAddress
         getProviderAddress
-        getLiquidTokenSupply
         getTotalEgldStaked
+        getUserWithdrawnEgld
         getEgldReserve
         getAvailableEgldReserve
+        setUndelegateNowFee
         getUndelegateNowFee
-        getUserWithdrawnEgld
         callBack
     )
 }
