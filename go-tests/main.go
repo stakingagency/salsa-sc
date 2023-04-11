@@ -77,14 +77,14 @@ var (
 // updateTotalEgldStaked 30000000
 
 func scenario1() error {
-	return nil
+	// return nil
 
 	nonce, err := getNonce()
 	if err != nil {
 		return err
 	}
 
-	return updateTotalEgldStaked(30000000, int64(nonce))
+	return compound(30000000, int64(nonce))
 
 	// return configSC("TESTTEST", "TEST", 18, "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqphllllsndz99p", 5, int64(nonce))
 
@@ -341,9 +341,12 @@ func readSC() error {
 	value := keys[searchKey]
 	idx := 0
 	for {
-		pubKey, idx, ok := parsePubkey(value, idx)
+		var pubKey []byte
+		var ok bool
+		var iAmount *big.Int
+		pubKey, idx, ok = parsePubkey(value, idx)
 		allOk := ok
-		iAmount, idx, ok := parseBigInt(value, idx)
+		iAmount, idx, ok = parseBigInt(value, idx)
 		allOk = allOk && ok
 		if !allOk {
 			return errors.New("not all ok")
