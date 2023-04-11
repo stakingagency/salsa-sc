@@ -550,10 +550,11 @@ pub trait SalsaContract<ContractReader>:
 
     fn update_withdrawn_amount(&self, reserve_withdraw_amount: &BigUint) {
         let withdrawn_amount = self.call_value().egld_value();
-        let mut user_withdrawn_amount = &withdrawn_amount - reserve_withdraw_amount;
-        if reserve_withdraw_amount > &withdrawn_amount { // should never be true
-            user_withdrawn_amount = BigUint::zero();
-        }
+        let user_withdrawn_amount = if reserve_withdraw_amount > &withdrawn_amount {
+            BigUint::zero()
+        } else {
+            &withdrawn_amount - reserve_withdraw_amount
+        };
         let user_withdrawn_egld_mapper = self.user_withdrawn_egld();
         user_withdrawn_egld_mapper.update(|value| *value += user_withdrawn_amount);
         let available_egld_reserve_mapper = self.available_egld_reserve();
