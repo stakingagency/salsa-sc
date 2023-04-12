@@ -39,8 +39,8 @@ type accountKeys struct {
 }
 
 const (
-	scAddress    = "erd1qqqqqqqqqqqqqpgqwn629zgxxhkvuyu7kafky7swesxlgd00vcqsyee0cw"
-	proxyAddress = "https://testnet-gateway.multiversx.com"
+	scAddress    = "erd1qqqqqqqqqqqqqpgqpk3qzj86tme9kzxdq87f2rdf5nlwsgvjvcqs5hke3x"
+	proxyAddress = "https://devnet-gateway.multiversx.com"
 	walletFile   = "/home/mihai/walletKey.pem"
 )
 
@@ -84,9 +84,9 @@ func scenario1() error {
 		return err
 	}
 
-	return compound(30000000, int64(nonce))
+	// return compound(30000000, int64(nonce))
 
-	// return configSC("TESTTEST", "TEST", 18, "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqphllllsndz99p", 5, int64(nonce))
+	return configSC("LiquidEGLD", "LEGLD", 18, "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqx0llllsdx93z0", 5, int64(nonce))
 
 	// for i := 0; i < 100; i++ {
 	// 	if err = delegate(10, 30000000, int64(nonce)); err != nil {
@@ -638,6 +638,8 @@ func configSC(tokenName string, ticker string, decimals int64, provider string, 
 		return err
 	}
 
+	time.Sleep(time.Second * 30)
+
 	if nonce != -1 {
 		nonce++
 	}
@@ -645,12 +647,16 @@ func configSC(tokenName string, ticker string, decimals int64, provider string, 
 		return err
 	}
 
+	time.Sleep(time.Second * 6)
+
 	if nonce != -1 {
 		nonce++
 	}
 	if err := setUndelegateNowFee(undelegateNowFee, nonce); err != nil {
 		return err
 	}
+
+	time.Sleep(time.Second * 6)
 
 	if nonce != -1 {
 		nonce++
