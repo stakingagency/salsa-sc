@@ -84,45 +84,23 @@ func scenario1() error {
 		return err
 	}
 
-	// return compound(30000000, int64(nonce))
+	setStateInactive(int64(nonce))
 
-	return configSC("LiquidEGLD", "LEGLD", 18, "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqx0llllsdx93z0", 5, int64(nonce))
-
-	// for i := 0; i < 100; i++ {
-	// 	if err = delegate(10, 30000000, int64(nonce)); err != nil {
-	// 		return err
-	// 	}
+	// for {
+	// 	compound(30000000, int64(nonce))
 	// 	nonce++
+	// 	time.Sleep(time.Second * 30)
+
+	// 	updateTotalEgldStaked(30000000, int64(nonce))
+	// 	nonce++
+	// 	time.Sleep(time.Minute)
+
+	// 	withdrawAll(30000000, int64(nonce))
+	// 	nonce++
+	// 	time.Sleep(time.Hour*2 - time.Second*84)
 	// }
 
-	// time.Sleep(time.Second * 30)
-
-	// for i := 0; i < 50; i++ {
-	// 	if err = unDelegate(10, 30000000, int64(nonce)); err != nil {
-	// 		return err
-	// 	}
-	// 	nonce++
-	// }
-
-	/////////////////////////////////////////////////////////////////////////////////////////////
-
-	// for i := 0; i < 30; i++ {
-	// 	if err = addReserve(10, 30000000, int64(nonce)); err != nil {
-	// 		return err
-	// 	}
-	// 	nonce++
-	// }
-
-	// time.Sleep(time.Second * 30)
-
-	// for i := 0; i < 15; i++ {
-	// 	if err = removeReserve(10, 30000000, int64(nonce)); err != nil {
-	// 		return err
-	// 	}
-	// 	nonce++
-	// }
-
-	// return unDelegateNow(100, 30000000, int64(nonce))
+	// return configSC("TESTTEST", "TEST", 18, "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqx0llllsdx93z0", 2, int64(nonce))
 
 	return nil
 }
