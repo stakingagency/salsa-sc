@@ -17,6 +17,9 @@ pub trait SalsaContract<ContractReader>:
     #[init]
     fn init(&self) {
         self.state().set(State::Inactive);
+        self.backup_reserve_undelegations().clear();
+        self.backup_user_reserves().clear();
+        self.backup_user_undelegations().clear();
     }
 
     // endpoints
@@ -349,7 +352,7 @@ pub trait SalsaContract<ContractReader>:
             self.backup_reserve_undelegations().is_empty(),
             ERR_WITHDRAW_BUSY,
         );
-        
+
         let payment = self.call_value().single_esdt();
         let liquid_token_id = self.liquid_token_id().get_token_id();
         let egld_reserve = self.egld_reserve().get();
