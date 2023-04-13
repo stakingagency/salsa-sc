@@ -212,6 +212,8 @@ pub trait SalsaContract<ContractReader>:
                     let backup_user_undelegations = self.backup_user_undelegations().take();
                     self.user_undelegations(&caller).set(backup_user_undelegations);
                 }
+                self.backup_user_undelegations().clear();
+                self.backup_reserve_undelegations().clear();
             }
             ManagedAsyncCallResult::Err(_) => {
                 let backup_user_undelegations = self.backup_user_undelegations().take();
@@ -476,6 +478,7 @@ pub trait SalsaContract<ContractReader>:
         match result {
             ManagedAsyncCallResult::Ok(()) => {
                 self.update_withdrawn_amount(&reserve_withdraw_amount);
+                self.backup_reserve_undelegations().clear();
             }
             ManagedAsyncCallResult::Err(_) => {
                 let backup_reserve_undelegations = self.backup_reserve_undelegations().take();
