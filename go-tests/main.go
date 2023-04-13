@@ -84,21 +84,21 @@ func scenario1() error {
 		return err
 	}
 
-	return setStateActive(int64(nonce))
+	// return setStateActive(int64(nonce))
 
-	// for {
-	// 	compound(50000000, int64(nonce))
-	// 	nonce++
-	// 	time.Sleep(time.Second * 30)
+	for {
+		compound(50000000, int64(nonce))
+		nonce++
+		time.Sleep(time.Second * 30)
 
-	// 	updateTotalEgldStaked(50000000, int64(nonce))
-	// 	nonce++
-	// 	time.Sleep(time.Minute)
+		updateTotalEgldStaked(50000000, int64(nonce))
+		nonce++
+		time.Sleep(time.Minute)
 
-	withdrawAll(50000000, int64(nonce))
-	// 	nonce++
-	// 	time.Sleep(time.Hour*2 - time.Second*84)
-	// }
+		withdrawAll(200000000, int64(nonce))
+		nonce++
+		time.Sleep(time.Hour*2 - time.Second*84)
+	}
 
 	// return configSC("TESTTEST", "TEST", 18, "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqx0llllsdx93z0", 2, int64(nonce))
 

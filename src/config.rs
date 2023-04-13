@@ -138,8 +138,12 @@ pub trait ConfigModule:
     #[storage_mapper("user_reserves")]
     fn user_reserves(&self) -> SingleValueMapper<ManagedVec<Reserve<Self::Api>>>;
 
-    #[storage_mapper("backup_user_reserves")]
-    fn backup_user_reserves(&self) -> SingleValueMapper<ManagedVec<Reserve<Self::Api>>>;
+    #[view(getUserRewards)]
+    #[storage_mapper("user_rewards")]
+    fn user_rewards(
+        &self,
+        user: &ManagedAddress,
+    ) -> SingleValueMapper<BigUint>;
 
     #[only_owner]
     #[endpoint(setUndelegateNowFee)]
@@ -152,5 +156,8 @@ pub trait ConfigModule:
     #[view(getUndelegateNowFee)]
     #[storage_mapper("undelegate_now_fee")]
     fn undelegate_now_fee(&self) -> SingleValueMapper<u64>;
+
+    #[storage_mapper("egld_to_replenish_reserve")]
+    fn egld_to_replenish_reserve(&self) -> SingleValueMapper<BigUint>;
 
 }
