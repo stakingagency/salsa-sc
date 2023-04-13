@@ -12,3 +12,5 @@ pub static ERROR_TOKEN_ALREADY_SET: &[u8] = b"Token already set";
 pub static ERROR_TOKEN_NOT_SET: &[u8] = b"Token not set";
 pub static ERROR_NOT_ENOUGH_LIQUID_SUPPLY: &[u8] = b"Not enough liquid token supply";
 pub static ERROR_INCORRECT_FEE: &[u8] = b"Fee must be less than 100%";
+pub static ERR_UNDELEGATENOW_BUSY: &[u8] = b"Another undelegateNow call in progress";
+pub static ERR_WITHDRAW_BUSY: &[u8] = b"Another withdraw call in progress";

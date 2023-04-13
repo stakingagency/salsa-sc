@@ -141,6 +141,14 @@ pub trait SalsaContract<ContractReader>:
     #[endpoint(withdraw)]
     fn withdraw(&self) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
+        require!(
+            self.backup_user_undelegations().is_empty(),
+            ERR_WITHDRAW_BUSY,
+        );
+        require!(
+            self.backup_reserve_undelegations().is_empty(),
+            ERR_WITHDRAW_BUSY,
+        );
 
         let caller = self.blockchain().get_caller();
         let current_epoch = self.blockchain().get_block_epoch();
@@ -331,6 +339,10 @@ pub trait SalsaContract<ContractReader>:
     #[endpoint(unDelegateNow)]
     fn undelegate_now(&self) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
+        require!(
+            self.backup_user_reserves().is_empty(),
+            ERR_UNDELEGATENOW_BUSY,
+        );
 
         let payment = self.call_value().single_esdt();
         let liquid_token_id = self.liquid_token_id().get_token_id();
@@ -348,6 +360,11 @@ pub trait SalsaContract<ContractReader>:
         let delegation_contract = self.provider_address().get();
         let gas_for_async_call = self.get_gas_for_async_call();
         let egld_to_unstake = self.remove_liquidity(&payment.amount);
+        require!(
+            egld_to_unstake >= MIN_EGLD_TO_DELEGATE,
+            ERROR_BAD_PAYMENT_AMOUNT
+        );
+
         let egld_to_unstake_with_fee =
             egld_to_unstake.clone() - egld_to_unstake.clone() * fee / MAX_PERCENT;
         require!(
@@ -357,7 +374,6 @@ pub trait SalsaContract<ContractReader>:
         require!(egld_to_unstake <= total_egld_staked, ERROR_NOT_ENOUGH_FUNDS);
 
         let total_rewards = &egld_to_unstake - &egld_to_unstake_with_fee;
-        self.backup_user_reserves().clear();
         let original_user_reserves = self.user_reserves().get();
         let mut distributed_rewards = BigUint::zero();
         let n = original_user_reserves.len();
@@ -429,6 +445,10 @@ pub trait SalsaContract<ContractReader>:
     #[endpoint(withdrawAll)]
     fn withdraw_all(&self) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
+        require!(
+            self.backup_reserve_undelegations().is_empty(),
+            ERR_WITHDRAW_BUSY,
+        );
 
         let reserve_withdraw_amount = self.compute_and_backup_withdrawable_reserve_undelegations();
 
