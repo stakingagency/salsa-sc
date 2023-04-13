@@ -430,6 +430,7 @@ pub trait SalsaContract<ContractReader>:
                     .update(|undelegations| undelegations.push(undelegation));
             }
             ManagedAsyncCallResult::Err(_) => {
+                self.backup_user_reserves().clear();
                 let ls_token_amount = self.add_liquidity(&egld_to_unstake);
                 let user_payment = self.mint_liquid_token(ls_token_amount);
                 self.send().direct_esdt(
