@@ -131,9 +131,6 @@ pub trait ConfigModule:
     #[storage_mapper("reserve_undelegations")]
     fn reserve_undelegations(&self) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
 
-    #[storage_mapper("backup_reserve_undelegations")]
-    fn backup_reserve_undelegations(&self) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
-
     #[view(getUserReserves)]
     #[storage_mapper("user_reserves")]
     fn user_reserves(&self) -> SingleValueMapper<ManagedVec<Reserve<Self::Api>>>;

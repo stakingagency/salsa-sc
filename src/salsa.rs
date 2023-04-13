@@ -17,7 +17,6 @@ pub trait SalsaContract<ContractReader>:
     #[init]
     fn init(&self) {
         self.state().set(State::Inactive);
-        self.backup_reserve_undelegations().clear();
         self.backup_user_undelegations().clear();
     }
 
@@ -147,10 +146,6 @@ pub trait SalsaContract<ContractReader>:
             self.backup_user_undelegations().is_empty(),
             ERR_WITHDRAW_BUSY,
         );
-        require!(
-            self.backup_reserve_undelegations().is_empty(),
-            ERR_WITHDRAW_BUSY,
-        );
 
         let caller = self.blockchain().get_caller();
         let current_epoch = self.blockchain().get_block_epoch();
@@ -179,7 +174,6 @@ pub trait SalsaContract<ContractReader>:
             self.user_withdrawn_egld()
                 .update(|value| *value -= withdraw_amount);
         } else {
-            let reserve_withdraw_amount = self.compute_and_backup_withdrawable_reserve_undelegations();
             let delegation_contract = self.provider_address().get();
             let gas_for_async_call = self.get_gas_for_async_call();
             self.delegation_proxy_obj()
@@ -188,7 +182,7 @@ pub trait SalsaContract<ContractReader>:
                 .with_gas_limit(gas_for_async_call)
                 .async_call()
                 .with_callback(
-                    SalsaContract::callbacks(self).withdraw_callback(caller, withdraw_amount, reserve_withdraw_amount),
+                    SalsaContract::callbacks(self).withdraw_callback(caller, withdraw_amount),
                 )
                 .call_and_exit()
         }
@@ -199,11 +193,11 @@ pub trait SalsaContract<ContractReader>:
         &self,
         caller: ManagedAddress,
         user_withdraw_amount: BigUint,
-        reserve_withdraw_amount: BigUint,
         #[call_result] result: ManagedAsyncCallResult<()>,
     ) {
         match result {
             ManagedAsyncCallResult::Ok(()) => {
+                let reserve_withdraw_amount = self.compute_and_remove_withdrawable_reserve_undelegations();
                 self.update_withdrawn_amount(&reserve_withdraw_amount);
                 let user_withdrawn_egld_mapper = self.user_withdrawn_egld();
                 let new_total_user_withdrawn_egld = user_withdrawn_egld_mapper.get();
@@ -214,15 +208,10 @@ pub trait SalsaContract<ContractReader>:
                     let backup_user_undelegations = self.backup_user_undelegations().take();
                     self.user_undelegations(&caller).set(backup_user_undelegations);
                 }
-                self.backup_user_undelegations().clear();
-                self.backup_reserve_undelegations().clear();
             }
             ManagedAsyncCallResult::Err(_) => {
                 let backup_user_undelegations = self.backup_user_undelegations().take();
                 self.user_undelegations(&caller).set(backup_user_undelegations);
-
-                let backup_reserve_undelegations = self.backup_reserve_undelegations().take();
-                self.reserve_undelegations().set(backup_reserve_undelegations);
             }
         }
     }
@@ -284,6 +273,10 @@ pub trait SalsaContract<ContractReader>:
             for mut user_reserve in user_reserves.into_iter() {
                 if user_reserve.address == caller {
                     user_reserve.amount += &reserve_amount;
+                    let user_reward = self.user_rewards(&caller).get();
+                    user_reserve.amount += user_reward;
+                    self.user_rewards(&caller)
+                        .update(|value| *value = BigUint::zero());
                     user_found = true;
                     break;
                 }
@@ -320,6 +313,10 @@ pub trait SalsaContract<ContractReader>:
                 require!(user_reserve.amount >= amount, ERROR_NOT_ENOUGH_FUNDS);
 
                 user_reserve.amount -= &amount;
+                let user_reward = self.user_rewards(&caller).get();
+                user_reserve.amount += user_reward;
+                self.user_rewards(&caller)
+                    .update(|value| *value = BigUint::zero());
                 if user_reserve.amount == 0 {
                     should_remove_user = true;
                 }
@@ -343,10 +340,6 @@ pub trait SalsaContract<ContractReader>:
     #[endpoint(unDelegateNow)]
     fn undelegate_now(&self) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
-        require!(
-            self.backup_reserve_undelegations().is_empty(),
-            ERR_WITHDRAW_BUSY,
-        );
 
         let payment = self.call_value().single_esdt();
         let liquid_token_id = self.liquid_token_id().get_token_id();
@@ -420,12 +413,24 @@ pub trait SalsaContract<ContractReader>:
             ManagedAsyncCallResult::Ok(()) => {
                 let current_epoch = self.blockchain().get_block_epoch();
                 let unbond_epoch = current_epoch + UNBOND_PERIOD;
-                let undelegation = config::Undelegation {
-                    amount: egld_to_unstake.clone(),
-                    unbond_epoch,
-                };
-                self.reserve_undelegations()
-                    .update(|undelegations| undelegations.push(undelegation));
+                let reserve_undelegations = self.reserve_undelegations().get();
+                let mut found = false;
+                for mut reserve_undelegation in reserve_undelegations.into_iter() {
+                    if reserve_undelegation.unbond_epoch == unbond_epoch {
+                        reserve_undelegation.amount += &egld_to_unstake;
+                        found = true;
+                        break;
+                    }
+                }
+                self.reserve_undelegations().set(reserve_undelegations);
+                if !found {
+                    let undelegation = config::Undelegation {
+                        amount: egld_to_unstake.clone(),
+                        unbond_epoch,
+                    };
+                    self.reserve_undelegations()
+                        .update(|undelegations| undelegations.push(undelegation));
+                }
                 self.egld_to_replenish_reserve()
                     .update(|value| *value -= egld_to_unstake);
             }
@@ -436,12 +441,6 @@ pub trait SalsaContract<ContractReader>:
     #[endpoint(withdrawAll)]
     fn withdraw_all(&self) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
-        require!(
-            self.backup_reserve_undelegations().is_empty(),
-            ERR_WITHDRAW_BUSY,
-        );
-
-        let reserve_withdraw_amount = self.compute_and_backup_withdrawable_reserve_undelegations();
 
         let delegation_contract = self.provider_address().get();
         let gas_for_async_call = self.get_gas_for_async_call();
@@ -452,7 +451,7 @@ pub trait SalsaContract<ContractReader>:
             .with_gas_limit(gas_for_async_call)
             .async_call()
             .with_callback(
-                SalsaContract::callbacks(self).withdraw_all_callback(reserve_withdraw_amount),
+                SalsaContract::callbacks(self).withdraw_all_callback(),
             )
             .call_and_exit()
     }
@@ -460,18 +459,14 @@ pub trait SalsaContract<ContractReader>:
     #[callback]
     fn withdraw_all_callback(
         &self,
-        reserve_withdraw_amount: BigUint,
         #[call_result] result: ManagedAsyncCallResult<()>,
     ) {
         match result {
             ManagedAsyncCallResult::Ok(()) => {
+                let reserve_withdraw_amount = self.compute_and_remove_withdrawable_reserve_undelegations();
                 self.update_withdrawn_amount(&reserve_withdraw_amount);
-                self.backup_reserve_undelegations().clear();
             }
-            ManagedAsyncCallResult::Err(_) => {
-                let backup_reserve_undelegations = self.backup_reserve_undelegations().take();
-                self.reserve_undelegations().set(backup_reserve_undelegations);
-            }
+            ManagedAsyncCallResult::Err(_) => {}
         }
     }
 
@@ -537,12 +532,10 @@ pub trait SalsaContract<ContractReader>:
         self.liquid_token_id().burn(amount);
     }
 
-    fn compute_and_backup_withdrawable_reserve_undelegations(&self) -> BigUint {
+    fn compute_and_remove_withdrawable_reserve_undelegations(&self) -> BigUint {
         let current_epoch = self.blockchain().get_block_epoch();
 
         let reserve_undelegations = self.reserve_undelegations().take();
-        self.backup_reserve_undelegations().set(reserve_undelegations.clone());
-
         let mut remaining_reserve_undelegations: ManagedVec<Self::Api, config::Undelegation<Self::Api>> =
             ManagedVec::new();
         let mut reserve_withdraw_amount = BigUint::zero();

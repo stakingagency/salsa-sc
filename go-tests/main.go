@@ -39,7 +39,7 @@ type accountKeys struct {
 }
 
 const (
-	scAddress    = "erd1qqqqqqqqqqqqqpgqpk3qzj86tme9kzxdq87f2rdf5nlwsgvjvcqs5hke3x"
+	scAddress    = "erd1qqqqqqqqqqqqqpgqp6mgl2j93kkgy628fy5um0jzp5wk3uxavcqs6mek9f"
 	proxyAddress = "https://devnet-gateway.multiversx.com"
 	walletFile   = "/home/mihai/walletKey.pem"
 )
@@ -77,28 +77,30 @@ var (
 // updateTotalEgldStaked 30000000
 
 func scenario1() error {
-	// return nil
+	return nil
 
 	nonce, err := getNonce()
 	if err != nil {
 		return err
 	}
 
-	// return setStateActive(int64(nonce))
+	unDelegateNow(5, 30000000, int64(nonce))
 
-	for {
-		compound(50000000, int64(nonce))
-		nonce++
-		time.Sleep(time.Second * 30)
+	// return setStateInactive(int64(nonce))
 
-		updateTotalEgldStaked(50000000, int64(nonce))
-		nonce++
-		time.Sleep(time.Minute)
+	// for {
+	// 	compound(50000000, int64(nonce))
+	// 	nonce++
+	// 	time.Sleep(time.Second * 30)
 
-		withdrawAll(200000000, int64(nonce))
-		nonce++
-		time.Sleep(time.Hour*2 - time.Second*84)
-	}
+	// 	updateTotalEgldStaked(50000000, int64(nonce))
+	// 	nonce++
+	// 	time.Sleep(time.Minute)
+
+	// 	withdrawAll(200000000, int64(nonce))
+	// 	nonce++
+	// 	time.Sleep(time.Hour*2 - time.Second*84)
+	// }
 
 	// return configSC("TESTTEST", "TEST", 18, "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqx0llllsdx93z0", 2, int64(nonce))
 
