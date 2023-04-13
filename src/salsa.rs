@@ -345,7 +345,11 @@ pub trait SalsaContract<ContractReader>:
             self.backup_user_reserves().is_empty(),
             ERR_UNDELEGATENOW_BUSY,
         );
-
+        require!(
+            self.backup_reserve_undelegations().is_empty(),
+            ERR_WITHDRAW_BUSY,
+        );
+        
         let payment = self.call_value().single_esdt();
         let liquid_token_id = self.liquid_token_id().get_token_id();
         let egld_reserve = self.egld_reserve().get();
