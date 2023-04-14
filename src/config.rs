@@ -107,7 +107,10 @@ pub trait ConfigModule:
     ) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
 
     #[storage_mapper("backup_user_undelegations")]
-    fn backup_user_undelegations(&self) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
+    fn backup_user_undelegations(
+        &self,
+        user: &ManagedAddress,
+    ) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
 
     #[view(getTotalEgldStaked)]
     #[storage_mapper("total_egld_staked")]
@@ -135,13 +138,6 @@ pub trait ConfigModule:
     #[storage_mapper("user_reserves")]
     fn user_reserves(&self) -> SingleValueMapper<ManagedVec<Reserve<Self::Api>>>;
 
-    #[view(getUserRewards)]
-    #[storage_mapper("user_rewards")]
-    fn user_rewards(
-        &self,
-        user: &ManagedAddress,
-    ) -> SingleValueMapper<BigUint>;
-
     #[only_owner]
     #[endpoint(setUndelegateNowFee)]
     fn set_undelegate_now_fee(&self, new_fee: u64) {
@@ -156,5 +152,4 @@ pub trait ConfigModule:
 
     #[storage_mapper("egld_to_replenish_reserve")]
     fn egld_to_replenish_reserve(&self) -> SingleValueMapper<BigUint>;
-
 }
