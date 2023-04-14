@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"math/big"
 	"math/rand"
 	"net/http"
@@ -40,7 +41,7 @@ type accountKeys struct {
 }
 
 const (
-	scAddress    = "erd1qqqqqqqqqqqqqpgqrpsljgm2fe0mmzz304cyhv2y00knznjmvcqsve7deq"
+	scAddress    = "erd1qqqqqqqqqqqqqpgqpk3qzj86tme9kzxdq87f2rdf5nlwsgvjvcqs5hke3x"
 	proxyAddress = "https://devnet-gateway.multiversx.com"
 	walletFile   = "/home/mihai/walletKey.pem"
 	mnemonic     = "asdfghjkl"
@@ -68,16 +69,6 @@ var (
 	suite  = ed25519.NewEd25519()
 	keyGen = signing.NewKeyGenerator(suite)
 )
-
-// gas limits
-// delegate              30000000
-// unDelegate            30000000
-// withdraw              40000000
-// addReserve             5000000
-// removeReserve          5000000
-// unDelegateNow         30000000
-// compound              30000000
-// updateTotalEgldStaked 30000000
 
 func checkTestResults(idx int) error {
 	w := interactors.NewWallet()
@@ -180,7 +171,7 @@ func removeReserveTester(idx int) error {
 		return nil
 	}
 
-	return removeReserve(balance, 75000000, int64(tAccount.Nonce), tPrivateKey, tWalletAddress)
+	return removeReserve(balance, 100000000, int64(tAccount.Nonce), tPrivateKey, tWalletAddress)
 }
 
 func test(idx int) error {
@@ -195,11 +186,11 @@ func test(idx int) error {
 
 	tNonce := tAccount.Nonce
 
-	for i := 0; i < 25; i++ {
-		op := rand.Intn(5)
+	for i := 0; i < 5; i++ {
+		op := rand.Intn(6)
 		switch op {
 		case 0:
-			if err = delegate(big.NewInt(1000000000000000000), 30000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = delegate(big.NewInt(1000000000000000000), 50000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 1:
@@ -214,11 +205,11 @@ func test(idx int) error {
 				i--
 				continue
 			}
-			if err = unDelegate(big.NewInt(1000000000000000000), 30000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = unDelegate(big.NewInt(1000000000000000000), 50000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 2:
-			if err = addReserve(big.NewInt(1000000000000000000), 75000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = addReserve(big.NewInt(1000000000000000000), 100000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 3:
@@ -233,7 +224,7 @@ func test(idx int) error {
 				i--
 				continue
 			}
-			if err = removeReserve(big.NewInt(1000000000000000000), 75000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = removeReserve(big.NewInt(1000000000000000000), 100000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 4:
@@ -251,6 +242,10 @@ func test(idx int) error {
 			if err = unDelegateNow(big.NewInt(1000000000000000000), 100000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
+		case 5:
+			if err = withdraw(50000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+				return err
+			}
 		}
 		tNonce++
 	}
@@ -259,29 +254,36 @@ func test(idx int) error {
 }
 
 func scenario1() error {
-	return nil
+	// return nil
 
 	nonce, err := getNonce()
 	if err != nil {
 		return err
 	}
 
-	// return updateTotalEgldStaked(30000000, int64(nonce))
-	return undelegateReserves(200000000, int64(nonce))
+	// return setStateInactive(int64(nonce))
+	// return compound(50000000, int64(nonce))
+	// return withdrawAll(200000000, int64(nonce))
+	// return updateTotalEgldStaked(50000000, int64(nonce))
+	// return undelegateReserves(200000000, int64(nonce))
 
-	// for {
-	// 	compound(50000000, int64(nonce))
-	// 	nonce++
-	// 	time.Sleep(time.Second * 30)
+	for {
+		compound(100000000, int64(nonce))
+		nonce++
+		time.Sleep(time.Second * 30)
 
-	// 	updateTotalEgldStaked(50000000, int64(nonce))
-	// 	nonce++
-	// 	time.Sleep(time.Minute)
+		updateTotalEgldStaked(100000000, int64(nonce))
+		nonce++
+		time.Sleep(time.Minute)
 
-	// 	withdrawAll(200000000, int64(nonce))
-	// 	nonce++
-	// 	time.Sleep(time.Hour*2 - time.Second*84)
-	// }
+		withdrawAll(200000000, int64(nonce))
+		nonce++
+		time.Sleep(time.Hour*2 - time.Second*144)
+
+		undelegateReserves(200000000, int64(nonce))
+		nonce++
+		time.Sleep(time.Minute)
+	}
 
 	// return configSC("TESTTEST", "TEST", 18, "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqx0llllsdx93z0", 2, int64(nonce))
 
@@ -310,7 +312,7 @@ func main() {
 	fmt.Printf("Undelegate now fee: %.2f%%\n", fee)
 	fmt.Println("Token: " + token)
 	fmt.Printf("Token supply: %.2f\n", liquidSupply)
-	fmt.Printf("Token price: %.2f eGLD\n", liquidSupply/egldStaked)
+	fmt.Printf("Token price: %.6f eGLD\n", egldStaked/liquidSupply)
 	fmt.Printf("Total eGLD staked: %.2f\n", egldStaked)
 	fmt.Printf("%v user undelegations\n", len(user_undelegates))
 	for address, amounts := range user_undelegates {
@@ -330,16 +332,24 @@ func main() {
 		fmt.Printf("%.2f ", reserveUndelegation)
 		totalReserveUndelegations += reserveUndelegation
 	}
-	fmt.Printf("\nTotal reserve undelegations: %.2f\n", totalReserveUndelegations)
-	fmt.Printf("Total eGLD reserves: %.2f\n", egldReserve)
-	fmt.Printf("Available eGLD reserves: %.2f\n", availableEgldReserve)
+	fmt.Printf("\nTotal reserve undelegations: %.18f\n", totalReserveUndelegations)
 	fmt.Printf("%v reserves\n", len(reserves))
 	computedReserves := float64(0)
 	for address, amount := range reserves {
 		fmt.Printf("%s - %.2f\n", address, amount)
 		computedReserves += amount
 	}
-	fmt.Printf("Computed total reserves: %.2f\n", computedReserves)
+	fmt.Printf("Total eGLD reserves: %.18f\n", egldReserve)
+	fmt.Printf("Computed total reserves: %.18f\n", computedReserves)
+	fmt.Printf("Available eGLD reserves: %.2f\n", availableEgldReserve)
+
+	// safety checks
+	if math.Abs(egldReserve-computedReserves) > 0.000001 {
+		fmt.Println("⚠️ egld reserve mismatch (1)")
+	}
+	if math.Abs(totalReserveUndelegations+availableEgldReserve-egldReserve) > 0.000001 {
+		fmt.Println("⚠️ egld reserve mismatch (2)")
+	}
 
 	err = scenario1()
 	if err != nil {
@@ -917,7 +927,7 @@ func configSC(tokenName string, ticker string, decimals int64, provider string, 
 		return err
 	}
 
-	time.Sleep(time.Second * 30)
+	time.Sleep(time.Second * 40)
 
 	if nonce != -1 {
 		nonce++
