@@ -41,7 +41,7 @@ type accountKeys struct {
 }
 
 const (
-	scAddress    = "erd1qqqqqqqqqqqqqpgqpyj8cfyg0q9w3anlfvu7v5d23cyzpydkvcqsd6etjt"
+	scAddress    = "erd1qqqqqqqqqqqqqpgqgglejcf0lgy5es4dpnavua9yqku999uvvcqsg5urvf"
 	proxyAddress = "https://devnet-gateway.multiversx.com"
 	walletFile   = "/home/mihai/walletKey.pem"
 	mnemonic     = "asdfghjkl"
@@ -186,8 +186,8 @@ func test(idx int) error {
 
 	tNonce := tAccount.Nonce
 
-	for i := 0; i < 5; i++ {
-		op := rand.Intn(6)
+	for i := 0; i < 10; i++ {
+		op := rand.Intn(5)
 		switch op {
 		case 0:
 			if err = delegate(big.NewInt(1000000000000000000), 50000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
@@ -261,29 +261,29 @@ func scenario1() error {
 		return err
 	}
 
-	return setStateActive(int64(nonce))
+	// return setStateActive(int64(nonce))
 	// return compound(50000000, int64(nonce))
 	// return withdrawAll(200000000, int64(nonce))
 	// return updateTotalEgldStaked(50000000, int64(nonce))
-	// return undelegateReserves(200000000, int64(nonce))
+	return undelegateReserves(200000000, int64(nonce))
 
-	for {
-		compound(100000000, int64(nonce))
-		nonce++
-		time.Sleep(time.Second * 30)
+	// for {
+	// 	compound(100000000, int64(nonce))
+	// 	nonce++
+	// 	time.Sleep(time.Second * 30)
 
-		updateTotalEgldStaked(100000000, int64(nonce))
-		nonce++
-		time.Sleep(time.Minute)
+	// 	updateTotalEgldStaked(100000000, int64(nonce))
+	// 	nonce++
+	// 	time.Sleep(time.Minute)
 
-		withdrawAll(200000000, int64(nonce))
-		nonce++
-		time.Sleep(time.Hour*2 - time.Second*144)
+	// 	withdrawAll(200000000, int64(nonce))
+	// 	nonce++
+	// 	time.Sleep(time.Hour*2 - time.Second*144)
 
-		undelegateReserves(200000000, int64(nonce))
-		nonce++
-		time.Sleep(time.Minute)
-	}
+	// 	undelegateReserves(200000000, int64(nonce))
+	// 	nonce++
+	// 	time.Sleep(time.Minute)
+	// }
 
 	// return configSC("TESTTEST", "TEST", 18, "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqx0llllsdx93z0", 2, int64(nonce))
 
@@ -375,9 +375,14 @@ func main() {
 	// 		continue
 	// 	}
 	// 	b100, _ := big.NewInt(0).SetString("100000000000000000000", 10)
-	// 	b100.Sub(b100, balance)
-	// 	sendTx(b100, 50000, "", int64(nonce), privateKey, walletAddress, tWalletAddress)
-	// 	nonce++
+	// 	if b100.Cmp(balance) > 0 {
+	// 		b100.Sub(b100, balance)
+	// 		sendTx(b100, 50000, "", int64(nonce), privateKey, walletAddress, tWalletAddress)
+	// 		nonce++
+	// 	} else {
+	// 		balance.Sub(balance, b100)
+	// 		sendTx(balance, 50000, "", -1, tPrivateKey, tWalletAddress, walletAddress)
+	// 	}
 	// }
 	// time.Sleep(time.Second * 30)
 

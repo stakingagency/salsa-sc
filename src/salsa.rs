@@ -145,7 +145,7 @@ pub trait SalsaContract<ContractReader>:
         let caller = self.blockchain().get_caller();
         require!(
             self.backup_user_undelegations(&caller).is_empty(),
-            ERR_WITHDRAW_BUSY,
+            ERROR_WITHDRAW_BUSY,
         );
 
         let current_epoch = self.blockchain().get_block_epoch();
@@ -199,11 +199,7 @@ pub trait SalsaContract<ContractReader>:
     ) {
         match result {
             ManagedAsyncCallResult::Ok(()) => {
-                if self.call_value().egld_value() > 0 {
-                    let reserve_withdraw_amount =
-                        self.compute_and_remove_withdrawable_reserve_undelegations();
-                    self.update_withdrawn_amount(&reserve_withdraw_amount);
-                }
+                self.compute_withdrawn_amount();
                 let user_withdrawn_egld_mapper = self.user_withdrawn_egld();
                 let new_total_user_withdrawn_egld = user_withdrawn_egld_mapper.get();
                 if user_withdraw_amount <= new_total_user_withdrawn_egld {
@@ -324,7 +320,7 @@ pub trait SalsaContract<ContractReader>:
             }
             index += 1;
         }
-        require!(user_found, ERROR_NOT_ENOUGH_FUNDS);
+        require!(user_found, ERROR_USER_NOT_PROVIDER);
 
         if should_remove_user {
             user_reserves.remove(index);
@@ -471,11 +467,7 @@ pub trait SalsaContract<ContractReader>:
     fn withdraw_all_callback(&self, #[call_result] result: ManagedAsyncCallResult<()>) {
         match result {
             ManagedAsyncCallResult::Ok(()) => {
-                if self.call_value().egld_value() > 0 {
-                    let reserve_withdraw_amount =
-                        self.compute_and_remove_withdrawable_reserve_undelegations();
-                    self.update_withdrawn_amount(&reserve_withdraw_amount);
-                }
+                self.compute_withdrawn_amount();
             }
             ManagedAsyncCallResult::Err(_) => {}
         }
@@ -543,10 +535,14 @@ pub trait SalsaContract<ContractReader>:
         self.liquid_token_id().burn(amount);
     }
 
-    fn compute_and_remove_withdrawable_reserve_undelegations(&self) -> BigUint {
-        let current_epoch = self.blockchain().get_block_epoch();
+    fn compute_withdrawn_amount(&self) {
+        let withdrawn_amount = self.call_value().egld_value();
+        if withdrawn_amount == 0 {
+            return;
+        }
 
-        let reserve_undelegations = self.reserve_undelegations().take();
+        let current_epoch = self.blockchain().get_block_epoch();
+        let reserve_undelegations = self.reserve_undelegations().get();
         let mut remaining_reserve_undelegations: ManagedVec<
             Self::Api,
             config::Undelegation<Self::Api>,
@@ -560,22 +556,21 @@ pub trait SalsaContract<ContractReader>:
             }
         }
 
+        if withdrawn_amount < reserve_withdraw_amount {
+            self.user_withdrawn_egld()
+                .update(|value| *value += withdrawn_amount);
+            return;
+        }
+
         self.reserve_undelegations()
             .set(remaining_reserve_undelegations);
 
-        reserve_withdraw_amount
-    }
+        let user_withdrawn_amount = &withdrawn_amount - &reserve_withdraw_amount;
+        self.user_withdrawn_egld()
+            .update(|value| *value += user_withdrawn_amount);
+        self.available_egld_reserve()
+            .update(|value| *value += reserve_withdraw_amount);
 
-    fn update_withdrawn_amount(&self, reserve_withdraw_amount: &BigUint) {
-        let withdrawn_amount = self.call_value().egld_value();
-        if reserve_withdraw_amount <= &withdrawn_amount {
-            let user_withdrawn_amount = &withdrawn_amount - reserve_withdraw_amount;
-            let user_withdrawn_egld_mapper = self.user_withdrawn_egld();
-            user_withdrawn_egld_mapper.update(|value| *value += user_withdrawn_amount);
-            let available_egld_reserve_mapper = self.available_egld_reserve();
-            available_egld_reserve_mapper.update(|value| *value += reserve_withdraw_amount);
-        } else {
-        }
     }
 
     // proxy
