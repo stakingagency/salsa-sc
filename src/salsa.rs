@@ -445,7 +445,7 @@ pub trait SalsaContract<ContractReader>:
 
     #[endpoint(withdrawAll)]
     fn withdraw_all(&self) {
-        require!(self.is_state_active(), ERROR_NOT_ACTIVE);
+        // require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         let delegation_contract = self.provider_address().get();
         let gas_for_async_call = self.get_gas_for_async_call();
