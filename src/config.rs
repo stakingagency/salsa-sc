@@ -9,13 +9,35 @@ pub enum State {
     Active,
 }
 
-#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
+#[derive(
+    ManagedVecItem,
+    TopEncode,
+    TopDecode,
+    NestedEncode,
+    NestedDecode,
+    TypeAbi,
+    Clone,
+    PartialEq,
+    Eq,
+    Debug,
+)]
 pub struct Undelegation<M: ManagedTypeApi> {
     pub amount: BigUint<M>,
     pub unbond_epoch: u64,
 }
 
-#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
+#[derive(
+    ManagedVecItem,
+    TopEncode,
+    TopDecode,
+    NestedEncode,
+    NestedDecode,
+    TypeAbi,
+    Clone,
+    PartialEq,
+    Eq,
+    Debug,
+)]
 pub struct Reserve<M: ManagedTypeApi> {
     pub address: ManagedAddress<M>,
     pub amount: BigUint<M>,
@@ -107,7 +129,10 @@ pub trait ConfigModule:
     ) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
 
     #[storage_mapper("backup_user_undelegations")]
-    fn backup_user_undelegations(&self) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
+    fn backup_user_undelegations(
+        &self,
+        user: &ManagedAddress,
+    ) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
 
     #[view(getTotalEgldStaked)]
     #[storage_mapper("total_egld_staked")]
@@ -137,10 +162,7 @@ pub trait ConfigModule:
 
     #[view(getUserRewards)]
     #[storage_mapper("user_rewards")]
-    fn user_rewards(
-        &self,
-        user: &ManagedAddress,
-    ) -> SingleValueMapper<BigUint>;
+    fn user_rewards(&self, user: &ManagedAddress) -> SingleValueMapper<BigUint>;
 
     #[only_owner]
     #[endpoint(setUndelegateNowFee)]
@@ -156,5 +178,4 @@ pub trait ConfigModule:
 
     #[storage_mapper("egld_to_replenish_reserve")]
     fn egld_to_replenish_reserve(&self) -> SingleValueMapper<BigUint>;
-
 }
