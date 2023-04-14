@@ -40,7 +40,7 @@ type accountKeys struct {
 }
 
 const (
-	scAddress    = "erd1qqqqqqqqqqqqqpgqp6mgl2j93kkgy628fy5um0jzp5wk3uxavcqs6mek9f"
+	scAddress    = "erd1qqqqqqqqqqqqqpgqrpsljgm2fe0mmzz304cyhv2y00knznjmvcqsve7deq"
 	proxyAddress = "https://devnet-gateway.multiversx.com"
 	walletFile   = "/home/mihai/walletKey.pem"
 	mnemonic     = "asdfghjkl"
@@ -154,7 +154,7 @@ func undelegateAllTester(idx int) error {
 		return err
 	}
 
-	if balance == nil {
+	if balance == nil || balance.Cmp(big.NewInt(0)) == 0 {
 		return nil
 	}
 
@@ -176,11 +176,11 @@ func removeReserveTester(idx int) error {
 		return err
 	}
 
-	if balance == nil {
+	if balance == nil || balance.Cmp(big.NewInt(0)) == 0 {
 		return nil
 	}
 
-	return removeReserve(balance, 50000000, int64(tAccount.Nonce), tPrivateKey, tWalletAddress)
+	return removeReserve(balance, 75000000, int64(tAccount.Nonce), tPrivateKey, tWalletAddress)
 }
 
 func test(idx int) error {
@@ -195,7 +195,7 @@ func test(idx int) error {
 
 	tNonce := tAccount.Nonce
 
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 25; i++ {
 		op := rand.Intn(5)
 		switch op {
 		case 0:
@@ -203,19 +203,52 @@ func test(idx int) error {
 				return err
 			}
 		case 1:
+			b, err := getUserTokenBalance(tWalletAddress)
+			if err != nil {
+				return err
+			}
+			if b == nil {
+				b = big.NewInt(0)
+			}
+			if b.Cmp(big.NewInt(1000000000000000000)) < 0 {
+				i--
+				continue
+			}
 			if err = unDelegate(big.NewInt(1000000000000000000), 30000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 2:
-			if err = addReserve(big.NewInt(1000000000000000000), 50000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = addReserve(big.NewInt(1000000000000000000), 75000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 3:
-			if err = removeReserve(big.NewInt(1000000000000000000), 50000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			b, err := getUserReserves(tWalletAddress)
+			if err != nil {
+				return err
+			}
+			if b == nil {
+				b = big.NewInt(0)
+			}
+			if b.Cmp(big.NewInt(1000000000000000000)) < 0 {
+				i--
+				continue
+			}
+			if err = removeReserve(big.NewInt(1000000000000000000), 75000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 4:
-			if err = unDelegateNow(big.NewInt(1000000000000000000), 50000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			b, err := getUserTokenBalance(tWalletAddress)
+			if err != nil {
+				return err
+			}
+			if b == nil {
+				b = big.NewInt(0)
+			}
+			if b.Cmp(big.NewInt(1000000000000000000)) < 0 {
+				i--
+				continue
+			}
+			if err = unDelegateNow(big.NewInt(1000000000000000000), 100000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		}
@@ -233,7 +266,8 @@ func scenario1() error {
 		return err
 	}
 
-	return withdrawAll(200000000, int64(nonce))
+	// return updateTotalEgldStaked(30000000, int64(nonce))
+	return undelegateReserves(200000000, int64(nonce))
 
 	// for {
 	// 	compound(50000000, int64(nonce))
@@ -322,7 +356,17 @@ func main() {
 	// 	tPrivateKey := w.GetPrivateKeyFromMnemonic(mnemonic, 0, uint32(i))
 	// 	tAddress, _ := w.GetAddressFromPrivateKey(tPrivateKey)
 	// 	tWalletAddress := tAddress.AddressAsBech32String()
-	// 	sendTx(100, 50000, "", int64(nonce), privateKey, walletAddress, tWalletAddress)
+	// 	tAccount, err := proxy.GetAccount(context.Background(), tAddress)
+	// 	if err != nil {
+	// 		continue
+	// 	}
+	// 	balance, ok := big.NewInt(0).SetString(tAccount.Balance, 10)
+	// 	if !ok {
+	// 		continue
+	// 	}
+	// 	b100, _ := big.NewInt(0).SetString("100000000000000000000", 10)
+	// 	b100.Sub(b100, balance)
+	// 	sendTx(b100, 50000, "", int64(nonce), privateKey, walletAddress, tWalletAddress)
 	// 	nonce++
 	// }
 	// time.Sleep(time.Second * 30)
@@ -341,7 +385,7 @@ func main() {
 	// 	}
 	// }
 
-	// UNDELEGATE ALL EACH
+	// UNDELEGATE EACH
 	// for i := 0; i < 100; i++ {
 	// 	if err := undelegateAllTester(i); err != nil {
 	// 		panic(err)
@@ -808,6 +852,17 @@ func withdrawAll(gas uint64, nonce int64) error {
 	return nil
 }
 
+func undelegateReserves(gas uint64, nonce int64) error {
+	hash, err := sendTx(big.NewInt(0), gas, "undelegateReserves", nonce, privateKey, walletAddress, "")
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("undelegateReserves %s\n", hash)
+
+	return nil
+}
+
 func addReserve(amount *big.Int, gas uint64, nonce int64, privateKey []byte, walletAddress string) error {
 	hash, err := sendTx(amount, gas, "addReserve", nonce, privateKey, walletAddress, "")
 	if err != nil {
@@ -1038,11 +1093,15 @@ func getUserReserves(walletAddress string) (*big.Int, error) {
 }
 
 type tokenBalance struct {
-	Balance string `json:"balance"`
+	Data struct {
+		TokenData struct {
+			Balance string `json:"balance"`
+		} `json:"tokenData"`
+	} `json:"data"`
 }
 
 func getUserTokenBalance(walletAddress string) (*big.Int, error) {
-	endpoint := fmt.Sprintf("https://devnet-api.multiversx.com/accounts/%s/tokens/%s", walletAddress, token)
+	endpoint := fmt.Sprintf("%s/address/%s/esdt/%s", proxyAddress, walletAddress, token)
 	bytes, err := getHTTP(endpoint, "")
 	if err != nil {
 		return big.NewInt(0), nil
@@ -1054,7 +1113,7 @@ func getUserTokenBalance(walletAddress string) (*big.Int, error) {
 		return nil, err
 	}
 
-	iBalance, ok := big.NewInt(0).SetString(response.Balance, 10)
+	iBalance, ok := big.NewInt(0).SetString(response.Data.TokenData.Balance, 10)
 	if !ok {
 		return big.NewInt(0), nil
 	}
