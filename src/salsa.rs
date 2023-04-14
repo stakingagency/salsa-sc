@@ -351,8 +351,6 @@ pub trait SalsaContract<ContractReader>:
 
         let fee = self.undelegate_now_fee().get();
         let caller = self.blockchain().get_caller();
-        let delegation_contract = self.provider_address().get();
-        let gas_for_async_call = self.get_gas_for_async_call();
         let egld_to_unstake = self.remove_liquidity(&payment.amount);
         self.burn_liquid_token(&payment.amount);
         require!(
@@ -369,11 +367,14 @@ pub trait SalsaContract<ContractReader>:
         require!(egld_to_unstake <= total_egld_staked, ERROR_NOT_ENOUGH_FUNDS);
 
         let total_rewards = &egld_to_unstake - &egld_to_unstake_with_fee;
-        let user_reserves = self.user_reserves().get();
         let mut distributed_rewards = BigUint::zero();
+        let user_reserves = self.user_reserves().get();
         let n = user_reserves.len();
         let mut i: usize = 0;
-        let user_reserves = self.user_reserves().get();
+        let mut new_user_reserves: ManagedVec<
+            Self::Api,
+            config::Reserve<Self::Api>,
+        > = ManagedVec::new();
         for mut new_reserve in user_reserves.into_iter() {
             i += 1;
             let mut reward = &new_reserve.amount * &total_rewards / &egld_reserve;
@@ -382,28 +383,39 @@ pub trait SalsaContract<ContractReader>:
             }
             new_reserve.amount += &reward;
             distributed_rewards += reward;
+            new_user_reserves.push(new_reserve);
         }
-        self.user_reserves().set(user_reserves);
+        self.user_reserves().set(new_user_reserves);
 
         self.egld_to_replenish_reserve()
             .update(|value| *value += &egld_to_unstake);
-        let total_egld_to_unstake = self.egld_to_replenish_reserve().get();
         self.send().direct_egld(&caller, &egld_to_unstake_with_fee);
         self.available_egld_reserve().update(|value| *value -= &egld_to_unstake_with_fee);
+        self.egld_reserve().update(|value| *value += &total_rewards);
+    }
 
+    #[endpoint(undelegateReserves)]
+    fn undelegate_reserves(&self) {
+        require!(self.is_state_active(), ERROR_NOT_ACTIVE);
+
+        let total_egld_to_unstake = self.egld_to_replenish_reserve().get();
+        require!(total_egld_to_unstake > 0, ERROR_NOT_ENOUGH_FUNDS);
+
+        let delegation_contract = self.provider_address().get();
+        let gas_for_async_call = self.get_gas_for_async_call();
         self.delegation_proxy_obj()
             .contract(delegation_contract)
             .undelegate(&total_egld_to_unstake)
             .with_gas_limit(gas_for_async_call)
             .async_call()
             .with_callback(
-                SalsaContract::callbacks(self).undelegate_now_callback(total_egld_to_unstake),
+                SalsaContract::callbacks(self).undelegate_reserves_callback(total_egld_to_unstake),
             )
             .call_and_exit()
     }
 
     #[callback]
-    fn undelegate_now_callback(
+    fn undelegate_reserves_callback(
         &self,
         egld_to_unstake: BigUint,
         #[call_result] result: ManagedAsyncCallResult<()>,

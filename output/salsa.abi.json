@@ -92,6 +92,12 @@
             "outputs": []
         },
         {
+            "name": "undelegateReserves",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
             "name": "withdrawAll",
             "mutability": "mutable",
             "inputs": [],
