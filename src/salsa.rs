@@ -144,7 +144,7 @@ pub trait SalsaContract<ContractReader>:
         let caller = self.blockchain().get_caller();
         require!(
             self.backup_user_undelegations(&caller).is_empty(),
-            ERR_WITHDRAW_BUSY,
+            ERROR_WITHDRAW_BUSY,
         );
 
         let current_epoch = self.blockchain().get_block_epoch();
@@ -321,7 +321,7 @@ pub trait SalsaContract<ContractReader>:
             }
             index += 1;
         }
-        require!(user_found, ERROR_NOT_ENOUGH_FUNDS);
+        require!(user_found, ERROR_USER_NOT_PROVIDER);
 
         if should_remove_user {
             user_reserves.remove(index);
