@@ -199,9 +199,11 @@ pub trait SalsaContract<ContractReader>:
     ) {
         match result {
             ManagedAsyncCallResult::Ok(()) => {
-                let reserve_withdraw_amount =
-                    self.compute_and_remove_withdrawable_reserve_undelegations();
-                self.update_withdrawn_amount(&reserve_withdraw_amount);
+                if self.call_value().egld_value() > 0 {
+                    let reserve_withdraw_amount =
+                        self.compute_and_remove_withdrawable_reserve_undelegations();
+                    self.update_withdrawn_amount(&reserve_withdraw_amount);
+                }
                 let user_withdrawn_egld_mapper = self.user_withdrawn_egld();
                 let new_total_user_withdrawn_egld = user_withdrawn_egld_mapper.get();
                 if user_withdraw_amount <= new_total_user_withdrawn_egld {
@@ -469,9 +471,11 @@ pub trait SalsaContract<ContractReader>:
     fn withdraw_all_callback(&self, #[call_result] result: ManagedAsyncCallResult<()>) {
         match result {
             ManagedAsyncCallResult::Ok(()) => {
-                let reserve_withdraw_amount =
-                    self.compute_and_remove_withdrawable_reserve_undelegations();
-                self.update_withdrawn_amount(&reserve_withdraw_amount);
+                if self.call_value().egld_value() > 0 {
+                    let reserve_withdraw_amount =
+                        self.compute_and_remove_withdrawable_reserve_undelegations();
+                    self.update_withdrawn_amount(&reserve_withdraw_amount);
+                }
             }
             ManagedAsyncCallResult::Err(_) => {}
         }

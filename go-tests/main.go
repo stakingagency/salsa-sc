@@ -41,7 +41,7 @@ type accountKeys struct {
 }
 
 const (
-	scAddress    = "erd1qqqqqqqqqqqqqpgqpk3qzj86tme9kzxdq87f2rdf5nlwsgvjvcqs5hke3x"
+	scAddress    = "erd1qqqqqqqqqqqqqpgqpyj8cfyg0q9w3anlfvu7v5d23cyzpydkvcqsd6etjt"
 	proxyAddress = "https://devnet-gateway.multiversx.com"
 	walletFile   = "/home/mihai/walletKey.pem"
 	mnemonic     = "asdfghjkl"
@@ -254,14 +254,14 @@ func test(idx int) error {
 }
 
 func scenario1() error {
-	// return nil
+	return nil
 
 	nonce, err := getNonce()
 	if err != nil {
 		return err
 	}
 
-	// return setStateInactive(int64(nonce))
+	return setStateActive(int64(nonce))
 	// return compound(50000000, int64(nonce))
 	// return withdrawAll(200000000, int64(nonce))
 	// return updateTotalEgldStaked(50000000, int64(nonce))
