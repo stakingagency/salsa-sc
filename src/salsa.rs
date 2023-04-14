@@ -268,13 +268,15 @@ pub trait SalsaContract<ContractReader>:
         let caller = self.blockchain().get_caller();
         let reserve_amount = self.call_value().egld_value();
 
+        let mut reward = BigUint::zero();
         self.user_reserves().update(|user_reserves| {
             let mut user_found = false;
             for mut user_reserve in user_reserves.into_iter() {
                 if user_reserve.address == caller {
                     user_reserve.amount += &reserve_amount;
                     let user_reward = self.user_rewards(&caller).get();
-                    user_reserve.amount += user_reward;
+                    user_reserve.amount += user_reward.clone();
+                    reward = user_reward;
                     self.user_rewards(&caller)
                         .update(|value| *value = BigUint::zero());
                     user_found = true;
@@ -291,8 +293,8 @@ pub trait SalsaContract<ContractReader>:
             }
         });
 
-        self.egld_reserve().update(|value| *value += &reserve_amount);
-        self.available_egld_reserve().update(|value| *value += reserve_amount);
+        self.egld_reserve().update(|value| *value += &reserve_amount + &reward);
+        self.available_egld_reserve().update(|value| *value += reserve_amount + &reward);
     }
 
     #[endpoint(removeReserve)]
@@ -301,9 +303,9 @@ pub trait SalsaContract<ContractReader>:
 
         let caller = self.blockchain().get_caller();
         let available_egld_reserve = self.available_egld_reserve().get();
-
         require!(available_egld_reserve >= amount, ERROR_NOT_ENOUGH_FUNDS);
 
+        let mut reward = BigUint::zero();
         let mut should_remove_user = false;
         let mut user_found = false;
         let mut user_reserves = self.user_reserves().get();
@@ -314,7 +316,8 @@ pub trait SalsaContract<ContractReader>:
 
                 user_reserve.amount -= &amount;
                 let user_reward = self.user_rewards(&caller).get();
-                user_reserve.amount += user_reward;
+                user_reserve.amount += user_reward.clone();
+                reward = user_reward;
                 self.user_rewards(&caller)
                     .update(|value| *value = BigUint::zero());
                 if user_reserve.amount == 0 {
@@ -334,6 +337,8 @@ pub trait SalsaContract<ContractReader>:
         self.send().direct_egld(&caller, &amount);
         self.egld_reserve().update(|value| *value -= &amount);
         self.available_egld_reserve().update(|value| *value -= amount);
+        self.egld_reserve().update(|value| *value += &reward);
+        self.available_egld_reserve().update(|value| *value += reward);
     }
 
     #[payable("*")]
