@@ -280,7 +280,7 @@ func scenario1() error {
 	// }
 
 	// addReserveTester(2, big.NewInt(3000000000000000000))
-	removeReserveTester(1)
+	// removeReserveTester(1)
 	// delegate(big.NewInt(9000000000000000000), 50000000, -1, privateKey, walletAddress)
 	// unDelegateNow(big.NewInt(1000000000000000000), 150000000, -1, privateKey, walletAddress)
 
