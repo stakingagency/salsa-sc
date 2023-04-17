@@ -41,10 +41,13 @@ type accountKeys struct {
 }
 
 const (
-	scAddress    = "erd1qqqqqqqqqqqqqpgqgglejcf0lgy5es4dpnavua9yqku999uvvcqsg5urvf"
-	proxyAddress = "https://devnet-gateway.multiversx.com"
-	walletFile   = "/home/mihai/walletKey.pem"
-	mnemonic     = "asdfghjkl"
+	scAddress    = "erd1qqqqqqqqqqqqqpgqetlly0jneh72d48se4xpd7sw6kvsym8qvcqsh8v0sl"
+	proxyAddress = "http://54.36.109.61:8079"
+	// proxyAddress = "https://devnet-gateway.multiversx.com"
+	walletFile = "/home/mihai/walletKey.pem"
+	mnemonic   = "asdfghjkl"
+
+	testN = 100
 )
 
 var (
@@ -159,19 +162,34 @@ func removeReserveTester(idx int) error {
 	tWalletAddress := tAddress.AddressAsBech32String()
 	tAccount, err := proxy.GetAccount(context.Background(), tAddress)
 	if err != nil {
-		return err
+		// return err
 	}
 
 	balance, err := getUserReserves(tWalletAddress)
 	if err != nil {
-		return err
+		// return err
 	}
 
 	if balance == nil || balance.Cmp(big.NewInt(0)) == 0 {
-		return nil
+		// return nil
 	}
 
-	return removeReserve(balance, 100000000, int64(tAccount.Nonce), tPrivateKey, tWalletAddress)
+	balance = big.NewInt(1000000000000000000) // DEBUG
+
+	return removeReserve(balance, 10000000, int64(tAccount.Nonce), tPrivateKey, tWalletAddress)
+}
+
+func addReserveTester(idx int, amount *big.Int) error {
+	w := interactors.NewWallet()
+	tPrivateKey := w.GetPrivateKeyFromMnemonic(mnemonic, 0, uint32(idx))
+	tAddress, _ := w.GetAddressFromPrivateKey(tPrivateKey)
+	tWalletAddress := tAddress.AddressAsBech32String()
+	tAccount, err := proxy.GetAccount(context.Background(), tAddress)
+	if err != nil {
+		return err
+	}
+
+	return addReserve(amount, 10000000, int64(tAccount.Nonce), tPrivateKey, tWalletAddress)
 }
 
 func test(idx int) error {
@@ -186,7 +204,7 @@ func test(idx int) error {
 
 	tNonce := tAccount.Nonce
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 3; i++ {
 		op := rand.Intn(5)
 		switch op {
 		case 0:
@@ -209,7 +227,7 @@ func test(idx int) error {
 				return err
 			}
 		case 2:
-			if err = addReserve(big.NewInt(1000000000000000000), 100000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = addReserve(big.NewInt(1000000000000000000), 10000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 3:
@@ -224,7 +242,7 @@ func test(idx int) error {
 				i--
 				continue
 			}
-			if err = removeReserve(big.NewInt(1000000000000000000), 100000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = removeReserve(big.NewInt(1000000000000000000), 10000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 4:
@@ -239,7 +257,7 @@ func test(idx int) error {
 				i--
 				continue
 			}
-			if err = unDelegateNow(big.NewInt(1000000000000000000), 100000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = unDelegateNow(big.NewInt(1000000000000000000), 200000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 5:
@@ -254,35 +272,40 @@ func test(idx int) error {
 }
 
 func scenario1() error {
-	return nil
+	// removeReserve(big.NewInt(1000000000000000000), 200000000, -1, privateKey, walletAddress)
 
-	nonce, err := getNonce()
-	if err != nil {
-		return err
-	}
+	// nonce, err := getNonce()
+	// if err != nil {
+	// 	return err
+	// }
 
-	// return setStateActive(int64(nonce))
+	// addReserveTester(2, big.NewInt(3000000000000000000))
+	removeReserveTester(1)
+	// delegate(big.NewInt(9000000000000000000), 50000000, -1, privateKey, walletAddress)
+	// unDelegateNow(big.NewInt(1000000000000000000), 150000000, -1, privateKey, walletAddress)
+
+	// return setStateActive(-1)
 	// return compound(50000000, int64(nonce))
-	// return withdrawAll(200000000, int64(nonce))
+	// return withdrawAll(200000000, -1)
 	// return updateTotalEgldStaked(50000000, int64(nonce))
-	return undelegateReserves(200000000, int64(nonce))
+	// return undelegateReserves(200000000, -1)
 
+	// go func() {
+	// 	for {
+	// 		undelegateReserves(100000000, -1)
+	// 		time.Sleep(time.Minute * 10)
+	// 	}
+	// }()
+	// time.Sleep(time.Second * 30)
 	// for {
-	// 	compound(100000000, int64(nonce))
-	// 	nonce++
+	// 	compound(100000000, -1)
 	// 	time.Sleep(time.Second * 30)
 
-	// 	updateTotalEgldStaked(100000000, int64(nonce))
-	// 	nonce++
+	// 	updateTotalEgldStaked(100000000, -1)
 	// 	time.Sleep(time.Minute)
 
-	// 	withdrawAll(200000000, int64(nonce))
-	// 	nonce++
-	// 	time.Sleep(time.Hour*2 - time.Second*144)
-
-	// 	undelegateReserves(200000000, int64(nonce))
-	// 	nonce++
-	// 	time.Sleep(time.Minute)
+	// 	withdrawAll(200000000, -1)
+	// 	time.Sleep(time.Hour*2 - time.Second*84)
 	// }
 
 	// return configSC("TESTTEST", "TEST", 18, "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqx0llllsdx93z0", 2, int64(nonce))
@@ -361,7 +384,7 @@ func main() {
 	// if err != nil {
 	// 	panic(err)
 	// }
-	// for i := 0; i < 100; i++ {
+	// for i := 0; i < testN; i++ {
 	// 	w := interactors.NewWallet()
 	// 	tPrivateKey := w.GetPrivateKeyFromMnemonic(mnemonic, 0, uint32(i))
 	// 	tAddress, _ := w.GetAddressFromPrivateKey(tPrivateKey)
@@ -387,35 +410,35 @@ func main() {
 	// time.Sleep(time.Second * 30)
 
 	// CHECK TEST RESULTS
-	// for i := 0; i < 100; i++ {
+	// for i := 0; i < testN; i++ {
 	// 	if err := checkTestResults(i); err != nil {
 	// 		panic(err)
 	// 	}
 	// }
 
 	// WITHDRAW EACH
-	// for i := 0; i < 100; i++ {
+	// for i := 0; i < testN; i++ {
 	// 	if err := withdrawTester(i); err != nil {
 	// 		panic(err)
 	// 	}
 	// }
 
 	// UNDELEGATE EACH
-	// for i := 0; i < 100; i++ {
+	// for i := 0; i < testN; i++ {
 	// 	if err := undelegateAllTester(i); err != nil {
 	// 		panic(err)
 	// 	}
 	// }
 
 	// REMOVE RESERVE EACH
-	// for i := 0; i < 100; i++ {
+	// for i := 0; i < testN; i++ {
 	// 	if err := removeReserveTester(i); err != nil {
 	// 		panic(err)
 	// 	}
 	// }
 
 	// STRESS TEST
-	// for i := 0; i < 100; i++ {
+	// for i := 0; i < testN; i++ {
 	// 	go func(i int) {
 	// 		err = test(i)
 	// 		if err != nil {
@@ -545,8 +568,7 @@ func readSC() error {
 	iLiquidTokenSupply := big.NewInt(0).SetBytes(bLiquidTokenSupply)
 	liquidSupply = big2float(iLiquidTokenSupply, 18)
 
-	prefix := []byte("user_undelegations")
-	searchKey := hex.EncodeToString(prefix)
+	searchKey := hex.EncodeToString([]byte("user_undelegations"))
 	keys, err := getAccountKeys(scAddress, searchKey)
 	if err != nil {
 		return err
@@ -557,7 +579,7 @@ func readSC() error {
 	for key, value := range keys {
 		idx := 0
 		for {
-			key = strings.TrimPrefix(key, hex.EncodeToString(prefix))
+			key = strings.TrimPrefix(key, searchKey)
 			var iAmount *big.Int
 			var ok bool
 			iAmount, idx, ok = parseBigInt(value, idx)
@@ -582,34 +604,20 @@ func readSC() error {
 		}
 	}
 
-	searchKey = hex.EncodeToString([]byte("user_reserves"))
+	searchKey = hex.EncodeToString([]byte("user_reserves.mapped"))
 	keys, err = getAccountKeys(scAddress, searchKey)
-	if err != nil || len(keys) != 1 {
+	if err != nil {
 		return err
 	}
 
 	reserves = make(map[string]float64)
-	value := keys[searchKey]
-	idx := 0
-	for {
-		var pubKey []byte
-		var ok bool
-		var iAmount *big.Int
-		pubKey, idx, ok = parsePubkey(value, idx)
-		allOk := ok
-		iAmount, idx, ok = parseBigInt(value, idx)
-		allOk = allOk && ok
-		if !allOk {
-			return errors.New("not all ok")
-		}
-
+	for key, value := range keys {
+		key = strings.TrimPrefix(key, searchKey)
+		pubKey, _ := hex.DecodeString(key)
+		iAmount := big.NewInt(0).SetBytes(value)
 		address := conv.Encode(pubKey)
 		amount := big2float(iAmount, 18)
 		reserves[address] = amount
-
-		if idx >= len(value) {
-			break
-		}
 	}
 
 	searchKey = hex.EncodeToString([]byte("reserve_undelegations"))
@@ -619,8 +627,8 @@ func readSC() error {
 	}
 
 	reserves_undelegates = make([]float64, 0)
-	value = keys[searchKey]
-	idx = 0
+	value := keys[searchKey]
+	idx := 0
 	for {
 		var ok bool
 		var iAmount *big.Int
@@ -1074,37 +1082,19 @@ func getUserUndelegations(walletAddress string) (float64, error) {
 }
 
 func getUserReserves(walletAddress string) (*big.Int, error) {
-	searchKey := hex.EncodeToString([]byte("user_reserves"))
+	conv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, logger.GetOrCreate("salsa"))
+	pubkey, err := conv.Decode(walletAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	searchKey := hex.EncodeToString(append([]byte("user_reserves.mapped"), pubkey...))
 	keys, err := getAccountKeys(scAddress, searchKey)
 	if err != nil || len(keys) != 1 {
 		return nil, err
 	}
 
-	conv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, logger.GetOrCreate("salsa"))
-	reserves := make(map[string]*big.Int)
-	value := keys[searchKey]
-	idx := 0
-	for {
-		var pubKey []byte
-		var ok bool
-		var iAmount *big.Int
-		pubKey, idx, ok = parsePubkey(value, idx)
-		allOk := ok
-		iAmount, idx, ok = parseBigInt(value, idx)
-		allOk = allOk && ok
-		if !allOk {
-			return nil, errors.New("not all ok")
-		}
-
-		address := conv.Encode(pubKey)
-		reserves[address] = iAmount
-
-		if idx >= len(value) {
-			break
-		}
-	}
-
-	return reserves[walletAddress], nil
+	return big.NewInt(0).SetBytes(keys[searchKey]), nil
 }
 
 type tokenBalance struct {

@@ -17,6 +17,15 @@ pub trait SalsaContract<ContractReader>:
     #[init]
     fn init(&self) {
         self.state().set(State::Inactive);
+        // let mut total = BigUint::zero();
+        // let reserves = self.reserve_undelegations().get();
+        // for res in reserves.into_iter() {
+        //     total += res.amount;
+        // }
+        // let available = self.available_egld_reserve().get();
+        // self.available_egld_reserve().set(available + &total);
+        // let user = self.user_withdrawn_egld().get();
+        // self.user_withdrawn_egld().set(user - total);
     }
 
     // endpoints
@@ -271,25 +280,23 @@ pub trait SalsaContract<ContractReader>:
 
         let caller = self.blockchain().get_caller();
         let reserve_amount = self.call_value().egld_value();
+        require!(
+            reserve_amount >= MIN_EGLD_TO_DELEGATE,
+            ERROR_INSUFFICIENT_RESERVE_AMOUNT
+        );
 
-        self.user_reserves().update(|user_reserves| {
-            let mut user_found = false;
-            for mut user_reserve in user_reserves.into_iter() {
-                if user_reserve.address == caller {
-                    user_reserve.amount += &reserve_amount;
-                    user_found = true;
-                    break;
-                }
-            }
-
-            if !user_found {
-                let new_reserve = config::Reserve {
-                    address: caller.clone(),
-                    amount: reserve_amount.clone(),
-                };
-                user_reserves.push(new_reserve);
-            }
-        });
+        let mut idx = self.reservers(caller.clone()).get();
+        if idx == 0 {
+            self.user_reserves().push(&reserve_amount);
+            idx = self.user_reserves().len();
+            self.reservers(caller.clone()).set(idx);
+            self.reservers_ids()
+                .entry(idx)
+                .or_insert(caller);
+        } else {
+            let old_reserve = self.user_reserves().get(idx);
+            self.user_reserves().set(idx, &(&old_reserve + &reserve_amount));
+        }
 
         self.egld_reserve().update(|value| *value += &reserve_amount);
         self.available_egld_reserve().update(|value| *value += reserve_amount);
@@ -303,29 +310,29 @@ pub trait SalsaContract<ContractReader>:
         let available_egld_reserve = self.available_egld_reserve().get();
         require!(available_egld_reserve >= amount, ERROR_NOT_ENOUGH_FUNDS);
 
-        let mut should_remove_user = false;
-        let mut user_found = false;
-        let mut user_reserves = self.user_reserves().get();
-        let mut index: usize = 0;
-        for mut user_reserve in user_reserves.into_iter() {
-            if user_reserve.address == caller {
-                require!(user_reserve.amount >= amount, ERROR_NOT_ENOUGH_FUNDS);
+        let idx = self.reservers(caller.clone()).get();
+        require!(idx > 0, ERROR_USER_NOT_PROVIDER);
 
-                user_reserve.amount -= &amount;
-                if user_reserve.amount == 0 {
-                    should_remove_user = true;
-                }
-                user_found = true;
-                break;
+        let old_reserve = self.user_reserves().get(idx);
+        require!(old_reserve >= amount, ERROR_NOT_ENOUGH_FUNDS);
+
+        if old_reserve > amount {
+            self.user_reserves().set(idx, &(&old_reserve - &amount));
+        } else {
+            let n = self.user_reserves().len();
+            let data = self.reservers_ids().get(&n);
+            if let Some(moved_address) = data {
+                self.reservers_ids()
+                    .entry(idx)
+                    .and_modify(|value| *value = moved_address);
+                self.reservers_ids().remove(&n);
+                self.reservers(caller.clone()).clear();
+                self.user_reserves().swap_remove(idx);
+            } else {
+                sc_panic!(ERROR_USER_NOT_PROVIDER);
             }
-            index += 1;
         }
-        require!(user_found, ERROR_USER_NOT_PROVIDER);
 
-        if should_remove_user {
-            user_reserves.remove(index);
-        }
-        self.user_reserves().set(user_reserves);
         self.send().direct_egld(&caller, &amount);
         self.egld_reserve().update(|value| *value -= &amount);
         self.available_egld_reserve().update(|value| *value -= amount);
@@ -366,24 +373,18 @@ pub trait SalsaContract<ContractReader>:
 
         let total_rewards = &egld_to_unstake - &egld_to_unstake_with_fee;
         let mut distributed_rewards = BigUint::zero();
-        let user_reserves = self.user_reserves().get();
-        let n = user_reserves.len();
+        let n = self.user_reserves().len();
         let mut i: usize = 0;
-        let mut new_user_reserves: ManagedVec<
-            Self::Api,
-            config::Reserve<Self::Api>,
-        > = ManagedVec::new();
-        for mut new_reserve in user_reserves.into_iter() {
+        for mut reserve in self.user_reserves().into_iter() {
             i += 1;
-            let mut reward = &new_reserve.amount * &total_rewards / &egld_reserve;
+            let mut reward = &reserve * &total_rewards / &egld_reserve;
             if i == n {
                 reward = &total_rewards - &distributed_rewards;
             }
-            new_reserve.amount += &reward;
+            reserve += &reward;
             distributed_rewards += reward;
-            new_user_reserves.push(new_reserve);
+            self.user_reserves().set(i, &reserve);
         }
-        self.user_reserves().set(new_user_reserves);
 
         self.egld_to_replenish_reserve()
             .update(|value| *value += &egld_to_unstake);
