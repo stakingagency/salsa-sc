@@ -41,7 +41,7 @@ type accountKeys struct {
 }
 
 const (
-	scAddress    = "erd1qqqqqqqqqqqqqpgqetlly0jneh72d48se4xpd7sw6kvsym8qvcqsh8v0sl"
+	scAddress    = "erd1qqqqqqqqqqqqqpgqqvx666jmgdqeuqpazp39vhv7kv25s3tqvcqszxtqgz"
 	proxyAddress = "http://54.36.109.61:8079"
 	// proxyAddress = "https://devnet-gateway.multiversx.com"
 	walletFile = "/home/mihai/walletKey.pem"
@@ -162,19 +162,17 @@ func removeReserveTester(idx int) error {
 	tWalletAddress := tAddress.AddressAsBech32String()
 	tAccount, err := proxy.GetAccount(context.Background(), tAddress)
 	if err != nil {
-		// return err
+		return err
 	}
 
 	balance, err := getUserReserves(tWalletAddress)
 	if err != nil {
-		// return err
+		return err
 	}
 
 	if balance == nil || balance.Cmp(big.NewInt(0)) == 0 {
-		// return nil
+		return nil
 	}
-
-	balance = big.NewInt(1000000000000000000) // DEBUG
 
 	return removeReserve(balance, 10000000, int64(tAccount.Nonce), tPrivateKey, tWalletAddress)
 }
@@ -279,8 +277,10 @@ func scenario1() error {
 	// 	return err
 	// }
 
-	// addReserveTester(2, big.NewInt(3000000000000000000))
-	// removeReserveTester(1)
+	// addReserveTester(1, big.NewInt(1000000000000000000))
+	// addReserveTester(2, big.NewInt(2000000000000000000))
+	// addReserveTester(3, big.NewInt(3000000000000000000))
+	// removeReserveTester(2)
 	// delegate(big.NewInt(9000000000000000000), 50000000, -1, privateKey, walletAddress)
 	// unDelegateNow(big.NewInt(1000000000000000000), 150000000, -1, privateKey, walletAddress)
 
@@ -604,7 +604,7 @@ func readSC() error {
 		}
 	}
 
-	searchKey = hex.EncodeToString([]byte("user_reserves.mapped"))
+	searchKey = hex.EncodeToString([]byte("reservers_addresses"))
 	keys, err = getAccountKeys(scAddress, searchKey)
 	if err != nil {
 		return err
@@ -614,7 +614,13 @@ func readSC() error {
 	for key, value := range keys {
 		key = strings.TrimPrefix(key, searchKey)
 		pubKey, _ := hex.DecodeString(key)
-		iAmount := big.NewInt(0).SetBytes(value)
+		index := big.NewInt(0).SetBytes(value)
+		searchKey2 := hex.EncodeToString([]byte("user_reserves.item")) + fmt.Sprintf("%.8x", index)
+		keys2, err := getAccountKeys(scAddress, searchKey2)
+		if err != nil || len(keys2) != 1 {
+			return err
+		}
+		iAmount := big.NewInt(0).SetBytes(keys2[searchKey2])
 		address := conv.Encode(pubKey)
 		amount := big2float(iAmount, 18)
 		reserves[address] = amount
@@ -1088,13 +1094,20 @@ func getUserReserves(walletAddress string) (*big.Int, error) {
 		return nil, err
 	}
 
-	searchKey := hex.EncodeToString(append([]byte("user_reserves.mapped"), pubkey...))
+	searchKey := hex.EncodeToString(append([]byte("reservers_addresses"), pubkey...))
 	keys, err := getAccountKeys(scAddress, searchKey)
 	if err != nil || len(keys) != 1 {
 		return nil, err
 	}
 
-	return big.NewInt(0).SetBytes(keys[searchKey]), nil
+	index := big.NewInt(0).SetBytes(keys[searchKey])
+	searchKey2 := hex.EncodeToString([]byte("user_reserves.item")) + fmt.Sprintf("%.8x", index)
+	keys, err = getAccountKeys(scAddress, searchKey2)
+	if err != nil || len(keys) != 1 {
+		return nil, err
+	}
+
+	return big.NewInt(0).SetBytes(keys[searchKey2]), nil
 }
 
 type tokenBalance struct {

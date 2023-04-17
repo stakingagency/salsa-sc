@@ -137,9 +137,9 @@ pub trait ConfigModule:
     #[storage_mapper("reservers_ids")]
     fn reservers_ids(&self) -> MapMapper<usize, ManagedAddress>;
 
-    #[view(getReservers)]
-    #[storage_mapper("reservers")]
-    fn reservers(&self, user: ManagedAddress) -> SingleValueMapper<usize>;
+    #[view(getReserverID)]
+    #[storage_mapper("reservers_addresses")]
+    fn reservers_addresses(&self, user: ManagedAddress) -> SingleValueMapper<usize>;
 
     #[view(getUserReserves)]
     #[storage_mapper("user_reserves")]
