@@ -258,12 +258,28 @@
             ]
         },
         {
+            "name": "getReservers",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "user",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        },
+        {
             "name": "getUserReserves",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
                 {
-                    "type": "List<Reserve>"
+                    "type": "variadic<BigUint>",
+                    "multi_result": true
                 }
             ]
         },
@@ -303,19 +319,6 @@
                 {
                     "name": "token_nonce",
                     "type": "u64"
-                },
-                {
-                    "name": "amount",
-                    "type": "BigUint"
-                }
-            ]
-        },
-        "Reserve": {
-            "type": "struct",
-            "fields": [
-                {
-                    "name": "address",
-                    "type": "Address"
                 },
                 {
                     "name": "amount",
