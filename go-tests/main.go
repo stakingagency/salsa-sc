@@ -40,8 +40,17 @@ type accountKeys struct {
 	Code  string `json:"code"`
 }
 
+type accountKey struct {
+	Data struct {
+		Value string `json:"value"`
+	} `json:"data"`
+	Error string `json:"error"`
+	Code  string `json:"code"`
+}
+
 const (
-	scAddress    = "erd1qqqqqqqqqqqqqpgqqvx666jmgdqeuqpazp39vhv7kv25s3tqvcqszxtqgz"
+	scAddress = "erd1qqqqqqqqqqqqqpgqfukpe83wm6vuwnwex48yswwy2qsr9sxqvcqsr2w9d9"
+	// proxyAddress = "http://localhost:8079"
 	proxyAddress = "http://54.36.109.61:8079"
 	// proxyAddress = "https://devnet-gateway.multiversx.com"
 	walletFile = "/home/mihai/walletKey.pem"
@@ -130,6 +139,8 @@ func withdrawTester(idx int) error {
 		return err
 	}
 
+	fmt.Printf("%v ", idx)
+
 	return withdraw(50000000, int64(tAccount.Nonce), tPrivateKey, tWalletAddress)
 }
 
@@ -152,6 +163,8 @@ func undelegateAllTester(idx int) error {
 		return nil
 	}
 
+	fmt.Printf("%v ", idx)
+
 	return unDelegate(balance, 50000000, int64(tAccount.Nonce), tPrivateKey, tWalletAddress)
 }
 
@@ -173,6 +186,8 @@ func removeReserveTester(idx int) error {
 	if balance == nil || balance.Cmp(big.NewInt(0)) == 0 {
 		return nil
 	}
+
+	fmt.Printf("%v ", idx)
 
 	return removeReserve(balance, 10000000, int64(tAccount.Nonce), tPrivateKey, tWalletAddress)
 }
@@ -277,17 +292,19 @@ func scenario1() error {
 	// 	return err
 	// }
 
+	// removeReserve(big.NewInt(1000000000000000000), 10000000, -1, privateKey, walletAddress)
+
 	// addReserveTester(1, big.NewInt(1000000000000000000))
 	// addReserveTester(2, big.NewInt(2000000000000000000))
 	// addReserveTester(3, big.NewInt(3000000000000000000))
-	// removeReserveTester(2)
+	// removeReserveTester(1)
 	// delegate(big.NewInt(9000000000000000000), 50000000, -1, privateKey, walletAddress)
-	// unDelegateNow(big.NewInt(1000000000000000000), 150000000, -1, privateKey, walletAddress)
+	// unDelegateNow(big.NewInt(1000000000000000000), 200000000, -1, privateKey, walletAddress)
 
 	// return setStateActive(-1)
 	// return compound(50000000, int64(nonce))
 	// return withdrawAll(200000000, -1)
-	// return updateTotalEgldStaked(50000000, int64(nonce))
+	// return updateTotalEgldStaked(50000000, -1)
 	// return undelegateReserves(200000000, -1)
 
 	// go func() {
@@ -324,7 +341,7 @@ func main() {
 		panic(err)
 	}
 
-	err = readSC()
+	// err = readSC()
 	if err != nil {
 		panic(err)
 	}
@@ -402,7 +419,7 @@ func main() {
 	// 		b100.Sub(b100, balance)
 	// 		sendTx(b100, 50000, "", int64(nonce), privateKey, walletAddress, tWalletAddress)
 	// 		nonce++
-	// 	} else {
+	// 	} else if b100.Cmp(balance) < 0 {
 	// 		balance.Sub(balance, b100)
 	// 		sendTx(balance, 50000, "", -1, tPrivateKey, tWalletAddress, walletAddress)
 	// 	}
@@ -412,7 +429,7 @@ func main() {
 	// CHECK TEST RESULTS
 	// for i := 0; i < testN; i++ {
 	// 	if err := checkTestResults(i); err != nil {
-	// 		panic(err)
+	// 		fmt.Println(err)
 	// 	}
 	// }
 
@@ -431,11 +448,11 @@ func main() {
 	// }
 
 	// REMOVE RESERVE EACH
-	// for i := 0; i < testN; i++ {
-	// 	if err := removeReserveTester(i); err != nil {
-	// 		panic(err)
-	// 	}
-	// }
+	for i := 0; i < testN; i++ {
+		if err := removeReserveTester(i); err != nil {
+			panic(err)
+		}
+	}
 
 	// STRESS TEST
 	// for i := 0; i < testN; i++ {
@@ -498,6 +515,26 @@ func getAccountKeys(address string, prefix string) (map[string][]byte, error) {
 	}
 
 	return result, nil
+}
+
+func getAccountKey(address string, key string) ([]byte, error) {
+	endpoint := fmt.Sprintf("%s/address/%s/key/%s", proxyAddress, address, key)
+	bytes, err := getHTTP(endpoint, "")
+	if err != nil {
+		return nil, err
+	}
+
+	response := &accountKey{}
+	err = json.Unmarshal(bytes, response)
+	if err != nil {
+		return nil, err
+	}
+
+	if response.Error != "" {
+		return nil, errors.New(response.Error)
+	}
+
+	return hex.DecodeString(response.Data.Value)
 }
 
 func initSC() error {
@@ -1042,19 +1079,23 @@ func setStateInactive(nonce int64) error {
 }
 
 func getUserUndelegations(walletAddress string) (float64, error) {
-	prefix := []byte("user_undelegations")
-	searchKey := hex.EncodeToString(prefix)
-	keys, err := getAccountKeys(scAddress, searchKey)
+	conv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, logger.GetOrCreate("salsa"))
+	pubkey, err := conv.Decode(walletAddress)
 	if err != nil {
 		return 0, err
 	}
 
-	conv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, logger.GetOrCreate("salsa"))
-	undelegates := make(map[string][]float64)
-	for key, value := range keys {
+	key := append([]byte("user_undelegations"), pubkey...)
+	searchKey := hex.EncodeToString(key)
+	value, err := getAccountKey(scAddress, searchKey)
+	if err != nil {
+		return 0, err
+	}
+
+	undelegates := make([]float64, 0)
+	if len(value) > 0 {
 		idx := 0
 		for {
-			key = strings.TrimPrefix(key, hex.EncodeToString(prefix))
 			var iAmount *big.Int
 			var ok bool
 			iAmount, idx, ok = parseBigInt(value, idx)
@@ -1065,13 +1106,8 @@ func getUserUndelegations(walletAddress string) (float64, error) {
 				return 0, errors.New("not all ok")
 			}
 
-			pubKey, _ := hex.DecodeString(key)
-			address := conv.Encode(pubKey)
 			amount := big2float(iAmount, 18)
-			if undelegates[address] == nil {
-				undelegates[address] = make([]float64, 0)
-			}
-			undelegates[address] = append(undelegates[address], amount)
+			undelegates = append(undelegates, amount)
 
 			if idx >= len(value) {
 				break
@@ -1080,7 +1116,7 @@ func getUserUndelegations(walletAddress string) (float64, error) {
 	}
 
 	totalUndelegation := float64(0)
-	for _, undelegation := range undelegates[walletAddress] {
+	for _, undelegation := range undelegates {
 		totalUndelegation += undelegation
 	}
 
@@ -1095,19 +1131,19 @@ func getUserReserves(walletAddress string) (*big.Int, error) {
 	}
 
 	searchKey := hex.EncodeToString(append([]byte("reservers_addresses"), pubkey...))
-	keys, err := getAccountKeys(scAddress, searchKey)
-	if err != nil || len(keys) != 1 {
+	keys, err := getAccountKey(scAddress, searchKey)
+	if err != nil {
 		return nil, err
 	}
 
-	index := big.NewInt(0).SetBytes(keys[searchKey])
+	index := big.NewInt(0).SetBytes(keys)
 	searchKey2 := hex.EncodeToString([]byte("user_reserves.item")) + fmt.Sprintf("%.8x", index)
-	keys, err = getAccountKeys(scAddress, searchKey2)
-	if err != nil || len(keys) != 1 {
+	keys, err = getAccountKey(scAddress, searchKey2)
+	if err != nil {
 		return nil, err
 	}
 
-	return big.NewInt(0).SetBytes(keys[searchKey2]), nil
+	return big.NewInt(0).SetBytes(keys), nil
 }
 
 type tokenBalance struct {
