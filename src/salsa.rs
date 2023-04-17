@@ -324,9 +324,10 @@ pub trait SalsaContract<ContractReader>:
             if let Some(moved_address) = data {
                 self.reservers_ids()
                     .entry(idx)
-                    .and_modify(|value| *value = moved_address);
+                    .and_modify(|value| *value = moved_address.clone());
                 self.reservers_ids().remove(&n);
                 self.reservers(caller.clone()).clear();
+                self.reservers(moved_address).set(idx);
                 self.user_reserves().swap_remove(idx);
             } else {
                 sc_panic!(ERROR_USER_NOT_PROVIDER);
