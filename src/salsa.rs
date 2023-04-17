@@ -327,7 +327,7 @@ pub trait SalsaContract<ContractReader>:
                     .and_modify(|value| *value = moved_address.clone());
                 self.reservers_ids().remove(&n);
                 self.reservers_addresses(caller.clone()).set(0);
-                if n > 1 {
+                if n != idx {
                     self.reservers_addresses(moved_address).set(idx);
                 }
                 self.user_reserves().swap_remove(idx);
