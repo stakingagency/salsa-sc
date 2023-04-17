@@ -42,7 +42,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         getEgldReserve
         getAvailableEgldReserve
         getReserveUndelegations
-        getReservers
+        getReserverID
         getUserReserves
         setUndelegateNowFee
         getUndelegateNowFee

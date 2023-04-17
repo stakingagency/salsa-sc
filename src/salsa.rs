@@ -285,11 +285,11 @@ pub trait SalsaContract<ContractReader>:
             ERROR_INSUFFICIENT_RESERVE_AMOUNT
         );
 
-        let mut idx = self.reservers(caller.clone()).get();
+        let mut idx = self.reservers_addresses(caller.clone()).get();
         if idx == 0 {
             self.user_reserves().push(&reserve_amount);
             idx = self.user_reserves().len();
-            self.reservers(caller.clone()).set(idx);
+            self.reservers_addresses(caller.clone()).set(idx);
             self.reservers_ids()
                 .entry(idx)
                 .or_insert(caller);
@@ -310,7 +310,7 @@ pub trait SalsaContract<ContractReader>:
         let available_egld_reserve = self.available_egld_reserve().get();
         require!(available_egld_reserve >= amount, ERROR_NOT_ENOUGH_FUNDS);
 
-        let idx = self.reservers(caller.clone()).get();
+        let idx = self.reservers_addresses(caller.clone()).get();
         require!(idx > 0, ERROR_USER_NOT_PROVIDER);
 
         let old_reserve = self.user_reserves().get(idx);
@@ -326,8 +326,10 @@ pub trait SalsaContract<ContractReader>:
                     .entry(idx)
                     .and_modify(|value| *value = moved_address.clone());
                 self.reservers_ids().remove(&n);
-                self.reservers(caller.clone()).clear();
-                self.reservers(moved_address).set(idx);
+                self.reservers_addresses(caller.clone()).set(0);
+                if n > 1 {
+                    self.reservers_addresses(moved_address).set(idx);
+                }
                 self.user_reserves().swap_remove(idx);
             } else {
                 sc_panic!(ERROR_USER_NOT_PROVIDER);
