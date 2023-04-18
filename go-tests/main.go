@@ -341,7 +341,7 @@ func main() {
 		panic(err)
 	}
 
-	// err = readSC()
+	err = readSC()
 	if err != nil {
 		panic(err)
 	}
@@ -448,11 +448,11 @@ func main() {
 	// }
 
 	// REMOVE RESERVE EACH
-	for i := 0; i < testN; i++ {
-		if err := removeReserveTester(i); err != nil {
-			panic(err)
-		}
-	}
+	// for i := 0; i < testN; i++ {
+	// 	if err := removeReserveTester(i); err != nil {
+	// 		panic(err)
+	// 	}
+	// }
 
 	// STRESS TEST
 	// for i := 0; i < testN; i++ {
@@ -653,11 +653,11 @@ func readSC() error {
 		pubKey, _ := hex.DecodeString(key)
 		index := big.NewInt(0).SetBytes(value)
 		searchKey2 := hex.EncodeToString([]byte("user_reserves.item")) + fmt.Sprintf("%.8x", index)
-		keys2, err := getAccountKeys(scAddress, searchKey2)
-		if err != nil || len(keys2) != 1 {
+		keys2, err := getAccountKey(scAddress, searchKey2)
+		if err != nil {
 			return err
 		}
-		iAmount := big.NewInt(0).SetBytes(keys2[searchKey2])
+		iAmount := big.NewInt(0).SetBytes(keys2)
 		address := conv.Encode(pubKey)
 		amount := big2float(iAmount, 18)
 		reserves[address] = amount

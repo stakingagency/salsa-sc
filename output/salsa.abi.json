@@ -51,18 +51,6 @@
             "outputs": []
         },
         {
-            "name": "compound",
-            "mutability": "mutable",
-            "inputs": [],
-            "outputs": []
-        },
-        {
-            "name": "updateTotalEgldStaked",
-            "mutability": "mutable",
-            "inputs": [],
-            "outputs": []
-        },
-        {
             "name": "addReserve",
             "mutability": "mutable",
             "payableInTokens": [
@@ -93,6 +81,18 @@
         },
         {
             "name": "undelegateReserves",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "compound",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "updateTotalEgldStaked",
             "mutability": "mutable",
             "inputs": [],
             "outputs": []

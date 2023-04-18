@@ -21,12 +21,12 @@ multiversx_sc_wasm_adapter::endpoints! {
         delegate
         unDelegate
         withdraw
-        compound
-        updateTotalEgldStaked
         addReserve
         removeReserve
         unDelegateNow
         undelegateReserves
+        compound
+        updateTotalEgldStaked
         withdrawAll
         registerLiquidToken
         getLiquidTokenId

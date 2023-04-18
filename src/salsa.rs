@@ -17,18 +17,9 @@ pub trait SalsaContract<ContractReader>:
     #[init]
     fn init(&self) {
         self.state().set(State::Inactive);
-        // let mut total = BigUint::zero();
-        // let reserves = self.reserve_undelegations().get();
-        // for res in reserves.into_iter() {
-        //     total += res.amount;
-        // }
-        // let available = self.available_egld_reserve().get();
-        // self.available_egld_reserve().set(available + &total);
-        // let user = self.user_withdrawn_egld().get();
-        // self.user_withdrawn_egld().set(user - total);
     }
 
-    // endpoints
+    // endpoints: liquid delegation
 
     #[payable("EGLD")]
     #[endpoint(delegate)]
@@ -229,49 +220,7 @@ pub trait SalsaContract<ContractReader>:
         }
     }
 
-    #[endpoint(compound)]
-    fn compound(&self) {
-        require!(self.is_state_active(), ERROR_NOT_ACTIVE);
-
-        let delegation_contract = self.provider_address().get();
-        let gas_for_async_call = self.get_gas_for_async_call();
-
-        self.delegation_proxy_obj()
-            .contract(delegation_contract)
-            .redelegate_rewards()
-            .with_gas_limit(gas_for_async_call)
-            .transfer_execute();
-    }
-
-    #[endpoint(updateTotalEgldStaked)]
-    fn update_total_egld_staked(&self) {
-        require!(self.is_state_active(), ERROR_NOT_ACTIVE);
-
-        let delegation_contract = self.provider_address().get();
-        let this_contract = self.blockchain().get_sc_address();
-        let gas_for_async_call = self.get_gas_for_async_call();
-
-        self.delegation_proxy_obj()
-            .contract(delegation_contract)
-            .get_user_active_stake(this_contract)
-            .with_gas_limit(gas_for_async_call)
-            .async_call()
-            .with_callback(SalsaContract::callbacks(self).update_egld_staked_callback())
-            .call_and_exit()
-    }
-
-    #[callback]
-    fn update_egld_staked_callback(&self, #[call_result] result: ManagedAsyncCallResult<BigUint>) {
-        match result {
-            ManagedAsyncCallResult::Ok(total_stake) => {
-                let total_egld_staked = self.total_egld_staked().get();
-                require!(total_stake > total_egld_staked, ERROR_NOT_ENOUGH_FUNDS);
-
-                self.total_egld_staked().set(total_stake);
-            }
-            ManagedAsyncCallResult::Err(_) => {}
-        }
-    }
+    // endpoints: reserves
 
     #[payable("EGLD")]
     #[endpoint(addReserve)]
@@ -396,6 +345,8 @@ pub trait SalsaContract<ContractReader>:
         self.egld_reserve().update(|value| *value += &total_rewards);
     }
 
+    // endpoints: service
+
     #[endpoint(undelegateReserves)]
     fn undelegate_reserves(&self) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
@@ -451,6 +402,50 @@ pub trait SalsaContract<ContractReader>:
         }
     }
 
+    #[endpoint(compound)]
+    fn compound(&self) {
+        require!(self.is_state_active(), ERROR_NOT_ACTIVE);
+
+        let delegation_contract = self.provider_address().get();
+        let gas_for_async_call = self.get_gas_for_async_call();
+
+        self.delegation_proxy_obj()
+            .contract(delegation_contract)
+            .redelegate_rewards()
+            .with_gas_limit(gas_for_async_call)
+            .transfer_execute();
+    }
+
+    #[endpoint(updateTotalEgldStaked)]
+    fn update_total_egld_staked(&self) {
+        require!(self.is_state_active(), ERROR_NOT_ACTIVE);
+
+        let delegation_contract = self.provider_address().get();
+        let this_contract = self.blockchain().get_sc_address();
+        let gas_for_async_call = self.get_gas_for_async_call();
+
+        self.delegation_proxy_obj()
+            .contract(delegation_contract)
+            .get_user_active_stake(this_contract)
+            .with_gas_limit(gas_for_async_call)
+            .async_call()
+            .with_callback(SalsaContract::callbacks(self).update_egld_staked_callback())
+            .call_and_exit()
+    }
+
+    #[callback]
+    fn update_egld_staked_callback(&self, #[call_result] result: ManagedAsyncCallResult<BigUint>) {
+        match result {
+            ManagedAsyncCallResult::Ok(total_stake) => {
+                let total_egld_staked = self.total_egld_staked().get();
+                require!(total_stake > total_egld_staked, ERROR_NOT_ENOUGH_FUNDS);
+
+                self.total_egld_staked().set(total_stake);
+            }
+            ManagedAsyncCallResult::Err(_) => {}
+        }
+    }
+
     #[endpoint(withdrawAll)]
     fn withdraw_all(&self) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
@@ -476,6 +471,8 @@ pub trait SalsaContract<ContractReader>:
             ManagedAsyncCallResult::Err(_) => {}
         }
     }
+
+    // helpers
 
     fn get_gas_for_async_call(&self) -> u64 {
         let gas_left = self.blockchain().get_gas_left();
@@ -574,7 +571,6 @@ pub trait SalsaContract<ContractReader>:
             .update(|value| *value += user_withdrawn_amount);
         self.available_egld_reserve()
             .update(|value| *value += reserve_withdraw_amount);
-
     }
 
     // proxy
