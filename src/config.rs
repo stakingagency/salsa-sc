@@ -15,12 +15,6 @@ pub struct Undelegation<M: ManagedTypeApi> {
     pub unbond_epoch: u64,
 }
 
-#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
-pub struct Reserve<M: ManagedTypeApi> {
-    pub address: ManagedAddress<M>,
-    pub amount: BigUint<M>,
-}
-
 #[multiversx_sc::module]
 pub trait ConfigModule:
     multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
