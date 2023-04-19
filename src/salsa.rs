@@ -375,6 +375,12 @@ pub trait SalsaContract<ContractReader>:
     ) {
         match result {
             ManagedAsyncCallResult::Ok(()) => {
+                let egld_to_replenish = self.egld_to_replenish_reserve().get();
+                require!(
+                    egld_to_replenish >= egld_to_unstake,
+                    ERROR_NOT_ENOUGH_FUNDS,
+                );
+
                 let current_epoch = self.blockchain().get_block_epoch();
                 let unbond_epoch = current_epoch + UNBOND_PERIOD;
                 let reserve_undelegations = self.reserve_undelegations().get();
