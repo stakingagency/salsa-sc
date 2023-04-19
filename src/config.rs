@@ -135,9 +135,9 @@ pub trait ConfigModule:
     #[storage_mapper("reservers_addresses")]
     fn reservers_addresses(&self, user: ManagedAddress) -> SingleValueMapper<usize>;
 
-    #[view(getUserReserves)]
-    #[storage_mapper("user_reserves")]
-    fn user_reserves(&self) -> VecMapper<BigUint>;
+    #[view(getUsersReserves)]
+    #[storage_mapper("users_reserves")]
+    fn users_reserves(&self) -> VecMapper<BigUint>;
 
     #[only_owner]
     #[endpoint(setUndelegateNowFee)]

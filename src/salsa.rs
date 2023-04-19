@@ -236,15 +236,15 @@ pub trait SalsaContract<ContractReader>:
 
         let mut idx = self.reservers_addresses(caller.clone()).get();
         if idx == 0 {
-            self.user_reserves().push(&reserve_amount);
-            idx = self.user_reserves().len();
+            self.users_reserves().push(&reserve_amount);
+            idx = self.users_reserves().len();
             self.reservers_addresses(caller.clone()).set(idx);
             self.reservers_ids()
                 .entry(idx)
                 .or_insert(caller);
         } else {
-            let old_reserve = self.user_reserves().get(idx);
-            self.user_reserves().set(idx, &(&old_reserve + &reserve_amount));
+            let old_reserve = self.users_reserves().get(idx);
+            self.users_reserves().set(idx, &(&old_reserve + &reserve_amount));
         }
 
         self.egld_reserve().update(|value| *value += &reserve_amount);
@@ -262,13 +262,13 @@ pub trait SalsaContract<ContractReader>:
         let idx = self.reservers_addresses(caller.clone()).get();
         require!(idx > 0, ERROR_USER_NOT_PROVIDER);
 
-        let old_reserve = self.user_reserves().get(idx);
+        let old_reserve = self.users_reserves().get(idx);
         require!(old_reserve >= amount, ERROR_NOT_ENOUGH_FUNDS);
 
         if old_reserve > amount {
-            self.user_reserves().set(idx, &(&old_reserve - &amount));
+            self.users_reserves().set(idx, &(&old_reserve - &amount));
         } else {
-            let n = self.user_reserves().len();
+            let n = self.users_reserves().len();
             let data = self.reservers_ids().get(&n);
             if let Some(moved_address) = data {
                 self.reservers_ids()
@@ -279,7 +279,7 @@ pub trait SalsaContract<ContractReader>:
                 if n != idx {
                     self.reservers_addresses(moved_address).set(idx);
                 }
-                self.user_reserves().swap_remove(idx);
+                self.users_reserves().swap_remove(idx);
             } else {
                 sc_panic!(ERROR_USER_NOT_PROVIDER);
             }
@@ -325,9 +325,9 @@ pub trait SalsaContract<ContractReader>:
 
         let total_rewards = &egld_to_unstake - &egld_to_unstake_with_fee;
         let mut distributed_rewards = BigUint::zero();
-        let n = self.user_reserves().len();
+        let n = self.users_reserves().len();
         let mut i: usize = 0;
-        for mut reserve in self.user_reserves().into_iter() {
+        for mut reserve in self.users_reserves().into_iter() {
             i += 1;
             let mut reward = &reserve * &total_rewards / &egld_reserve;
             if i == n {
@@ -335,7 +335,7 @@ pub trait SalsaContract<ContractReader>:
             }
             reserve += &reward;
             distributed_rewards += reward;
-            self.user_reserves().set(i, &reserve);
+            self.users_reserves().set(i, &reserve);
         }
 
         self.egld_to_replenish_reserve()

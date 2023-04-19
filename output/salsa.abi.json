@@ -273,7 +273,7 @@
             ]
         },
         {
-            "name": "getUserReserves",
+            "name": "getUsersReserves",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
