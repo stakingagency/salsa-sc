@@ -350,9 +350,12 @@ pub trait SalsaContract<ContractReader>:
     #[endpoint(undelegateReserves)]
     fn undelegate_reserves(&self) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
+        require!(!self.is_reserve_undelegations_busy(), ERROR_BUSY_UNDELEGATE_RESERVES);
 
         let total_egld_to_unstake = self.egld_to_replenish_reserve().get();
         require!(total_egld_to_unstake > 0, ERROR_NOT_ENOUGH_FUNDS);
+
+        self.busy_reserve_undelegations().set(config::State::Active);
 
         let delegation_contract = self.provider_address().get();
         let gas_for_async_call = self.get_gas_for_async_call();
@@ -375,12 +378,6 @@ pub trait SalsaContract<ContractReader>:
     ) {
         match result {
             ManagedAsyncCallResult::Ok(()) => {
-                let egld_to_replenish = self.egld_to_replenish_reserve().get();
-                require!(
-                    egld_to_replenish >= egld_to_unstake,
-                    ERROR_NOT_ENOUGH_FUNDS,
-                );
-
                 let current_epoch = self.blockchain().get_block_epoch();
                 let unbond_epoch = current_epoch + UNBOND_PERIOD;
                 let reserve_undelegations = self.reserve_undelegations().get();
@@ -406,6 +403,7 @@ pub trait SalsaContract<ContractReader>:
             }
             ManagedAsyncCallResult::Err(_) => {}
         }
+        self.busy_reserve_undelegations().set(config::State::Inactive);
     }
 
     #[endpoint(compound)]

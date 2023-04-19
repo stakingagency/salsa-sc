@@ -15,3 +15,4 @@ pub static ERROR_TOKEN_NOT_SET: &[u8] = b"Token not set";
 pub static ERROR_NOT_ENOUGH_LIQUID_SUPPLY: &[u8] = b"Not enough liquid token supply";
 pub static ERROR_INCORRECT_FEE: &[u8] = b"Fee must be less than 100%";
 pub static ERROR_WITHDRAW_BUSY: &[u8] = b"Another withdraw call in progress";
+pub static ERROR_BUSY_UNDELEGATE_RESERVES: &[u8] = b"Another undelegate reserves call in progress";
