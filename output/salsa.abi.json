@@ -51,18 +51,6 @@
             "outputs": []
         },
         {
-            "name": "compound",
-            "mutability": "mutable",
-            "inputs": [],
-            "outputs": []
-        },
-        {
-            "name": "updateTotalEgldStaked",
-            "mutability": "mutable",
-            "inputs": [],
-            "outputs": []
-        },
-        {
             "name": "addReserve",
             "mutability": "mutable",
             "payableInTokens": [
@@ -88,6 +76,24 @@
             "payableInTokens": [
                 "*"
             ],
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "undelegateReserves",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "compound",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "updateTotalEgldStaked",
+            "mutability": "mutable",
             "inputs": [],
             "outputs": []
         },
@@ -252,12 +258,28 @@
             ]
         },
         {
-            "name": "getUserReserves",
+            "name": "getReserverID",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "user",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        },
+        {
+            "name": "getUsersReserves",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
                 {
-                    "type": "List<Reserve>"
+                    "type": "variadic<BigUint>",
+                    "multi_result": true
                 }
             ]
         },
@@ -297,19 +319,6 @@
                 {
                     "name": "token_nonce",
                     "type": "u64"
-                },
-                {
-                    "name": "amount",
-                    "type": "BigUint"
-                }
-            ]
-        },
-        "Reserve": {
-            "type": "struct",
-            "fields": [
-                {
-                    "name": "address",
-                    "type": "Address"
                 },
                 {
                     "name": "amount",

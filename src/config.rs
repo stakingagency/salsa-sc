@@ -15,12 +15,6 @@ pub struct Undelegation<M: ManagedTypeApi> {
     pub unbond_epoch: u64,
 }
 
-#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
-pub struct Reserve<M: ManagedTypeApi> {
-    pub address: ManagedAddress<M>,
-    pub amount: BigUint<M>,
-}
-
 #[multiversx_sc::module]
 pub trait ConfigModule:
     multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
@@ -107,7 +101,10 @@ pub trait ConfigModule:
     ) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
 
     #[storage_mapper("backup_user_undelegations")]
-    fn backup_user_undelegations(&self) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
+    fn backup_user_undelegations(
+        &self,
+        user: &ManagedAddress,
+    ) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
 
     #[view(getTotalEgldStaked)]
     #[storage_mapper("total_egld_staked")]
@@ -131,15 +128,16 @@ pub trait ConfigModule:
     #[storage_mapper("reserve_undelegations")]
     fn reserve_undelegations(&self) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
 
-    #[storage_mapper("backup_reserve_undelegations")]
-    fn backup_reserve_undelegations(&self) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
+    #[storage_mapper("reservers_ids")]
+    fn reservers_ids(&self) -> MapMapper<usize, ManagedAddress>;
 
-    #[view(getUserReserves)]
-    #[storage_mapper("user_reserves")]
-    fn user_reserves(&self) -> SingleValueMapper<ManagedVec<Reserve<Self::Api>>>;
+    #[view(getReserverID)]
+    #[storage_mapper("reservers_addresses")]
+    fn reservers_addresses(&self, user: ManagedAddress) -> SingleValueMapper<usize>;
 
-    #[storage_mapper("backup_user_reserves")]
-    fn backup_user_reserves(&self) -> SingleValueMapper<ManagedVec<Reserve<Self::Api>>>;
+    #[view(getUsersReserves)]
+    #[storage_mapper("users_reserves")]
+    fn users_reserves(&self) -> VecMapper<BigUint>;
 
     #[only_owner]
     #[endpoint(setUndelegateNowFee)]
@@ -153,4 +151,6 @@ pub trait ConfigModule:
     #[storage_mapper("undelegate_now_fee")]
     fn undelegate_now_fee(&self) -> SingleValueMapper<u64>;
 
+    #[storage_mapper("egld_to_replenish_reserve")]
+    fn egld_to_replenish_reserve(&self) -> SingleValueMapper<BigUint>;
 }
