@@ -128,6 +128,15 @@ pub trait ConfigModule:
     #[storage_mapper("reserve_undelegations")]
     fn reserve_undelegations(&self) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
 
+    #[storage_mapper("busy_reserve_undelegations")]
+    fn busy_reserve_undelegations(&self) -> SingleValueMapper<State>;
+
+    #[inline]
+    fn is_reserve_undelegations_busy(&self) -> bool {
+        let state = self.busy_reserve_undelegations().get();
+        state == State::Active
+    }
+
     #[storage_mapper("reservers_ids")]
     fn reservers_ids(&self) -> MapMapper<usize, ManagedAddress>;
 
