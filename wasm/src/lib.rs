@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           26
+// Endpoints:                           28
 // Async Callback:                       1
-// Total number of exported functions:  28
+// Total number of exported functions:  30
 
 #![no_std]
 #![feature(alloc_error_handler, lang_items)]
@@ -21,11 +21,12 @@ multiversx_sc_wasm_adapter::endpoints! {
         delegate
         unDelegate
         withdraw
-        compound
-        updateTotalEgldStaked
         addReserve
         removeReserve
         unDelegateNow
+        undelegateReserves
+        compound
+        updateTotalEgldStaked
         withdrawAll
         registerLiquidToken
         getLiquidTokenId
@@ -41,7 +42,8 @@ multiversx_sc_wasm_adapter::endpoints! {
         getEgldReserve
         getAvailableEgldReserve
         getReserveUndelegations
-        getUserReserves
+        getReserverID
+        getUsersReserves
         setUndelegateNowFee
         getUndelegateNowFee
         callBack
