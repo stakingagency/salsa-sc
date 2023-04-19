@@ -437,8 +437,8 @@ pub trait SalsaContract<ContractReader>:
     fn update_egld_staked_callback(&self, #[call_result] result: ManagedAsyncCallResult<BigUint>) {
         match result {
             ManagedAsyncCallResult::Ok(total_stake) => {
-                let total_egld_staked = self.total_egld_staked().get();
-                require!(total_stake > total_egld_staked, ERROR_NOT_ENOUGH_FUNDS);
+                // let total_egld_staked = self.total_egld_staked().get();
+                // require!(total_stake > total_egld_staked, ERROR_NOT_ENOUGH_FUNDS);
 
                 self.total_egld_staked().set(total_stake);
             }
