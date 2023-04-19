@@ -49,14 +49,14 @@ type accountKey struct {
 }
 
 const (
-	scAddress = "erd1qqqqqqqqqqqqqpgqfukpe83wm6vuwnwex48yswwy2qsr9sxqvcqsr2w9d9"
+	scAddress = "erd1qqqqqqqqqqqqqpgqpk3qzj86tme9kzxdq87f2rdf5nlwsgvjvcqs5hke3x"
 	// proxyAddress = "http://localhost:8079"
 	proxyAddress = "http://54.36.109.61:8079"
 	// proxyAddress = "https://devnet-gateway.multiversx.com"
 	walletFile = "/home/mihai/walletKey.pem"
 	mnemonic   = "asdfghjkl"
 
-	testN = 100
+	testN = 1000
 )
 
 var (
@@ -448,11 +448,11 @@ func main() {
 	// }
 
 	// REMOVE RESERVE EACH
-	// for i := 0; i < testN; i++ {
-	// 	if err := removeReserveTester(i); err != nil {
-	// 		panic(err)
-	// 	}
-	// }
+	//  for i := 0; i < testN; i++ {
+	//  	if err := removeReserveTester(i); err != nil {
+	//  		panic(err)
+	//  	}
+	//  }
 
 	// STRESS TEST
 	// for i := 0; i < testN; i++ {
