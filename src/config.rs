@@ -9,6 +9,13 @@ pub enum State {
     Active,
 }
 
+#[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Eq, Copy, Clone, Debug)]
+pub enum Operation {
+    Idle,
+    Undelegating,
+    Compounding,
+}
+
 #[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
 pub struct Undelegation<M: ManagedTypeApi> {
     pub amount: BigUint<M>,
@@ -169,4 +176,9 @@ pub trait ConfigModule:
 
     #[storage_mapper("egld_to_replenish_reserve")]
     fn egld_to_replenish_reserve(&self) -> SingleValueMapper<BigUint>;
+
+    // misc
+
+    #[storage_mapper("operation")]
+    fn operation(&self) -> SingleValueMapper<Operation>;
 }

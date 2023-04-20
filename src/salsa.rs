@@ -18,6 +18,7 @@ pub trait SalsaContract<ContractReader>:
     fn init(&self) {
         self.state().set(State::Inactive);
         self.busy_reserve_undelegations().set(State::Inactive);
+        self.operation().set(Operation::Idle);
     }
 
     // endpoints: liquid delegation
@@ -77,7 +78,11 @@ pub trait SalsaContract<ContractReader>:
     #[endpoint(unDelegate)]
     fn undelegate(&self) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
+        
+        let operation = self.operation().get();
+        require!(operation == Operation::Idle, ERROR_BUSY_COMPOUNDING);
 
+        self.operation().set(Operation::Undelegating);
         let payment = self.call_value().single_esdt();
         let liquid_token_id = self.liquid_token_id().get_token_id();
         require!(
@@ -86,12 +91,13 @@ pub trait SalsaContract<ContractReader>:
         );
         require!(payment.amount > 0u64, ERROR_BAD_PAYMENT_AMOUNT);
 
-        let egld_to_unstake = self.remove_liquidity(&payment.amount, false);
+        let egld_to_unstake = self.remove_liquidity(&payment.amount);
         require!(
             egld_to_unstake >= MIN_EGLD_TO_DELEGATE,
             ERROR_BAD_PAYMENT_AMOUNT
         );
 
+        self.burn_liquid_token(&payment.amount);
         let delegation_contract = self.provider_address().get();
         let caller = self.blockchain().get_caller();
         let gas_for_async_call = self.get_gas_for_async_call();
@@ -102,7 +108,7 @@ pub trait SalsaContract<ContractReader>:
             .with_gas_limit(gas_for_async_call)
             .async_call()
             .with_callback(
-                SalsaContract::callbacks(self).undelegate_callback(caller, payment.amount, egld_to_unstake),
+                SalsaContract::callbacks(self).undelegate_callback(caller, egld_to_unstake),
             )
             .call_and_exit()
     }
@@ -111,7 +117,6 @@ pub trait SalsaContract<ContractReader>:
     fn undelegate_callback(
         &self,
         caller: ManagedAddress,
-        ls_amount: BigUint,
         egld_amount: BigUint,
         #[call_result] result: ManagedAsyncCallResult<()>,
     ) {
@@ -123,21 +128,21 @@ pub trait SalsaContract<ContractReader>:
                     amount: egld_amount,
                     unbond_epoch,
                 };
-                self.remove_liquidity(&ls_amount, true);
-                self.burn_liquid_token(&ls_amount);
                 self.user_undelegations(&caller)
                     .update(|undelegations| undelegations.push(undelegation));
             }
             ManagedAsyncCallResult::Err(_) => {
-                let liquid_token_id = self.liquid_token_id().get_token_id();
+                let ls_token_amount = self.add_liquidity(&egld_amount);
+                let user_payment = self.mint_liquid_token(ls_token_amount);
                 self.send().direct_esdt(
                     &caller,
-                    &liquid_token_id,
-                    0,
-                    &ls_amount,
+                    &user_payment.token_identifier,
+                    user_payment.token_nonce,
+                    &user_payment.amount,
                 );
             }
         }
+        self.operation().set(Operation::Idle);
     }
 
     #[endpoint(withdraw)]
@@ -297,6 +302,9 @@ pub trait SalsaContract<ContractReader>:
     fn undelegate_now(&self) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
+        let operation = self.operation().get();
+        require!(operation == Operation::Idle, ERROR_BUSY_COMPOUNDING);
+
         let payment = self.call_value().single_esdt();
         let liquid_token_id = self.liquid_token_id().get_token_id();
         let egld_reserve = self.egld_reserve().get();
@@ -310,7 +318,7 @@ pub trait SalsaContract<ContractReader>:
 
         let fee = self.undelegate_now_fee().get();
         let caller = self.blockchain().get_caller();
-        let egld_to_unstake = self.remove_liquidity(&payment.amount, true);
+        let egld_to_unstake = self.remove_liquidity(&payment.amount);
         self.burn_liquid_token(&payment.amount);
         require!(
             egld_to_unstake >= MIN_EGLD_TO_DELEGATE,
@@ -356,6 +364,9 @@ pub trait SalsaContract<ContractReader>:
 
         let total_egld_to_unstake = self.egld_to_replenish_reserve().get();
         require!(total_egld_to_unstake > 0, ERROR_NOT_ENOUGH_FUNDS);
+
+        let operation = self.operation().get();
+        require!(operation == Operation::Idle, ERROR_BUSY_OPERATION);
 
         self.busy_reserve_undelegations().set(State::Active);
 
@@ -411,7 +422,15 @@ pub trait SalsaContract<ContractReader>:
     #[endpoint(compound)]
     fn compound(&self) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
+        require!(!self.is_reserve_undelegations_busy(), ERROR_BUSY_UNDELEGATE_RESERVES);
 
+        let operation = self.operation().get();
+        require!(operation == Operation::Idle, ERROR_BUSY_UNDELEGATING);
+
+        let replenish = self.egld_to_replenish_reserve().get();
+        require!(replenish == 0, ERROR_REPLENISH_NOT_EMPTY);
+
+        self.operation().set(Operation::Compounding);
         let delegation_contract = self.provider_address().get();
         let gas_for_async_call = self.get_gas_for_async_call();
 
@@ -425,6 +444,9 @@ pub trait SalsaContract<ContractReader>:
     #[endpoint(updateTotalEgldStaked)]
     fn update_total_egld_staked(&self) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
+
+        let operation = self.operation().get();
+        require!(operation == Operation::Compounding, ERROR_NOT_COMPOUNDING);
 
         let delegation_contract = self.provider_address().get();
         let this_contract = self.blockchain().get_sc_address();
@@ -443,13 +465,14 @@ pub trait SalsaContract<ContractReader>:
     fn update_egld_staked_callback(&self, #[call_result] result: ManagedAsyncCallResult<BigUint>) {
         match result {
             ManagedAsyncCallResult::Ok(total_stake) => {
-                // let total_egld_staked = self.total_egld_staked().get();
-                // require!(total_stake > total_egld_staked, ERROR_NOT_ENOUGH_FUNDS);
+                let total_egld_staked = self.total_egld_staked().get();
+                require!(total_stake > total_egld_staked, ERROR_NOT_ENOUGH_FUNDS);
 
                 self.total_egld_staked().set(total_stake);
             }
             ManagedAsyncCallResult::Err(_) => {}
         }
+        self.operation().set(Operation::Idle);
     }
 
     #[endpoint(withdrawAll)]
@@ -509,7 +532,7 @@ pub trait SalsaContract<ContractReader>:
         ls_amount
     }
 
-    fn remove_liquidity(&self, ls_amount: &BigUint, update_storage: bool) -> BigUint {
+    fn remove_liquidity(&self, ls_amount: &BigUint) -> BigUint {
         let total_egld_staked = self.total_egld_staked().get();
         let liquid_token_supply = self.liquid_token_supply().get();
         require!(
@@ -521,12 +544,10 @@ pub trait SalsaContract<ContractReader>:
         let egld_amount = ls_amount * &total_egld_staked / &liquid_token_supply;
         require!(egld_amount > 0u64, ERROR_BAD_PAYMENT_AMOUNT);
 
-        if update_storage {
-            self.total_egld_staked()
-                .update(|value| *value -= &egld_amount);
-            self.liquid_token_supply()
-                .update(|value| *value -= ls_amount);
-        }
+        self.total_egld_staked()
+            .update(|value| *value -= &egld_amount);
+        self.liquid_token_supply()
+            .update(|value| *value -= ls_amount);
 
         egld_amount
     }
