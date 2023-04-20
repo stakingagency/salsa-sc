@@ -80,7 +80,7 @@ pub trait SalsaContract<ContractReader>:
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
         
         let operation = self.operation().get();
-        require!(operation == Operation::Idle, ERROR_BUSY_COMPOUNDING);
+        require!(operation != Operation::Compounding, ERROR_BUSY_COMPOUNDING);
 
         self.operation().set(Operation::Undelegating);
         let payment = self.call_value().single_esdt();
@@ -303,7 +303,7 @@ pub trait SalsaContract<ContractReader>:
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         let operation = self.operation().get();
-        require!(operation == Operation::Idle, ERROR_BUSY_COMPOUNDING);
+        require!(operation != Operation::Compounding, ERROR_BUSY_COMPOUNDING);
 
         let payment = self.call_value().single_esdt();
         let liquid_token_id = self.liquid_token_id().get_token_id();
@@ -366,7 +366,7 @@ pub trait SalsaContract<ContractReader>:
         require!(total_egld_to_unstake > 0, ERROR_NOT_ENOUGH_FUNDS);
 
         let operation = self.operation().get();
-        require!(operation == Operation::Idle, ERROR_BUSY_OPERATION);
+        require!(operation != Operation::Compounding, ERROR_BUSY_COMPOUNDING);
 
         self.busy_reserve_undelegations().set(State::Active);
 
