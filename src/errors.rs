@@ -20,4 +20,3 @@ pub static ERROR_BUSY_COMPOUNDING: &[u8] = b"Compound in progress";
 pub static ERROR_NOT_COMPOUNDING: &[u8] = b"Compound not in progress";
 pub static ERROR_BUSY_UNDELEGATING: &[u8] = b"Undelegate in progress";
 pub static ERROR_REPLENISH_NOT_EMPTY: &[u8] = b"Must undelegate reserves first";
-pub static ERROR_BUSY_OPERATION: &[u8] = b"Compound or undelegate in progress";
