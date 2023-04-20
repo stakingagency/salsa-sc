@@ -86,13 +86,12 @@ pub trait SalsaContract<ContractReader>:
         );
         require!(payment.amount > 0u64, ERROR_BAD_PAYMENT_AMOUNT);
 
-        let egld_to_unstake = self.remove_liquidity(&payment.amount);
+        let egld_to_unstake = self.remove_liquidity(&payment.amount, false);
         require!(
             egld_to_unstake >= MIN_EGLD_TO_DELEGATE,
             ERROR_BAD_PAYMENT_AMOUNT
         );
 
-        self.burn_liquid_token(&payment.amount);
         let delegation_contract = self.provider_address().get();
         let caller = self.blockchain().get_caller();
         let gas_for_async_call = self.get_gas_for_async_call();
@@ -103,7 +102,7 @@ pub trait SalsaContract<ContractReader>:
             .with_gas_limit(gas_for_async_call)
             .async_call()
             .with_callback(
-                SalsaContract::callbacks(self).undelegate_callback(caller, egld_to_unstake),
+                SalsaContract::callbacks(self).undelegate_callback(caller, payment.amount, egld_to_unstake),
             )
             .call_and_exit()
     }
@@ -112,6 +111,7 @@ pub trait SalsaContract<ContractReader>:
     fn undelegate_callback(
         &self,
         caller: ManagedAddress,
+        ls_amount: BigUint,
         egld_amount: BigUint,
         #[call_result] result: ManagedAsyncCallResult<()>,
     ) {
@@ -123,17 +123,18 @@ pub trait SalsaContract<ContractReader>:
                     amount: egld_amount,
                     unbond_epoch,
                 };
+                self.remove_liquidity(&ls_amount, true);
+                self.burn_liquid_token(&ls_amount);
                 self.user_undelegations(&caller)
                     .update(|undelegations| undelegations.push(undelegation));
             }
             ManagedAsyncCallResult::Err(_) => {
-                let ls_token_amount = self.add_liquidity(&egld_amount);
-                let user_payment = self.mint_liquid_token(ls_token_amount);
+                let liquid_token_id = self.liquid_token_id().get_token_id();
                 self.send().direct_esdt(
                     &caller,
-                    &user_payment.token_identifier,
-                    user_payment.token_nonce,
-                    &user_payment.amount,
+                    &liquid_token_id,
+                    0,
+                    &ls_amount,
                 );
             }
         }
@@ -309,7 +310,7 @@ pub trait SalsaContract<ContractReader>:
 
         let fee = self.undelegate_now_fee().get();
         let caller = self.blockchain().get_caller();
-        let egld_to_unstake = self.remove_liquidity(&payment.amount);
+        let egld_to_unstake = self.remove_liquidity(&payment.amount, true);
         self.burn_liquid_token(&payment.amount);
         require!(
             egld_to_unstake >= MIN_EGLD_TO_DELEGATE,
@@ -508,27 +509,24 @@ pub trait SalsaContract<ContractReader>:
         ls_amount
     }
 
-    fn remove_liquidity(&self, ls_amount: &BigUint) -> BigUint {
-        let egld_amount = self.get_egld_amount(ls_amount);
-        self.total_egld_staked()
-            .update(|value| *value -= &egld_amount);
-        self.liquid_token_supply()
-            .update(|value| *value -= ls_amount);
-
-        egld_amount
-    }
-
-    fn get_egld_amount(&self, ls_token_amount: &BigUint) -> BigUint {
+    fn remove_liquidity(&self, ls_amount: &BigUint, update_storage: bool) -> BigUint {
         let total_egld_staked = self.total_egld_staked().get();
         let liquid_token_supply = self.liquid_token_supply().get();
         require!(
-            &liquid_token_supply >= ls_token_amount,
+            &liquid_token_supply >= ls_amount,
             ERROR_NOT_ENOUGH_LIQUID_SUPPLY
         );
-        require!(ls_token_amount > &0, ERROR_BAD_PAYMENT_AMOUNT);
+        require!(ls_amount > &0, ERROR_BAD_PAYMENT_AMOUNT);
 
-        let egld_amount = ls_token_amount * &total_egld_staked / &liquid_token_supply;
+        let egld_amount = ls_amount * &total_egld_staked / &liquid_token_supply;
         require!(egld_amount > 0u64, ERROR_BAD_PAYMENT_AMOUNT);
+
+        if update_storage {
+            self.total_egld_staked()
+                .update(|value| *value -= &egld_amount);
+            self.liquid_token_supply()
+                .update(|value| *value -= ls_amount);
+        }
 
         egld_amount
     }

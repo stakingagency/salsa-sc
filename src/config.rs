@@ -148,6 +148,13 @@ pub trait ConfigModule:
     #[storage_mapper("users_reserves")]
     fn users_reserves(&self) -> VecMapper<BigUint>;
 
+    #[view(getUserReserveByAddress)]
+    fn get_user_reserve_by_address(&self, user: ManagedAddress) -> BigUint {
+        let id = self.reservers_addresses(user).get();
+
+        self.users_reserves().get(id)
+    }
+
     #[only_owner]
     #[endpoint(setUndelegateNowFee)]
     fn set_undelegate_now_fee(&self, new_fee: u64) {
