@@ -284,6 +284,21 @@
             ]
         },
         {
+            "name": "getUserReserveByAddress",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "user",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
             "name": "setUndelegateNowFee",
             "onlyOwner": true,
             "mutability": "mutable",
