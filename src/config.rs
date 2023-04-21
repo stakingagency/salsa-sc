@@ -181,4 +181,12 @@ pub trait ConfigModule:
 
     #[storage_mapper("operation")]
     fn operation(&self) -> SingleValueMapper<Operation>;
+
+    #[view(getTokenPrice)]
+    fn token_price(&self) -> BigUint {
+        let staked_egld = self.total_egld_staked().get();
+        let token_supply = self.liquid_token_supply().get();
+
+        staked_egld / token_supply
+    }
 }
