@@ -82,6 +82,12 @@ pub trait SalsaContract<ContractReader>:
         let operation = self.operation().get();
         require!(operation != Operation::Compounding, ERROR_BUSY_COMPOUNDING);
 
+        let caller = self.blockchain().get_caller();
+        require!(
+            self.backup_user_undelegations(&caller).is_empty(),
+            ERROR_WITHDRAW_BUSY,
+        );
+
         self.operation().set(Operation::Undelegating);
         let payment = self.call_value().single_esdt();
         let liquid_token_id = self.liquid_token_id().get_token_id();
@@ -99,7 +105,6 @@ pub trait SalsaContract<ContractReader>:
 
         self.burn_liquid_token(&payment.amount);
         let delegation_contract = self.provider_address().get();
-        let caller = self.blockchain().get_caller();
         let gas_for_async_call = self.get_gas_for_async_call();
 
         self.delegation_proxy_obj()
@@ -466,7 +471,7 @@ pub trait SalsaContract<ContractReader>:
         match result {
             ManagedAsyncCallResult::Ok(total_stake) => {
                 let total_egld_staked = self.total_egld_staked().get();
-                require!(total_stake > total_egld_staked, ERROR_NOT_ENOUGH_FUNDS);
+                require!(total_stake >= total_egld_staked, ERROR_NOT_ENOUGH_FUNDS);
 
                 self.total_egld_staked().set(total_stake);
             }
