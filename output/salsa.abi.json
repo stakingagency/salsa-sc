@@ -319,6 +319,16 @@
                     "type": "u64"
                 }
             ]
+        },
+        {
+            "name": "getTokenPrice",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
         }
     ],
     "events": [],

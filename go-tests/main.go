@@ -49,14 +49,14 @@ type accountKey struct {
 }
 
 const (
-	scAddress = "erd1qqqqqqqqqqqqqpgqpk3qzj86tme9kzxdq87f2rdf5nlwsgvjvcqs5hke3x"
+	scAddress = "erd1qqqqqqqqqqqqqpgqluy4t5hr3g5n4yf0whlaucj23dp9uatgvcqssde0ha"
 	// proxyAddress = "http://localhost:8079"
 	proxyAddress = "http://54.36.109.61:8079"
 	// proxyAddress = "https://devnet-gateway.multiversx.com"
 	walletFile = "/home/mihai/walletKey.pem"
 	mnemonic   = "asdfghjkl"
 
-	testN = 1000
+	testN = 100
 )
 
 var (
@@ -217,8 +217,8 @@ func test(idx int) error {
 
 	tNonce := tAccount.Nonce
 
-	for i := 0; i < 3; i++ {
-		op := rand.Intn(5)
+	for i := 0; i < 10; i++ {
+		op := rand.Intn(6)
 		switch op {
 		case 0:
 			if err = delegate(big.NewInt(1000000000000000000), 50000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
@@ -270,7 +270,7 @@ func test(idx int) error {
 				i--
 				continue
 			}
-			if err = unDelegateNow(big.NewInt(1000000000000000000), 200000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = unDelegateNow(big.NewInt(1000000000000000000), 100000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 5:
@@ -448,11 +448,11 @@ func main() {
 	// }
 
 	// REMOVE RESERVE EACH
-	//  for i := 0; i < testN; i++ {
-	//  	if err := removeReserveTester(i); err != nil {
-	//  		panic(err)
-	//  	}
-	//  }
+	// for i := 0; i < testN; i++ {
+	// 	if err := removeReserveTester(i); err != nil {
+	// 		panic(err)
+	// 	}
+	// }
 
 	// STRESS TEST
 	// for i := 0; i < testN; i++ {
@@ -652,7 +652,7 @@ func readSC() error {
 		key = strings.TrimPrefix(key, searchKey)
 		pubKey, _ := hex.DecodeString(key)
 		index := big.NewInt(0).SetBytes(value)
-		searchKey2 := hex.EncodeToString([]byte("user_reserves.item")) + fmt.Sprintf("%.8x", index)
+		searchKey2 := hex.EncodeToString([]byte("users_reserves.item")) + fmt.Sprintf("%.8x", index)
 		keys2, err := getAccountKey(scAddress, searchKey2)
 		if err != nil {
 			return err
@@ -1137,7 +1137,7 @@ func getUserReserves(walletAddress string) (*big.Int, error) {
 	}
 
 	index := big.NewInt(0).SetBytes(keys)
-	searchKey2 := hex.EncodeToString([]byte("user_reserves.item")) + fmt.Sprintf("%.8x", index)
+	searchKey2 := hex.EncodeToString([]byte("users_reserves.item")) + fmt.Sprintf("%.8x", index)
 	keys, err = getAccountKey(scAddress, searchKey2)
 	if err != nil {
 		return nil, err
