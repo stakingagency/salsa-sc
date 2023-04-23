@@ -49,14 +49,14 @@ type accountKey struct {
 }
 
 const (
-	scAddress = "erd1qqqqqqqqqqqqqpgqluy4t5hr3g5n4yf0whlaucj23dp9uatgvcqssde0ha"
+	scAddress = "erd1qqqqqqqqqqqqqpgqzrjkarajdgwseyafhlvkvfdszvhvhf0tvcqsdslp2u"
 	// proxyAddress = "http://localhost:8079"
-	proxyAddress = "http://54.36.109.61:8079"
+	proxyAddress = "http://193.70.44.72:8079"
 	// proxyAddress = "https://devnet-gateway.multiversx.com"
 	walletFile = "/home/mihai/walletKey.pem"
 	mnemonic   = "asdfghjkl"
 
-	testN = 100
+	testN = 1000
 )
 
 var (
@@ -217,14 +217,18 @@ func test(idx int) error {
 
 	tNonce := tAccount.Nonce
 
-	for i := 0; i < 10; i++ {
-		op := rand.Intn(6)
+	for i := 0; i < 1; i++ {
+		op := rand.Intn(1)
 		switch op {
 		case 0:
-			if err = delegate(big.NewInt(1000000000000000000), 50000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = delegate(big.NewInt(2000000000000000000), 50000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 1:
+			if err = addReserve(big.NewInt(2000000000000000000), 10000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+				return err
+			}
+		case 2:
 			b, err := getUserTokenBalance(tWalletAddress)
 			if err != nil {
 				return err
@@ -237,10 +241,6 @@ func test(idx int) error {
 				continue
 			}
 			if err = unDelegate(big.NewInt(1000000000000000000), 50000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
-				return err
-			}
-		case 2:
-			if err = addReserve(big.NewInt(1000000000000000000), 10000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 3:
@@ -270,11 +270,23 @@ func test(idx int) error {
 				i--
 				continue
 			}
-			if err = unDelegateNow(big.NewInt(1000000000000000000), 100000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = unDelegateNow(big.NewInt(1000000000000000000), 250000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 5:
 			if err = withdraw(50000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+				return err
+			}
+		case 6:
+			if err = withdrawAll(100000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+				return err
+			}
+		case 7:
+			if err = compound(100000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+				return err
+			}
+		case 8:
+			if err = undelegateReserves(100000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		}
@@ -302,10 +314,15 @@ func scenario1() error {
 	// unDelegateNow(big.NewInt(1000000000000000000), 200000000, -1, privateKey, walletAddress)
 
 	// return setStateActive(-1)
-	// return compound(50000000, int64(nonce))
-	// return withdrawAll(200000000, -1)
-	// return updateTotalEgldStaked(50000000, -1)
-	// return undelegateReserves(200000000, -1)
+
+	// for i := 0; i < 10; i++ {
+	// 	compound(50000000, int64(nonce))
+	// 	nonce++
+	// 	withdrawAll(200000000, int64(nonce))
+	// 	nonce++
+	// 	undelegateReserves(200000000, int64(nonce))
+	// 	nonce++
+	// }
 
 	// go func() {
 	// 	for {
@@ -391,11 +408,6 @@ func main() {
 		fmt.Println("⚠️ egld reserve mismatch (2)")
 	}
 
-	err = scenario1()
-	if err != nil {
-		panic(err)
-	}
-
 	// FUND WALLETS
 	// nonce, err := getNonce()
 	// if err != nil {
@@ -454,16 +466,23 @@ func main() {
 	// 	}
 	// }
 
+	// 	err = scenario1()
+	// 	if err != nil {
+	// 		fmt.Println(err)
+	// 	}
+
 	// STRESS TEST
+	// for {
 	// for i := 0; i < testN; i++ {
 	// 	go func(i int) {
 	// 		err = test(i)
 	// 		if err != nil {
-	// 			panic(err)
+	// 			fmt.Println(err)
 	// 		}
 	// 	}(i)
 	// }
-	// for {
+
+	// time.Sleep(time.Minute * 20)
 	// }
 }
 
@@ -485,32 +504,42 @@ func queryVM(scAddress, funcName string, args []string) ([]byte, error) {
 	return res.Data.ReturnData[0], nil
 }
 
+var allKeys = make(map[string][]byte)
+
 func getAccountKeys(address string, prefix string) (map[string][]byte, error) {
-	endpoint := fmt.Sprintf("%s/address/%s/keys", proxyAddress, address)
-	bytes, err := getHTTP(endpoint, "")
-	if err != nil {
-		return nil, err
-	}
-
-	response := &accountKeys{}
-	err = json.Unmarshal(bytes, response)
-	if err != nil {
-		return nil, err
-	}
-
-	if response.Error != "" {
-		return nil, errors.New(response.Error)
-	}
-
 	result := make(map[string][]byte)
-	for key, value := range response.Data.Pairs {
-		bv, err := hex.DecodeString(value)
+	if prefix == "" {
+		endpoint := fmt.Sprintf("%s/address/%s/keys", proxyAddress, address)
+		bytes, err := getHTTP(endpoint, "")
 		if err != nil {
 			return nil, err
 		}
 
-		if strings.HasPrefix(key, prefix) {
-			result[key] = bv
+		response := &accountKeys{}
+		err = json.Unmarshal(bytes, response)
+		if err != nil {
+			return nil, err
+		}
+
+		if response.Error != "" {
+			return nil, errors.New(response.Error)
+		}
+
+		for key, value := range response.Data.Pairs {
+			bv, err := hex.DecodeString(value)
+			if err != nil {
+				return nil, err
+			}
+
+			if strings.HasPrefix(key, prefix) {
+				result[key] = bv
+			}
+		}
+	} else {
+		for k, v := range allKeys {
+			if strings.HasPrefix(k, prefix) {
+				result[k] = v
+			}
 		}
 	}
 
@@ -538,6 +567,12 @@ func getAccountKey(address string, key string) ([]byte, error) {
 }
 
 func initSC() error {
+	var err error
+	allKeys, err = getAccountKeys(scAddress, "")
+	if err != nil {
+		return err
+	}
+
 	bFee, err := queryVM(scAddress, "getUndelegateNowFee", []string{})
 	if err != nil {
 		return err
@@ -554,12 +589,12 @@ func initSC() error {
 	providerAddress = conv.Encode(iAddress)
 
 	key := hex.EncodeToString([]byte("liquid_token_id"))
-	keys, err := getAccountKeys(scAddress, key)
-	if err != nil || len(keys) != 1 {
+	keys, err := getAccountKey(scAddress, key)
+	if err != nil {
 		return err
 	}
 
-	token = string(keys[key])
+	token = string(keys)
 
 	return nil
 }
@@ -690,6 +725,7 @@ func readSC() error {
 			break
 		}
 	}
+	allKeys = make(map[string][]byte)
 
 	return nil
 }
@@ -834,6 +870,7 @@ func sendTx(value *big.Int, gasLimit uint64, dataField string, nonce int64, priv
 func getHTTP(address string, body string) ([]byte, error) {
 	req, err := http.NewRequest(http.MethodGet, address, bytes.NewBuffer([]byte(body)))
 	if err != nil {
+		fmt.Println(address)
 		return nil, err
 	}
 
@@ -842,6 +879,7 @@ func getHTTP(address string, body string) ([]byte, error) {
 	client := http.DefaultClient
 	resp, err := client.Do(req)
 	if err != nil {
+		fmt.Println(address)
 		return nil, err
 	}
 
@@ -849,10 +887,12 @@ func getHTTP(address string, body string) ([]byte, error) {
 
 	resBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		fmt.Println(address)
 		return nil, err
 	}
 
 	if resp.StatusCode != 200 {
+		fmt.Println(address)
 		return resBody, fmt.Errorf("http error %v %v, endpoint %s", resp.StatusCode, resp.Status, address)
 	}
 
@@ -885,7 +925,7 @@ func unDelegate(amount *big.Int, gas uint64, nonce int64, privateKey []byte, wal
 	return nil
 }
 
-func compound(gas uint64, nonce int64) error {
+func compound(gas uint64, nonce int64, privateKey []byte, walletAddress string) error {
 	hash, err := sendTx(big.NewInt(0), gas, "compound", nonce, privateKey, walletAddress, "")
 	if err != nil {
 		return err
@@ -907,7 +947,7 @@ func withdraw(gas uint64, nonce int64, privateKey []byte, walletAddress string) 
 	return nil
 }
 
-func withdrawAll(gas uint64, nonce int64) error {
+func withdrawAll(gas uint64, nonce int64, privateKey []byte, walletAddress string) error {
 	hash, err := sendTx(big.NewInt(0), gas, "withdrawAll", nonce, privateKey, walletAddress, "")
 	if err != nil {
 		return err
@@ -918,7 +958,7 @@ func withdrawAll(gas uint64, nonce int64) error {
 	return nil
 }
 
-func undelegateReserves(gas uint64, nonce int64) error {
+func undelegateReserves(gas uint64, nonce int64, privateKey []byte, walletAddress string) error {
 	hash, err := sendTx(big.NewInt(0), gas, "undelegateReserves", nonce, privateKey, walletAddress, "")
 	if err != nil {
 		return err
@@ -963,17 +1003,6 @@ func removeReserve(amount *big.Int, gas uint64, nonce int64, privateKey []byte, 
 	}
 
 	fmt.Printf("removeReserve %.2f %s\n", big2float(amount, 18), hash)
-
-	return nil
-}
-
-func updateTotalEgldStaked(gas uint64, nonce int64) error {
-	hash, err := sendTx(big.NewInt(0), gas, "updateTotalEgldStaked", nonce, privateKey, walletAddress, "")
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("updateTotalEgldStaked %s\n", hash)
 
 	return nil
 }

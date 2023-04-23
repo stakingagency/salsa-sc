@@ -15,6 +15,6 @@ pub trait DelegationProxy {
     #[endpoint(reDelegateRewards)]
     fn redelegate_rewards(&self);
 
-    #[endpoint(getUserActiveStake)]
-    fn get_user_active_stake(&self, address: ManagedAddress);
+    #[endpoint(getClaimableRewards)]
+    fn get_claimable_rewards(&self, address: ManagedAddress);
 }
