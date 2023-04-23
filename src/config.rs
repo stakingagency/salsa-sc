@@ -9,13 +9,6 @@ pub enum State {
     Active,
 }
 
-#[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Eq, Copy, Clone, Debug)]
-pub enum Operation {
-    Idle,
-    Undelegating,
-    Compounding,
-}
-
 #[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
 pub struct Undelegation<M: ManagedTypeApi> {
     pub amount: BigUint<M>,
@@ -117,6 +110,12 @@ pub trait ConfigModule:
     #[storage_mapper("total_egld_staked")]
     fn total_egld_staked(&self) -> SingleValueMapper<BigUint>;
 
+    #[storage_mapper("claimable_rewards_amount")]
+    fn claimable_rewards_amount(&self) -> SingleValueMapper<BigUint>;
+
+    #[storage_mapper("claimable_rewards_epoch")]
+    fn claimable_rewards_epoch(&self) -> SingleValueMapper<u64>;
+
     #[view(getUserWithdrawnEgld)]
     #[storage_mapper("user_withdrawn_egld")]
     fn user_withdrawn_egld(&self) -> SingleValueMapper<BigUint>;
@@ -134,15 +133,6 @@ pub trait ConfigModule:
     #[view(getReserveUndelegations)]
     #[storage_mapper("reserve_undelegations")]
     fn reserve_undelegations(&self) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
-
-    #[storage_mapper("busy_reserve_undelegations")]
-    fn busy_reserve_undelegations(&self) -> SingleValueMapper<State>;
-
-    #[inline]
-    fn is_reserve_undelegations_busy(&self) -> bool {
-        let state = self.busy_reserve_undelegations().get();
-        state == State::Active
-    }
 
     #[storage_mapper("reservers_ids")]
     fn reservers_ids(&self) -> MapMapper<usize, ManagedAddress>;
@@ -177,10 +167,10 @@ pub trait ConfigModule:
     #[storage_mapper("egld_to_replenish_reserve")]
     fn egld_to_replenish_reserve(&self) -> SingleValueMapper<BigUint>;
 
-    // misc
+    #[storage_mapper("backup_egld_to_replenish_reserve")]
+    fn backup_egld_to_replenish_reserve(&self) -> SingleValueMapper<BigUint>;
 
-    #[storage_mapper("operation")]
-    fn operation(&self) -> SingleValueMapper<Operation>;
+    // misc
 
     #[view(getTokenPrice)]
     fn token_price(&self) -> BigUint {

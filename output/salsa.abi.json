@@ -92,12 +92,6 @@
             "outputs": []
         },
         {
-            "name": "updateTotalEgldStaked",
-            "mutability": "mutable",
-            "inputs": [],
-            "outputs": []
-        },
-        {
             "name": "withdrawAll",
             "mutability": "mutable",
             "inputs": [],

@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           30
+// Endpoints:                           29
 // Async Callback:                       1
-// Total number of exported functions:  32
+// Total number of exported functions:  31
 
 #![no_std]
 #![feature(alloc_error_handler, lang_items)]
@@ -26,7 +26,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         unDelegateNow
         undelegateReserves
         compound
-        updateTotalEgldStaked
         withdrawAll
         registerLiquidToken
         getLiquidTokenId
