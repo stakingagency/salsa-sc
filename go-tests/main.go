@@ -49,14 +49,14 @@ type accountKey struct {
 }
 
 const (
-	scAddress = "erd1qqqqqqqqqqqqqpgqzrjkarajdgwseyafhlvkvfdszvhvhf0tvcqsdslp2u"
+	scAddress = "erd1qqqqqqqqqqqqqpgqpzlrsywp0dpcgt7cfhr00a7ksngc23wevcqswzf2km"
 	// proxyAddress = "http://localhost:8079"
 	proxyAddress = "http://193.70.44.72:8079"
 	// proxyAddress = "https://devnet-gateway.multiversx.com"
 	walletFile = "/home/mihai/walletKey.pem"
 	mnemonic   = "asdfghjkl"
 
-	testN = 1000
+	testN = 100
 )
 
 var (
@@ -141,7 +141,7 @@ func withdrawTester(idx int) error {
 
 	fmt.Printf("%v ", idx)
 
-	return withdraw(50000000, int64(tAccount.Nonce), tPrivateKey, tWalletAddress)
+	return withdraw(20000000, int64(tAccount.Nonce), tPrivateKey, tWalletAddress)
 }
 
 func undelegateAllTester(idx int) error {
@@ -217,15 +217,15 @@ func test(idx int) error {
 
 	tNonce := tAccount.Nonce
 
-	for i := 0; i < 1; i++ {
-		op := rand.Intn(1)
+	for i := 0; i < 20; i++ {
+		op := rand.Intn(10)
 		switch op {
 		case 0:
-			if err = delegate(big.NewInt(2000000000000000000), 50000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = delegate(big.NewInt(1000000000000000000), 30000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 1:
-			if err = addReserve(big.NewInt(2000000000000000000), 10000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = addReserve(big.NewInt(1000000000000000000), 10000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 2:
@@ -240,7 +240,7 @@ func test(idx int) error {
 				i--
 				continue
 			}
-			if err = unDelegate(big.NewInt(1000000000000000000), 50000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = unDelegate(big.NewInt(1000000000000000000), 10000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 3:
@@ -270,7 +270,7 @@ func test(idx int) error {
 				i--
 				continue
 			}
-			if err = unDelegateNow(big.NewInt(1000000000000000000), 250000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = unDelegateNow(big.NewInt(1000000000000000000), 200000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 5:
@@ -278,15 +278,19 @@ func test(idx int) error {
 				return err
 			}
 		case 6:
-			if err = withdrawAll(100000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = withdrawAll(30000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 7:
-			if err = compound(100000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = compound(30000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 8:
-			if err = undelegateReserves(100000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = unDelegateAll(30000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+				return err
+			}
+		case 9:
+			if err = computeWithdrawn(10000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		}
@@ -313,7 +317,7 @@ func scenario1() error {
 	// delegate(big.NewInt(9000000000000000000), 50000000, -1, privateKey, walletAddress)
 	// unDelegateNow(big.NewInt(1000000000000000000), 200000000, -1, privateKey, walletAddress)
 
-	// return setStateActive(-1)
+	return setStateActive(-1)
 
 	// for i := 0; i < 10; i++ {
 	// 	compound(50000000, int64(nonce))
@@ -355,12 +359,12 @@ func main() {
 
 	err = initSC()
 	if err != nil {
-		panic(err)
+		// panic(err)
 	}
 
 	err = readSC()
 	if err != nil {
-		panic(err)
+		// panic(err)
 	}
 
 	fmt.Println("SC address: " + scAddress)
@@ -438,6 +442,12 @@ func main() {
 	// }
 	// time.Sleep(time.Second * 30)
 
+	// err = scenario1()
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
+	// os.Exit(1)
+
 	// CHECK TEST RESULTS
 	// for i := 0; i < testN; i++ {
 	// 	if err := checkTestResults(i); err != nil {
@@ -446,43 +456,37 @@ func main() {
 	// }
 
 	// WITHDRAW EACH
-	// for i := 0; i < testN; i++ {
-	// 	if err := withdrawTester(i); err != nil {
-	// 		panic(err)
-	// 	}
-	// }
+	for i := 0; i < testN; i++ {
+		if err := withdrawTester(i); err != nil {
+			// panic(err)
+		}
+	}
 
 	// UNDELEGATE EACH
-	// for i := 0; i < testN; i++ {
-	// 	if err := undelegateAllTester(i); err != nil {
-	// 		panic(err)
-	// 	}
-	// }
+	for i := 0; i < testN; i++ {
+		if err := undelegateAllTester(i); err != nil {
+			// panic(err)
+		}
+	}
 
 	// REMOVE RESERVE EACH
-	// for i := 0; i < testN; i++ {
-	// 	if err := removeReserveTester(i); err != nil {
-	// 		panic(err)
-	// 	}
-	// }
-
-	// 	err = scenario1()
-	// 	if err != nil {
-	// 		fmt.Println(err)
-	// 	}
+	for i := 0; i < testN; i++ {
+		if err := removeReserveTester(i); err != nil {
+			// panic(err)
+		}
+	}
 
 	// STRESS TEST
 	// for {
-	// for i := 0; i < testN; i++ {
-	// 	go func(i int) {
-	// 		err = test(i)
-	// 		if err != nil {
-	// 			fmt.Println(err)
-	// 		}
-	// 	}(i)
-	// }
-
-	// time.Sleep(time.Minute * 20)
+	// 	for i := 0; i < testN; i++ {
+	// 		go func(i int) {
+	// 			err = test(i)
+	// 			if err != nil {
+	// 				fmt.Println(err)
+	// 			}
+	// 		}(i)
+	// 	}
+	// 	time.Sleep(time.Minute * 10)
 	// }
 }
 
@@ -958,13 +962,24 @@ func withdrawAll(gas uint64, nonce int64, privateKey []byte, walletAddress strin
 	return nil
 }
 
-func undelegateReserves(gas uint64, nonce int64, privateKey []byte, walletAddress string) error {
-	hash, err := sendTx(big.NewInt(0), gas, "undelegateReserves", nonce, privateKey, walletAddress, "")
+func unDelegateAll(gas uint64, nonce int64, privateKey []byte, walletAddress string) error {
+	hash, err := sendTx(big.NewInt(0), gas, "unDelegateAll", nonce, privateKey, walletAddress, "")
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("undelegateReserves %s\n", hash)
+	fmt.Printf("unDelegateAll %s\n", hash)
+
+	return nil
+}
+
+func computeWithdrawn(gas uint64, nonce int64, privateKey []byte, walletAddress string) error {
+	hash, err := sendTx(big.NewInt(0), gas, "computeWithdrawn", nonce, privateKey, walletAddress, "")
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("computeWithdrawn %s\n", hash)
 
 	return nil
 }

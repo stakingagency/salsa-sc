@@ -80,7 +80,7 @@
             "outputs": []
         },
         {
-            "name": "undelegateReserves",
+            "name": "unDelegateAll",
             "mutability": "mutable",
             "inputs": [],
             "outputs": []
@@ -93,6 +93,12 @@
         },
         {
             "name": "withdrawAll",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "computeWithdrawn",
             "mutability": "mutable",
             "inputs": [],
             "outputs": []
@@ -218,6 +224,26 @@
             "outputs": [
                 {
                     "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "name": "getTotalWithdrawnEgld",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "name": "getTotalUserUndelegations",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "List<Undelegation>"
                 }
             ]
         },
