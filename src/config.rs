@@ -100,12 +100,6 @@ pub trait ConfigModule:
         user: &ManagedAddress,
     ) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
 
-    #[storage_mapper("backup_user_undelegations")]
-    fn backup_user_undelegations(
-        &self,
-        user: &ManagedAddress,
-    ) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
-
     #[view(getTotalEgldStaked)]
     #[storage_mapper("total_egld_staked")]
     fn total_egld_staked(&self) -> SingleValueMapper<BigUint>;
@@ -119,6 +113,17 @@ pub trait ConfigModule:
     #[view(getUserWithdrawnEgld)]
     #[storage_mapper("user_withdrawn_egld")]
     fn user_withdrawn_egld(&self) -> SingleValueMapper<BigUint>;
+
+    #[view(getTotalWithdrawnEgld)]
+    #[storage_mapper("total_withdrawn_egld")]
+    fn total_withdrawn_egld(&self) -> SingleValueMapper<BigUint>;
+
+    #[view(getTotalUserUndelegations)] // total user undelegations per epoch
+    #[storage_mapper("total_user_undelegations")]
+    fn total_user_undelegations(&self) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
+
+    #[storage_mapper("users_egld_to_undelegate")]
+    fn users_egld_to_undelegate(&self) -> SingleValueMapper<BigUint>;
 
     // reserves
 
@@ -166,9 +171,6 @@ pub trait ConfigModule:
 
     #[storage_mapper("egld_to_replenish_reserve")]
     fn egld_to_replenish_reserve(&self) -> SingleValueMapper<BigUint>;
-
-    #[storage_mapper("backup_egld_to_replenish_reserve")]
-    fn backup_egld_to_replenish_reserve(&self) -> SingleValueMapper<BigUint>;
 
     // misc
 
