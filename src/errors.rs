@@ -16,6 +16,5 @@ pub static ERROR_NOT_ENOUGH_LIQUID_SUPPLY: &[u8] = b"Not enough liquid token sup
 pub static ERROR_INCORRECT_FEE: &[u8] = b"Fee must be less than 100%";
 pub static ERROR_REPLENISH_NOT_EMPTY: &[u8] = b"Must undelegate reserves first";
 pub static ERROR_WRONG_EPOCH: &[u8] = b"Wrong epoch";
-pub static ERROR_TOO_MANY_RESERVERS: &[u8] = b"Too many users with reserves";
 pub static ERROR_TOO_MANY_USER_UNDELEGATIONS: &[u8] = b"Too many user undelegations";
 pub static ERROR_TOO_MANY_RESERVE_UNDELEGATIONS: &[u8] = b"Too many reserve undelegations";

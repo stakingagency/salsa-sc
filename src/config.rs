@@ -131,6 +131,10 @@ pub trait ConfigModule:
     #[storage_mapper("egld_reserve")]
     fn egld_reserve(&self) -> SingleValueMapper<BigUint>;
 
+    #[view(getReservePoints)]
+    #[storage_mapper("reserve_points")]
+    fn reserve_points(&self) -> SingleValueMapper<BigUint>;
+
     #[view(getAvailableEgldReserve)]
     #[storage_mapper("available_egld_reserve")]
     fn available_egld_reserve(&self) -> SingleValueMapper<BigUint>;
@@ -139,23 +143,9 @@ pub trait ConfigModule:
     #[storage_mapper("reserve_undelegations")]
     fn reserve_undelegations(&self) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
 
-    #[storage_mapper("reservers_ids")]
-    fn reservers_ids(&self) -> MapMapper<usize, ManagedAddress>;
-
-    #[view(getReserverID)]
-    #[storage_mapper("reservers_addresses")]
-    fn reservers_addresses(&self, user: ManagedAddress) -> SingleValueMapper<usize>;
-
-    #[view(getUsersReserves)]
-    #[storage_mapper("users_reserves")]
-    fn users_reserves(&self) -> VecMapper<BigUint>;
-
-    #[view(getUserReserveByAddress)]
-    fn get_user_reserve_by_address(&self, user: ManagedAddress) -> BigUint {
-        let id = self.reservers_addresses(user).get();
-
-        self.users_reserves().get(id)
-    }
+    #[view(getUsersReservePoints)]
+    #[storage_mapper("users_reserve_points")]
+    fn users_reserve_points(&self, user: &ManagedAddress) -> SingleValueMapper<BigUint>;
 
     #[only_owner]
     #[endpoint(setUndelegateNowFee)]
@@ -171,6 +161,37 @@ pub trait ConfigModule:
 
     #[storage_mapper("egld_to_replenish_reserve")]
     fn egld_to_replenish_reserve(&self) -> SingleValueMapper<BigUint>;
+
+    #[view(getReservePointsAmount)]
+    fn get_reserve_points_amount(&self, egld_amount: &BigUint) -> BigUint {
+        let egld_reserve = self.egld_reserve().get();
+        let reserve_points = self.reserve_points().get();
+        let mut user_reserve_points = egld_amount.clone();
+        if egld_reserve > 0 {
+            user_reserve_points = egld_amount * &reserve_points / &egld_reserve
+        }
+
+        user_reserve_points
+    }
+
+    #[view(getReserveEgldAmount)]
+    fn get_reserve_egld_amount(&self, points_amount: &BigUint) -> BigUint {
+        let egld_reserve = self.egld_reserve().get();
+        let reserve_points = self.reserve_points().get();
+        let mut user_egld_amount = points_amount.clone();
+        if reserve_points > 0 {
+            user_egld_amount = points_amount * &egld_reserve / &reserve_points
+        }
+
+        user_egld_amount
+    }
+
+    #[view(getUserReserve)]
+    fn get_user_reserve(&self, user: &ManagedAddress) -> BigUint {
+        let user_points = self.users_reserve_points(user).get();
+        
+        self.get_reserve_egld_amount(&user_points)
+    }
 
     // misc
 
