@@ -49,7 +49,7 @@ type accountKey struct {
 }
 
 const (
-	scAddress = "erd1qqqqqqqqqqqqqpgqpzlrsywp0dpcgt7cfhr00a7ksngc23wevcqswzf2km"
+	scAddress = "erd1qqqqqqqqqqqqqpgqevzkz8l9l5jrtvapdwelyae7u6j954djvcqsl98vv9"
 	// proxyAddress = "http://localhost:8079"
 	proxyAddress = "http://193.70.44.72:8079"
 	// proxyAddress = "https://devnet-gateway.multiversx.com"
@@ -270,7 +270,7 @@ func test(idx int) error {
 				i--
 				continue
 			}
-			if err = unDelegateNow(big.NewInt(1000000000000000000), 200000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = unDelegateNow(big.NewInt(1000000000000000000), 10000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 5:
@@ -314,10 +314,10 @@ func scenario1() error {
 	// addReserveTester(2, big.NewInt(2000000000000000000))
 	// addReserveTester(3, big.NewInt(3000000000000000000))
 	// removeReserveTester(1)
-	// delegate(big.NewInt(9000000000000000000), 50000000, -1, privateKey, walletAddress)
-	// unDelegateNow(big.NewInt(1000000000000000000), 200000000, -1, privateKey, walletAddress)
+	// delegate(big.NewInt(9000000000000000000), 30000000, -1, privateKey, walletAddress)
+	// unDelegateNow(big.NewInt(1000000000000000000), 50000000, -1, privateKey, walletAddress)
 
-	return setStateActive(-1)
+	// return setStateActive(-1)
 
 	// for i := 0; i < 10; i++ {
 	// 	compound(50000000, int64(nonce))
@@ -1174,20 +1174,35 @@ func getUserReserves(walletAddress string) (*big.Int, error) {
 		return nil, err
 	}
 
-	searchKey := hex.EncodeToString(append([]byte("reservers_addresses"), pubkey...))
-	keys, err := getAccountKey(scAddress, searchKey)
+	searchKey := hex.EncodeToString(append([]byte("users_reserve_points"), pubkey...))
+	key, err := getAccountKey(scAddress, searchKey)
 	if err != nil {
 		return nil, err
 	}
 
-	index := big.NewInt(0).SetBytes(keys)
-	searchKey2 := hex.EncodeToString([]byte("users_reserves.item")) + fmt.Sprintf("%.8x", index)
-	keys, err = getAccountKey(scAddress, searchKey2)
+	points := big.NewInt(0).SetBytes(key)
+
+	searchKey = hex.EncodeToString([]byte("reserve_points"))
+	key, err = getAccountKey(scAddress, searchKey)
 	if err != nil {
 		return nil, err
 	}
 
-	return big.NewInt(0).SetBytes(keys), nil
+	totalPoints := big.NewInt(0).SetBytes(key)
+
+	searchKey = hex.EncodeToString([]byte("egld_reserve"))
+	key, err = getAccountKey(scAddress, searchKey)
+	if err != nil {
+		return nil, err
+	}
+
+	totalReserve := big.NewInt(0).SetBytes(key)
+
+	reserve := big.NewInt(0).Set(points)
+	reserve.Mul(reserve, totalReserve)
+	reserve.Quo(reserve, totalPoints)
+
+	return reserve, nil
 }
 
 type tokenBalance struct {

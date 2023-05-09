@@ -161,10 +161,6 @@ pub trait SalsaContract<ContractReader>:
     #[endpoint(addReserve)]
     fn add_reserve(&self) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
-        require!(
-            self.users_reserves().len() < MAX_RESERVERS,
-            ERROR_TOO_MANY_RESERVERS
-        );
 
         let caller = self.blockchain().get_caller();
         let reserve_amount = self.call_value().egld_value();
@@ -173,18 +169,12 @@ pub trait SalsaContract<ContractReader>:
             ERROR_INSUFFICIENT_RESERVE_AMOUNT
         );
 
-        let mut idx = self.reservers_addresses(caller.clone()).get();
-        if idx == 0 {
-            self.users_reserves().push(&reserve_amount);
-            idx = self.users_reserves().len();
-            self.reservers_addresses(caller.clone()).set(idx);
-            self.reservers_ids()
-                .entry(idx)
-                .or_insert(caller);
-        } else {
-            let old_reserve = self.users_reserves().get(idx);
-            self.users_reserves().set(idx, &(&old_reserve + &reserve_amount));
-        }
+        let user_reserve_points = self.get_reserve_points_amount(&reserve_amount);
+
+        self.users_reserve_points(&caller)
+            .update(|value| *value += &user_reserve_points);
+        self.reserve_points()
+            .update(|value| *value += user_reserve_points);
 
         self.egld_reserve().update(|value| *value += &reserve_amount);
         self.available_egld_reserve().update(|value| *value += reserve_amount);
@@ -195,49 +185,33 @@ pub trait SalsaContract<ContractReader>:
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         let caller = self.blockchain().get_caller();
-        let idx = self.reservers_addresses(caller.clone()).get();
-        require!(idx > 0, ERROR_USER_NOT_PROVIDER);
-
-        let old_reserve = self.users_reserves().get(idx);
+        let old_reserve_points = self.users_reserve_points(&caller).get();
+        let old_reserve = self.get_reserve_egld_amount(&old_reserve_points);
         require!(old_reserve >= amount, ERROR_NOT_ENOUGH_FUNDS);
 
         self.compute_withdrawn();
         
-        let mut amount_to_remove = amount.clone();
+        let mut egld_to_remove = amount.clone();
+        let mut points_to_remove = self.get_reserve_points_amount(&egld_to_remove);
         // don't leave dust
         if &old_reserve - &amount < MIN_EGLD_TO_DELEGATE {
-            amount_to_remove = old_reserve.clone()
+            egld_to_remove = old_reserve.clone();
+            points_to_remove = old_reserve_points.clone();
         }
-
         let available_egld_reserve = self.available_egld_reserve().get();
         require!(
-            amount_to_remove <= available_egld_reserve,
+            egld_to_remove <= available_egld_reserve,
             ERROR_NOT_ENOUGH_FUNDS
         );
 
-        if old_reserve > amount_to_remove {
-            self.users_reserves().set(idx, &(&old_reserve - &amount_to_remove));
-        } else {
-            let n = self.users_reserves().len();
-            let data = self.reservers_ids().get(&n);
-            if let Some(moved_address) = data {
-                self.reservers_ids()
-                    .entry(idx)
-                    .and_modify(|value| *value = moved_address.clone());
-                self.reservers_ids().remove(&n);
-                self.reservers_addresses(caller.clone()).set(0);
-                if n != idx {
-                    self.reservers_addresses(moved_address).set(idx);
-                }
-                self.users_reserves().swap_remove(idx);
-            } else {
-                sc_panic!(ERROR_USER_NOT_PROVIDER);
-            }
-        }
+        self.users_reserve_points(&caller)
+            .update(|value| *value -= &points_to_remove);
+        self.reserve_points()
+            .update(|value| *value -= &points_to_remove);
 
-        self.send().direct_egld(&caller, &amount_to_remove);
-        self.egld_reserve().update(|value| *value -= &amount_to_remove);
-        self.available_egld_reserve().update(|value| *value -= amount_to_remove);
+        self.egld_reserve().update(|value| *value -= &egld_to_remove);
+        self.available_egld_reserve().update(|value| *value -= &egld_to_remove);
+        self.send().direct_egld(&caller, &egld_to_remove);
     }
 
     #[payable("*")]
@@ -247,7 +221,6 @@ pub trait SalsaContract<ContractReader>:
 
         let payment = self.call_value().single_esdt();
         let liquid_token_id = self.liquid_token_id().get_token_id();
-        let egld_reserve = self.egld_reserve().get();
         let available_egld_reserve = self.available_egld_reserve().get();
         let total_egld_staked = self.total_egld_staked().get();
         require!(
@@ -274,19 +247,6 @@ pub trait SalsaContract<ContractReader>:
         require!(egld_to_undelegate <= total_egld_staked, ERROR_NOT_ENOUGH_FUNDS);
 
         let total_rewards = &egld_to_undelegate - &egld_to_undelegate_with_fee;
-        let mut distributed_rewards = BigUint::zero();
-        let n = self.users_reserves().len();
-        let mut i: usize = 0;
-        for mut reserve in self.users_reserves().into_iter() {
-            i += 1;
-            let mut reward = &reserve * &total_rewards / &egld_reserve;
-            if i == n {
-                reward = &total_rewards - &distributed_rewards;
-            }
-            reserve += &reward;
-            distributed_rewards += reward;
-            self.users_reserves().set(i, &reserve);
-        }
 
         let current_epoch = self.blockchain().get_block_epoch();
         let unbond_epoch = current_epoch + UNBOND_PERIOD;
