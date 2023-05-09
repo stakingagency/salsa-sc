@@ -77,13 +77,6 @@ pub trait SalsaContract<ContractReader>:
     fn undelegate(&self) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
-        let caller = self.blockchain().get_caller();
-        let mut user_undelegations = self.user_undelegations(&caller).get();
-        require!(
-            user_undelegations.len() < MAX_USER_UNDELEGATIONS,
-            ERROR_TOO_MANY_USER_UNDELEGATIONS
-        );
-
         let payment = self.call_value().single_esdt();
         let liquid_token_id = self.liquid_token_id().get_token_id();
         require!(
@@ -96,29 +89,46 @@ pub trait SalsaContract<ContractReader>:
         self.burn_liquid_token(&payment.amount);
         let current_epoch = self.blockchain().get_block_epoch();
         let unbond_epoch = current_epoch + UNBOND_PERIOD;
-        let undelegation = config::Undelegation {
-            amount: egld_to_undelegate.clone(),
-            unbond_epoch,
-        };
-        user_undelegations.push(undelegation);
-        self.user_undelegations(&caller).set(user_undelegations);
         self.users_egld_to_undelegate()
             .update(|value| *value += &egld_to_undelegate);
+        self.add_user_undelegation(egld_to_undelegate, unbond_epoch);
+    }
 
-        let mut total_user_undelegations = self.total_user_undelegations().get();
+    fn add_user_undelegation(&self, amount: BigUint, unbond_epoch: u64) {
+        let user = self.blockchain().get_caller();
+        let mut user_undelegations = self.user_undelegations(&user).get();
+        require!(
+            user_undelegations.len() < MAX_USER_UNDELEGATIONS,
+            ERROR_TOO_MANY_USER_UNDELEGATIONS
+        );
+
+        let undelegation = config::Undelegation {
+            amount: amount.clone(),
+            unbond_epoch,
+        };
         let mut found = false;
-        for mut total_user_undelegation in total_user_undelegations.into_iter() {
-            if total_user_undelegation.unbond_epoch == unbond_epoch {
-                total_user_undelegation.amount += &egld_to_undelegate;
+        for mut user_undelegation in user_undelegations.into_iter() {
+            if user_undelegation.unbond_epoch == unbond_epoch {
+                user_undelegation.amount += &amount;
                 found = true;
                 break;
             }
         }
         if !found {
-            let undelegation = config::Undelegation {
-                amount: egld_to_undelegate,
-                unbond_epoch,
-            };
+            user_undelegations.push(undelegation.clone());
+        }
+        self.user_undelegations(&user).set(user_undelegations);
+
+        let mut total_user_undelegations = self.total_user_undelegations().get();
+        found = false;
+        for mut total_user_undelegation in total_user_undelegations.into_iter() {
+            if total_user_undelegation.unbond_epoch == unbond_epoch {
+                total_user_undelegation.amount += &amount;
+                found = true;
+                break;
+            }
+        }
+        if !found {
             total_user_undelegations.push(undelegation);
         }
         self.total_user_undelegations().set(total_user_undelegations);
@@ -132,21 +142,29 @@ pub trait SalsaContract<ContractReader>:
 
         let caller = self.blockchain().get_caller();
         let current_epoch = self.blockchain().get_block_epoch();
+        let total_user_withdrawn_egld = self.user_withdrawn_egld().get();
         let user_undelegations = self.user_undelegations(&caller).get();
         let mut remaining_undelegations: ManagedVec<Self::Api, config::Undelegation<Self::Api>> =
             ManagedVec::new();
         let mut withdraw_amount = BigUint::zero();
+        let mut overflow = false;
         for user_undelegation in &user_undelegations {
-            if user_undelegation.unbond_epoch <= current_epoch {
-                withdraw_amount += user_undelegation.amount;
+            let new_withdraw_amount = &withdraw_amount + &user_undelegation.amount;
+            let would_overflow = new_withdraw_amount > total_user_withdrawn_egld;
+            overflow = overflow || would_overflow;
+            if user_undelegation.unbond_epoch <= current_epoch && !would_overflow {
+                withdraw_amount = new_withdraw_amount;
             } else {
                 remaining_undelegations.push(user_undelegation);
             }
         }
-        require!(withdraw_amount > 0, ERROR_NOTHING_TO_WITHDRAW);
-
-        let total_user_withdrawn_egld = self.user_withdrawn_egld().get();
-        require!(withdraw_amount <= total_user_withdrawn_egld, ERROR_NOT_ENOUGH_FUNDS);
+        if withdraw_amount == 0 {
+            if overflow {
+                sc_panic!(ERROR_NOT_ENOUGH_FUNDS);
+            } else {
+                sc_panic!(ERROR_NOTHING_TO_WITHDRAW);
+            }
+        }
 
         self.user_undelegations(&caller)
             .set(remaining_undelegations);
@@ -199,18 +217,44 @@ pub trait SalsaContract<ContractReader>:
             points_to_remove = old_reserve_points.clone();
         }
         let available_egld_reserve = self.available_egld_reserve().get();
-        require!(
-            egld_to_remove <= available_egld_reserve,
-            ERROR_NOT_ENOUGH_FUNDS
-        );
+        // if there is not enough available reserve, move the reserve to user undelegation
+        if egld_to_remove > available_egld_reserve {
+            let egld_to_move = &egld_to_remove - &available_egld_reserve;
+            let mut remaining_egld = egld_to_move.clone();
+            let mut unbond_epoch = 0_u64;
+            let reserve_undelegations = self.reserve_undelegations().get();
+            let mut remaining_reserve_undelegations: ManagedVec<
+                Self::Api,
+                config::Undelegation<Self::Api>,
+            > = ManagedVec::new();
+            for mut reserve_undelegation in reserve_undelegations.into_iter() {
+                if remaining_egld > 0 {
+                    if remaining_egld <= reserve_undelegation.amount {
+                        reserve_undelegation.amount -= &remaining_egld;
+                        remaining_egld = BigUint::zero();
+                        unbond_epoch = reserve_undelegation.unbond_epoch;
+                    } else {
+                        remaining_egld -= &reserve_undelegation.amount;
+                        reserve_undelegation.amount = BigUint::zero();
+                    }
+                }
+                if reserve_undelegation.amount > 0 {
+                    remaining_reserve_undelegations.push(reserve_undelegation);
+                }
+            }
+            require!(remaining_egld == 0, ERROR_NOT_ENOUGH_FUNDS);
 
+            self.reserve_undelegations().set(remaining_reserve_undelegations);
+            self.egld_reserve().update(|value| *value -= &egld_to_move);
+            self.add_user_undelegation(egld_to_move.clone(), unbond_epoch);
+            egld_to_remove = available_egld_reserve.clone();
+        }
+        self.available_egld_reserve().update(|value| *value -= &egld_to_remove);
+        self.egld_reserve().update(|value| *value -= &egld_to_remove);
         self.users_reserve_points(&caller)
             .update(|value| *value -= &points_to_remove);
         self.reserve_points()
             .update(|value| *value -= &points_to_remove);
-
-        self.egld_reserve().update(|value| *value -= &egld_to_remove);
-        self.available_egld_reserve().update(|value| *value -= &egld_to_remove);
         self.send().direct_egld(&caller, &egld_to_remove);
     }
 
@@ -221,16 +265,12 @@ pub trait SalsaContract<ContractReader>:
 
         let payment = self.call_value().single_esdt();
         let liquid_token_id = self.liquid_token_id().get_token_id();
-        let available_egld_reserve = self.available_egld_reserve().get();
-        let total_egld_staked = self.total_egld_staked().get();
         require!(
             payment.token_identifier == liquid_token_id,
             ERROR_BAD_PAYMENT_TOKEN
         );
         require!(payment.amount > 0u64, ERROR_BAD_PAYMENT_AMOUNT);
 
-        let fee = self.undelegate_now_fee().get();
-        let caller = self.blockchain().get_caller();
         let egld_to_undelegate = self.remove_liquidity(&payment.amount);
         self.burn_liquid_token(&payment.amount);
         require!(
@@ -238,6 +278,9 @@ pub trait SalsaContract<ContractReader>:
             ERROR_BAD_PAYMENT_AMOUNT
         );
 
+        let available_egld_reserve = self.available_egld_reserve().get();
+        let total_egld_staked = self.total_egld_staked().get();
+        let fee = self.undelegate_now_fee().get();
         let egld_to_undelegate_with_fee =
             egld_to_undelegate.clone() - egld_to_undelegate.clone() * fee / MAX_PERCENT;
         require!(
@@ -246,8 +289,7 @@ pub trait SalsaContract<ContractReader>:
         );
         require!(egld_to_undelegate <= total_egld_staked, ERROR_NOT_ENOUGH_FUNDS);
 
-        let total_rewards = &egld_to_undelegate - &egld_to_undelegate_with_fee;
-
+        // add to reserve undelegations
         let current_epoch = self.blockchain().get_block_epoch();
         let unbond_epoch = current_epoch + UNBOND_PERIOD;
         let mut reserve_undelegations = self.reserve_undelegations().get();
@@ -268,10 +310,14 @@ pub trait SalsaContract<ContractReader>:
         }
         self.reserve_undelegations().set(reserve_undelegations);
 
+        // update storage
         self.egld_to_replenish_reserve()
             .update(|value| *value += &egld_to_undelegate);
         self.available_egld_reserve().update(|value| *value -= &egld_to_undelegate_with_fee);
+        let total_rewards = &egld_to_undelegate - &egld_to_undelegate_with_fee;
         self.egld_reserve().update(|value| *value += &total_rewards);
+
+        let caller = self.blockchain().get_caller();
         self.send().direct_egld(&caller, &egld_to_undelegate_with_fee);
     }
 

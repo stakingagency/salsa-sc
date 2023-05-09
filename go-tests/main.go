@@ -49,7 +49,7 @@ type accountKey struct {
 }
 
 const (
-	scAddress = "erd1qqqqqqqqqqqqqpgqevzkz8l9l5jrtvapdwelyae7u6j954djvcqsl98vv9"
+	scAddress = "erd1qqqqqqqqqqqqqpgqefg3dmn0xzf9f6aq2a402knptrtf86qlvcqs3vvzzd"
 	// proxyAddress = "http://localhost:8079"
 	proxyAddress = "http://193.70.44.72:8079"
 	// proxyAddress = "https://devnet-gateway.multiversx.com"
@@ -165,7 +165,7 @@ func undelegateAllTester(idx int) error {
 
 	fmt.Printf("%v ", idx)
 
-	return unDelegate(balance, 50000000, int64(tAccount.Nonce), tPrivateKey, tWalletAddress)
+	return unDelegate(balance, 10000000, int64(tAccount.Nonce), tPrivateKey, tWalletAddress)
 }
 
 func removeReserveTester(idx int) error {
@@ -203,6 +203,32 @@ func addReserveTester(idx int, amount *big.Int) error {
 	}
 
 	return addReserve(amount, 10000000, int64(tAccount.Nonce), tPrivateKey, tWalletAddress)
+}
+
+func unDelegateNowTester(idx int, amount *big.Int) error {
+	w := interactors.NewWallet()
+	tPrivateKey := w.GetPrivateKeyFromMnemonic(mnemonic, 0, uint32(idx))
+	tAddress, _ := w.GetAddressFromPrivateKey(tPrivateKey)
+	tWalletAddress := tAddress.AddressAsBech32String()
+	tAccount, err := proxy.GetAccount(context.Background(), tAddress)
+	if err != nil {
+		return err
+	}
+
+	return unDelegateNow(amount, 10000000, int64(tAccount.Nonce), tPrivateKey, tWalletAddress)
+}
+
+func delegateTester(idx int, amount *big.Int) error {
+	w := interactors.NewWallet()
+	tPrivateKey := w.GetPrivateKeyFromMnemonic(mnemonic, 0, uint32(idx))
+	tAddress, _ := w.GetAddressFromPrivateKey(tPrivateKey)
+	tWalletAddress := tAddress.AddressAsBech32String()
+	tAccount, err := proxy.GetAccount(context.Background(), tAddress)
+	if err != nil {
+		return err
+	}
+
+	return delegate(amount, 30000000, int64(tAccount.Nonce), tPrivateKey, tWalletAddress)
 }
 
 func test(idx int) error {
@@ -310,12 +336,14 @@ func scenario1() error {
 
 	// removeReserve(big.NewInt(1000000000000000000), 10000000, -1, privateKey, walletAddress)
 
+	// addReserve(big.NewInt(9000000000000000000), 10000000, -1, privateKey, walletAddress)
 	// addReserveTester(1, big.NewInt(1000000000000000000))
 	// addReserveTester(2, big.NewInt(2000000000000000000))
 	// addReserveTester(3, big.NewInt(3000000000000000000))
 	// removeReserveTester(1)
 	// delegate(big.NewInt(9000000000000000000), 30000000, -1, privateKey, walletAddress)
 	// unDelegateNow(big.NewInt(1000000000000000000), 50000000, -1, privateKey, walletAddress)
+	// withdraw(10000000, -1, privateKey, walletAddress)
 
 	// return setStateActive(-1)
 
@@ -463,18 +491,18 @@ func main() {
 	}
 
 	// UNDELEGATE EACH
-	for i := 0; i < testN; i++ {
-		if err := undelegateAllTester(i); err != nil {
-			// panic(err)
-		}
-	}
+	// for i := 0; i < testN; i++ {
+	// 	if err := undelegateAllTester(i); err != nil {
+	// 		// panic(err)
+	// 	}
+	// }
 
 	// REMOVE RESERVE EACH
-	for i := 0; i < testN; i++ {
-		if err := removeReserveTester(i); err != nil {
-			// panic(err)
-		}
-	}
+	// for i := 0; i < testN; i++ {
+	// 	if err := removeReserveTester(i); err != nil {
+	// 		// panic(err)
+	// 	}
+	// }
 
 	// STRESS TEST
 	// for {
