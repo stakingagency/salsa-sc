@@ -316,6 +316,7 @@ pub trait SalsaContract<ContractReader>:
             self.send().direct_egld(&caller, &egld_to_undelegate_with_fee);
             let total_rewards = &salsa_amount_out - &egld_to_undelegate_with_fee;
             self.egld_reserve().update(|value| *value += &total_rewards);
+            self.available_egld_reserve().update(|value| *value += &total_rewards);
 
             return
         }
