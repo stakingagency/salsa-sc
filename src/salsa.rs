@@ -34,13 +34,7 @@ pub trait SalsaContract<ContractReader>:
             ERROR_INSUFFICIENT_DELEGATE_AMOUNT
         );
 
-        let onedex_sc_address = ManagedAddress::from(ONEDEX_SC);
-        let wegld_token_id = TokenIdentifier::from(WEGLD_ID);
-        let liquid_token_id = self.liquid_token_id().get_token_id();
-        let onedex_amount_out: BigUint = self.onedex_proxy_obj()
-            .contract(onedex_sc_address.clone())
-            .get_amount_out_view(&wegld_token_id, &liquid_token_id, &delegate_amount)
-            .execute_on_dest_context();
+        let onedex_amount_out = self.get_onedex_buy_amount_out(delegate_amount.clone());
         let salsa_amount_out = self.add_liquidity(&delegate_amount, false);
 
         let caller = self.blockchain().get_caller();
@@ -61,24 +55,8 @@ pub trait SalsaContract<ContractReader>:
                 .call_and_exit()
         } else {
             // arbitrage
-            let mut path: MultiValueEncoded<TokenIdentifier> = MultiValueEncoded::new();
-            path.push(wegld_token_id.clone());
-            path.push(liquid_token_id.clone());
-            let (old_balance, old_ls_balance) = self.get_sc_balances();
-            self.onedex_proxy_obj()
-                .contract(onedex_sc_address)
-                .swap_multi_tokens_fixed_output(&salsa_amount_out, true, path)
-                .with_egld_transfer(delegate_amount.clone())
-                .execute_on_dest_context::<()>();
-            let (new_balance, new_ls_balance) = self.get_sc_balances();
-
-            let swapped_ls_amount = &new_ls_balance - &old_ls_balance;
-            require!(swapped_ls_amount >= salsa_amount_out, ERROR_ARBITRAGE_ISSUE);
-
-            let profit = &new_balance - &old_balance;
-            self.arbitrage_profit()
-                .update(|value| *value += profit);
-
+            let liquid_token_id = self.liquid_token_id().get_token_id();
+            self.swap_fixed_output(delegate_amount, salsa_amount_out.clone());
             self.send().direct_esdt(
                 &caller,
                 &liquid_token_id,
@@ -127,13 +105,7 @@ pub trait SalsaContract<ContractReader>:
         );
         require!(payment.amount > 0u64, ERROR_BAD_PAYMENT_AMOUNT);
 
-        let onedex_sc_address = ManagedAddress::from(ONEDEX_SC);
-        let wegld_token_id = TokenIdentifier::from(WEGLD_ID);
-        let liquid_token_id = self.liquid_token_id().get_token_id();
-        let onedex_amount_out: BigUint = self.onedex_proxy_obj()
-            .contract(onedex_sc_address.clone())
-            .get_amount_out_view(&liquid_token_id, &wegld_token_id, &payment.amount)
-            .execute_on_dest_context();
+        let onedex_amount_out = self.get_onedex_sell_amount_out(payment.amount.clone());
         let salsa_amount_out = self.remove_liquidity(&payment.amount, false);
 
         if salsa_amount_out > onedex_amount_out {
@@ -147,25 +119,8 @@ pub trait SalsaContract<ContractReader>:
             self.add_user_undelegation(egld_to_undelegate, unbond_epoch);
         } else {
             // arbitrage
+            self.swap_fixed_input(payment, salsa_amount_out.clone());
             let caller = self.blockchain().get_caller();
-            let mut path: MultiValueEncoded<TokenIdentifier> = MultiValueEncoded::new();
-            path.push(liquid_token_id.clone());
-            path.push(wegld_token_id.clone());
-            let (old_balance, _old_ls_balance) = self.get_sc_balances();
-            self.onedex_proxy_obj()
-                .contract(onedex_sc_address)
-                .swap_multi_tokens_fixed_input(&payment.amount, true, path)
-                .with_esdt_transfer(payment)
-                .execute_on_dest_context::<()>();
-            let (new_balance, _new_ls_balance) = self.get_sc_balances();
-
-            let swapped_amount = &new_balance - &old_balance;
-            require!(swapped_amount >= salsa_amount_out, ERROR_ARBITRAGE_ISSUE);
-
-            let profit = &swapped_amount - &salsa_amount_out;
-            self.arbitrage_profit()
-                .update(|value| *value += profit);
-
             self.send().direct_egld(&caller, &salsa_amount_out);
         }
     }
@@ -350,35 +305,12 @@ pub trait SalsaContract<ContractReader>:
         let fee = self.undelegate_now_fee().get();
         let caller = self.blockchain().get_caller();
 
-        let onedex_sc_address = ManagedAddress::from(ONEDEX_SC);
-        let wegld_token_id = TokenIdentifier::from(WEGLD_ID);
-        let liquid_token_id = self.liquid_token_id().get_token_id();
-        let onedex_amount_out: BigUint = self.onedex_proxy_obj()
-            .contract(onedex_sc_address.clone())
-            .get_amount_out_view(&liquid_token_id, &wegld_token_id, &payment.amount)
-            .execute_on_dest_context();
+        let onedex_amount_out = self.get_onedex_sell_amount_out(payment.amount.clone());
         let salsa_amount_out = self.remove_liquidity(&payment.amount, false);
 
         if salsa_amount_out < onedex_amount_out {
             // arbitrage
-            let mut path: MultiValueEncoded<TokenIdentifier> = MultiValueEncoded::new();
-            path.push(liquid_token_id.clone());
-            path.push(wegld_token_id.clone());
-            let (old_balance, _old_ls_balance) = self.get_sc_balances();
-            self.onedex_proxy_obj()
-                .contract(onedex_sc_address)
-                .swap_multi_tokens_fixed_input(&payment.amount, true, path)
-                .with_esdt_transfer(payment)
-                .execute_on_dest_context::<()>();
-            let (new_balance, _new_ls_balance) = self.get_sc_balances();
-
-            let swapped_amount = &new_balance - &old_balance;
-            require!(swapped_amount >= salsa_amount_out, ERROR_ARBITRAGE_ISSUE);
-
-            let profit = &swapped_amount - &salsa_amount_out;
-            self.arbitrage_profit()
-                .update(|value| *value += profit);
-
+            self.swap_fixed_input(payment, salsa_amount_out.clone());
             let egld_to_undelegate_with_fee =
                 salsa_amount_out.clone() - salsa_amount_out.clone() * fee / MAX_PERCENT;
             self.send().direct_egld(&caller, &egld_to_undelegate_with_fee);
@@ -745,6 +677,74 @@ pub trait SalsaContract<ContractReader>:
         let wegld_token_id = TokenIdentifier::from(WEGLD_ID);
         self.blockchain()
             .get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(wegld_token_id.clone()), 0)
+    }
+
+    // onedex
+
+    fn swap_fixed_input(&self, payment: EsdtTokenPayment, salsa_amount_out: BigUint) {
+        let onedex_sc_address = ManagedAddress::from(ONEDEX_SC);
+        let wegld_token_id = TokenIdentifier::from(WEGLD_ID);
+        let liquid_token_id = self.liquid_token_id().get_token_id();
+        let mut path: MultiValueEncoded<TokenIdentifier> = MultiValueEncoded::new();
+        path.push(liquid_token_id.clone());
+        path.push(wegld_token_id.clone());
+        let (old_balance, _old_ls_balance) = self.get_sc_balances();
+        self.onedex_proxy_obj()
+            .contract(onedex_sc_address)
+            .swap_multi_tokens_fixed_input(&payment.amount, true, path)
+            .with_esdt_transfer(payment)
+            .execute_on_dest_context::<()>();
+        let (new_balance, _new_ls_balance) = self.get_sc_balances();
+
+        let swapped_amount = &new_balance - &old_balance;
+        require!(swapped_amount >= salsa_amount_out, ERROR_ARBITRAGE_ISSUE);
+
+        let profit = &swapped_amount - &salsa_amount_out;
+        self.arbitrage_profit()
+            .update(|value| *value += profit);
+    }
+
+    fn swap_fixed_output(&self, egld_amount: BigUint, salsa_amount_out: BigUint) {
+        let onedex_sc_address = ManagedAddress::from(ONEDEX_SC);
+        let wegld_token_id = TokenIdentifier::from(WEGLD_ID);
+        let liquid_token_id = self.liquid_token_id().get_token_id();
+        let mut path: MultiValueEncoded<TokenIdentifier> = MultiValueEncoded::new();
+        path.push(wegld_token_id.clone());
+        path.push(liquid_token_id.clone());
+        let (old_balance, old_ls_balance) = self.get_sc_balances();
+        self.onedex_proxy_obj()
+            .contract(onedex_sc_address)
+            .swap_multi_tokens_fixed_output(&salsa_amount_out, true, path)
+            .with_egld_transfer(egld_amount)
+            .execute_on_dest_context::<()>();
+        let (new_balance, new_ls_balance) = self.get_sc_balances();
+
+        let swapped_ls_amount = &new_ls_balance - &old_ls_balance;
+        require!(swapped_ls_amount >= salsa_amount_out, ERROR_ARBITRAGE_ISSUE);
+
+        let profit = &new_balance - &old_balance;
+        self.arbitrage_profit()
+            .update(|value| *value += profit);
+    }
+
+    fn get_onedex_sell_amount_out(&self, amount: BigUint) -> BigUint {
+        let onedex_sc_address = ManagedAddress::from(ONEDEX_SC);
+        let wegld_token_id = TokenIdentifier::from(WEGLD_ID);
+        let liquid_token_id = self.liquid_token_id().get_token_id();
+        self.onedex_proxy_obj()
+            .contract(onedex_sc_address.clone())
+            .get_amount_out_view(&liquid_token_id, &wegld_token_id, &amount)
+            .execute_on_dest_context()
+    }
+
+    fn get_onedex_buy_amount_out(&self, amount: BigUint) -> BigUint {
+        let onedex_sc_address = ManagedAddress::from(ONEDEX_SC);
+        let wegld_token_id = TokenIdentifier::from(WEGLD_ID);
+        let liquid_token_id = self.liquid_token_id().get_token_id();
+        self.onedex_proxy_obj()
+            .contract(onedex_sc_address.clone())
+            .get_amount_out_view(&wegld_token_id, &liquid_token_id, &amount)
+            .execute_on_dest_context()
     }
 
     // proxies
