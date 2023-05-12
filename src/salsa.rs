@@ -347,6 +347,47 @@ pub trait SalsaContract<ContractReader>:
         );
         require!(payment.amount > 0u64, ERROR_BAD_PAYMENT_AMOUNT);
 
+        let fee = self.undelegate_now_fee().get();
+        let caller = self.blockchain().get_caller();
+
+        let onedex_sc_address = ManagedAddress::from(ONEDEX_SC);
+        let wegld_token_id = TokenIdentifier::from(WEGLD_ID);
+        let liquid_token_id = self.liquid_token_id().get_token_id();
+        let onedex_amount_out: BigUint = self.onedex_proxy_obj()
+            .contract(onedex_sc_address.clone())
+            .get_amount_out_view(&liquid_token_id, &wegld_token_id, &payment.amount)
+            .execute_on_dest_context();
+        let salsa_amount_out = self.remove_liquidity(&payment.amount, false);
+
+        if salsa_amount_out < onedex_amount_out {
+            // arbitrage
+            let mut path: MultiValueEncoded<TokenIdentifier> = MultiValueEncoded::new();
+            path.push(liquid_token_id.clone());
+            path.push(wegld_token_id.clone());
+            let (old_balance, _old_ls_balance) = self.get_sc_balances();
+            self.onedex_proxy_obj()
+                .contract(onedex_sc_address)
+                .swap_multi_tokens_fixed_input(&payment.amount, true, path)
+                .with_esdt_transfer(payment)
+                .execute_on_dest_context::<()>();
+            let (new_balance, _new_ls_balance) = self.get_sc_balances();
+
+            let swapped_amount = &new_balance - &old_balance;
+            require!(swapped_amount >= salsa_amount_out, ERROR_ARBITRAGE_ISSUE);
+
+            let profit = &swapped_amount - &salsa_amount_out;
+            self.arbitrage_profit()
+                .update(|value| *value += profit);
+
+            let egld_to_undelegate_with_fee =
+                salsa_amount_out.clone() - salsa_amount_out.clone() * fee / MAX_PERCENT;
+            self.send().direct_egld(&caller, &egld_to_undelegate_with_fee);
+            let total_rewards = &salsa_amount_out - &egld_to_undelegate_with_fee;
+            self.egld_reserve().update(|value| *value += &total_rewards);
+
+            return
+        }
+
         let egld_to_undelegate = self.remove_liquidity(&payment.amount, true);
         self.burn_liquid_token(&payment.amount);
         require!(
@@ -356,7 +397,6 @@ pub trait SalsaContract<ContractReader>:
 
         let available_egld_reserve = self.available_egld_reserve().get();
         let total_egld_staked = self.total_egld_staked().get();
-        let fee = self.undelegate_now_fee().get();
         let egld_to_undelegate_with_fee =
             egld_to_undelegate.clone() - egld_to_undelegate.clone() * fee / MAX_PERCENT;
         require!(
@@ -393,7 +433,6 @@ pub trait SalsaContract<ContractReader>:
         let total_rewards = &egld_to_undelegate - &egld_to_undelegate_with_fee;
         self.egld_reserve().update(|value| *value += &total_rewards);
 
-        let caller = self.blockchain().get_caller();
         self.send().direct_egld(&caller, &egld_to_undelegate_with_fee);
     }
 
