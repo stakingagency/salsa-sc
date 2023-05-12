@@ -6,10 +6,10 @@ pub mod config;
 pub mod consts;
 pub mod delegation_proxy;
 pub mod wrapper_proxy;
+pub mod onedex_proxy;
 pub mod errors;
 
 use crate::{config::*, consts::*, errors::*};
-use onedex_sc::logic::swap::ProxyTrait as OneDexProxy;
 
 #[multiversx_sc::contract]
 pub trait SalsaContract<ContractReader>:
@@ -37,7 +37,8 @@ pub trait SalsaContract<ContractReader>:
         let onedex_sc_address = ManagedAddress::from(ONEDEX_SC);
         let wegld_token_id = TokenIdentifier::from(WEGLD_ID);
         let liquid_token_id = self.liquid_token_id().get_token_id();
-        let onedex_amount_out: BigUint = self.onedex_proxy_obj(onedex_sc_address.clone())
+        let onedex_amount_out: BigUint = self.onedex_proxy_obj()
+            .contract(onedex_sc_address.clone())
             .get_amount_out_view(&wegld_token_id, &liquid_token_id, &delegate_amount)
             .execute_on_dest_context();
         let salsa_amount_out = self.add_liquidity(&delegate_amount, false);
@@ -64,7 +65,8 @@ pub trait SalsaContract<ContractReader>:
             path.push(wegld_token_id.clone());
             path.push(liquid_token_id.clone());
             let (old_balance, old_ls_balance) = self.get_sc_balances();
-            self.onedex_proxy_obj(onedex_sc_address)
+            self.onedex_proxy_obj()
+                .contract(onedex_sc_address)
                 .swap_multi_tokens_fixed_output(&salsa_amount_out, true, path)
                 .with_egld_transfer(delegate_amount.clone())
                 .execute_on_dest_context::<()>();
@@ -128,7 +130,8 @@ pub trait SalsaContract<ContractReader>:
         let onedex_sc_address = ManagedAddress::from(ONEDEX_SC);
         let wegld_token_id = TokenIdentifier::from(WEGLD_ID);
         let liquid_token_id = self.liquid_token_id().get_token_id();
-        let onedex_amount_out: BigUint = self.onedex_proxy_obj(onedex_sc_address.clone())
+        let onedex_amount_out: BigUint = self.onedex_proxy_obj()
+            .contract(onedex_sc_address.clone())
             .get_amount_out_view(&liquid_token_id, &wegld_token_id, &payment.amount)
             .execute_on_dest_context();
         let salsa_amount_out = self.remove_liquidity(&payment.amount, false);
@@ -149,7 +152,8 @@ pub trait SalsaContract<ContractReader>:
             path.push(liquid_token_id.clone());
             path.push(wegld_token_id.clone());
             let (old_balance, _old_ls_balance) = self.get_sc_balances();
-            self.onedex_proxy_obj(onedex_sc_address)
+            self.onedex_proxy_obj()
+                .contract(onedex_sc_address)
                 .swap_multi_tokens_fixed_input(&payment.amount, true, path)
                 .with_esdt_transfer(payment)
                 .execute_on_dest_context::<()>();
@@ -710,7 +714,7 @@ pub trait SalsaContract<ContractReader>:
     fn delegation_proxy_obj(&self) -> delegation_proxy::Proxy<Self::Api>;
 
     #[proxy]
-    fn onedex_proxy_obj(&self, sc_address: ManagedAddress) -> onedex_sc::Proxy<Self::Api>;
+    fn onedex_proxy_obj(&self) -> onedex_proxy::Proxy<Self::Api>;
 
     #[proxy]
     fn wrapper_proxy_obj(&self) -> wrapper_proxy::Proxy<Self::Api>;
