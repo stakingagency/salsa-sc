@@ -588,15 +588,12 @@ pub trait SalsaContract<ContractReader>:
                 .execute_on_dest_context::<()>();
             let (new_balance, _new_ls_balance) = self.get_sc_balances();
 
-            require!(new_balance < old_balance, ERROR_ARBITRAGE_ISSUE);
-
-            let lost_amount = &old_balance - &new_balance;
-            self.arbitrage_profit()
-                .update(|value| *value -= lost_amount);
+            require!(new_balance == old_balance, ERROR_ARBITRAGE_ISSUE);
         }
 
         let profit = self.arbitrage_profit().get();
         self.egld_reserve().update(|value| *value += &profit);
+        self.available_egld_reserve().update(|value| *value += &profit);
         self.arbitrage_profit().clear();
     }
 
