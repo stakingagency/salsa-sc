@@ -377,6 +377,30 @@
             ]
         },
         {
+            "name": "setArbitrageActive",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "setArbitrageInactive",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "getArbitrageState",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "State"
+                }
+            ]
+        },
+        {
             "name": "getArbitrageProfit",
             "mutability": "readonly",
             "inputs": [],

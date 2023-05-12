@@ -49,14 +49,14 @@ type accountKey struct {
 }
 
 const (
-	scAddress = "erd1qqqqqqqqqqqqqpgqefg3dmn0xzf9f6aq2a402knptrtf86qlvcqs3vvzzd"
+	scAddress = "erd1qqqqqqqqqqqqqpgq965crvye4cmnqle60szxtt8nydykx7ytvcqsts3k2n"
 	// proxyAddress = "http://localhost:8079"
 	proxyAddress = "http://193.70.44.72:8079"
 	// proxyAddress = "https://devnet-gateway.multiversx.com"
 	walletFile = "/home/mihai/walletKey.pem"
 	mnemonic   = "asdfghjkl"
 
-	testN = 1000
+	testN = 100
 )
 
 var (
@@ -345,7 +345,7 @@ func scenario1() error {
 	// unDelegateNow(big.NewInt(1000000000000000000), 50000000, -1, privateKey, walletAddress)
 	// withdraw(10000000, -1, privateKey, walletAddress)
 
-	// return setStateActive(-1)
+	return setStateActive(-1)
 
 	// for i := 0; i < 10; i++ {
 	// 	compound(50000000, int64(nonce))
@@ -470,7 +470,7 @@ func main() {
 	// }
 	// time.Sleep(time.Second * 30)
 
-	// err = scenario1()
+	err = scenario1()
 	// if err != nil {
 	// 	fmt.Println(err)
 	// }
@@ -505,17 +505,17 @@ func main() {
 	// }
 
 	// STRESS TEST
-	for {
-		for i := 0; i < testN; i++ {
-			go func(i int) {
-				err = test(i)
-				if err != nil {
-					fmt.Println(err)
-				}
-			}(i)
-		}
-		time.Sleep(time.Minute * 30)
-	}
+	// for {
+	// 	for i := 0; i < testN; i++ {
+	// 		go func(i int) {
+	// 			err = test(i)
+	// 			if err != nil {
+	// 				fmt.Println(err)
+	// 			}
+	// 		}(i)
+	// 	}
+	// 	time.Sleep(time.Minute * 30)
+	// }
 }
 
 func queryVM(scAddress, funcName string, args []string) ([]byte, error) {

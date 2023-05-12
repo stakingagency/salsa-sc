@@ -38,7 +38,7 @@ pub trait SalsaContract<ContractReader>:
         let salsa_amount_out = self.add_liquidity(&delegate_amount, false);
 
         let caller = self.blockchain().get_caller();
-        if salsa_amount_out >= onedex_amount_out {
+        if salsa_amount_out >= onedex_amount_out || !self.is_arbitrage_active() {
             // normal delegate
             let delegation_contract = self.provider_address().get();
             let gas_for_async_call = self.get_gas_for_async_call();
@@ -108,7 +108,7 @@ pub trait SalsaContract<ContractReader>:
         let onedex_amount_out = self.get_onedex_sell_amount_out(payment.amount.clone());
         let salsa_amount_out = self.remove_liquidity(&payment.amount, false);
 
-        if salsa_amount_out > onedex_amount_out {
+        if salsa_amount_out > onedex_amount_out || !self.is_arbitrage_active() {
             // normal undelegate
             let egld_to_undelegate = self.remove_liquidity(&payment.amount, true);
             self.burn_liquid_token(&payment.amount);
@@ -308,7 +308,7 @@ pub trait SalsaContract<ContractReader>:
         let onedex_amount_out = self.get_onedex_sell_amount_out(payment.amount.clone());
         let salsa_amount_out = self.remove_liquidity(&payment.amount, false);
 
-        if salsa_amount_out < onedex_amount_out {
+        if salsa_amount_out < onedex_amount_out && self.is_arbitrage_active() {
             // arbitrage
             self.swap_fixed_input(payment, salsa_amount_out.clone());
             let egld_to_undelegate_with_fee =
@@ -681,6 +681,7 @@ pub trait SalsaContract<ContractReader>:
 
     // onedex
 
+    // sell
     fn swap_fixed_input(&self, payment: EsdtTokenPayment, salsa_amount_out: BigUint) {
         let onedex_sc_address = ManagedAddress::from(ONEDEX_SC);
         let wegld_token_id = TokenIdentifier::from(WEGLD_ID);
@@ -696,6 +697,8 @@ pub trait SalsaContract<ContractReader>:
             .execute_on_dest_context::<()>();
         let (new_balance, _new_ls_balance) = self.get_sc_balances();
 
+        require!(new_balance >= old_balance, ERROR_ARBITRAGE_ISSUE);
+
         let swapped_amount = &new_balance - &old_balance;
         require!(swapped_amount >= salsa_amount_out, ERROR_ARBITRAGE_ISSUE);
 
@@ -704,6 +707,7 @@ pub trait SalsaContract<ContractReader>:
             .update(|value| *value += profit);
     }
 
+    // buy
     fn swap_fixed_output(&self, egld_amount: BigUint, salsa_amount_out: BigUint) {
         let onedex_sc_address = ManagedAddress::from(ONEDEX_SC);
         let wegld_token_id = TokenIdentifier::from(WEGLD_ID);
@@ -711,13 +715,17 @@ pub trait SalsaContract<ContractReader>:
         let mut path: MultiValueEncoded<TokenIdentifier> = MultiValueEncoded::new();
         path.push(wegld_token_id.clone());
         path.push(liquid_token_id.clone());
-        let (old_balance, old_ls_balance) = self.get_sc_balances();
+        let (mut old_balance, old_ls_balance) = self.get_sc_balances();
+        old_balance -= &egld_amount;
         self.onedex_proxy_obj()
             .contract(onedex_sc_address)
-            .swap_multi_tokens_fixed_output(&salsa_amount_out, true, path)
+            .swap_multi_tokens_fixed_output(&salsa_amount_out, false, path)
             .with_egld_transfer(egld_amount)
             .execute_on_dest_context::<()>();
         let (new_balance, new_ls_balance) = self.get_sc_balances();
+
+        require!(new_ls_balance >= old_ls_balance, ERROR_ARBITRAGE_ISSUE);
+        require!(new_balance >= old_balance, ERROR_ARBITRAGE_ISSUE);
 
         let swapped_ls_amount = &new_ls_balance - &old_ls_balance;
         require!(swapped_ls_amount >= salsa_amount_out, ERROR_ARBITRAGE_ISSUE);
@@ -728,6 +736,10 @@ pub trait SalsaContract<ContractReader>:
     }
 
     fn get_onedex_sell_amount_out(&self, amount: BigUint) -> BigUint {
+        if !self.is_arbitrage_active() {
+            return BigUint::zero();
+        }
+
         let onedex_sc_address = ManagedAddress::from(ONEDEX_SC);
         let wegld_token_id = TokenIdentifier::from(WEGLD_ID);
         let liquid_token_id = self.liquid_token_id().get_token_id();
@@ -738,6 +750,10 @@ pub trait SalsaContract<ContractReader>:
     }
 
     fn get_onedex_buy_amount_out(&self, amount: BigUint) -> BigUint {
+        if !self.is_arbitrage_active() {
+            return BigUint::zero();
+        }
+
         let onedex_sc_address = ManagedAddress::from(ONEDEX_SC);
         let wegld_token_id = TokenIdentifier::from(WEGLD_ID);
         let liquid_token_id = self.liquid_token_id().get_token_id();
