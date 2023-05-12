@@ -56,7 +56,7 @@ const (
 	walletFile = "/home/mihai/walletKey.pem"
 	mnemonic   = "asdfghjkl"
 
-	testN = 100
+	testN = 1000
 )
 
 var (
@@ -243,7 +243,7 @@ func test(idx int) error {
 
 	tNonce := tAccount.Nonce
 
-	for i := 0; i < 20; i++ {
+	for i := 0; i < 10; i++ {
 		op := rand.Intn(10)
 		switch op {
 		case 0:
@@ -484,11 +484,11 @@ func main() {
 	// }
 
 	// WITHDRAW EACH
-	for i := 0; i < testN; i++ {
-		if err := withdrawTester(i); err != nil {
-			// panic(err)
-		}
-	}
+	// for i := 0; i < testN; i++ {
+	// 	if err := withdrawTester(i); err != nil {
+	// 		// panic(err)
+	// 	}
+	// }
 
 	// UNDELEGATE EACH
 	// for i := 0; i < testN; i++ {
@@ -505,17 +505,17 @@ func main() {
 	// }
 
 	// STRESS TEST
-	// for {
-	// 	for i := 0; i < testN; i++ {
-	// 		go func(i int) {
-	// 			err = test(i)
-	// 			if err != nil {
-	// 				fmt.Println(err)
-	// 			}
-	// 		}(i)
-	// 	}
-	// 	time.Sleep(time.Minute * 10)
-	// }
+	for {
+		for i := 0; i < testN; i++ {
+			go func(i int) {
+				err = test(i)
+				if err != nil {
+					fmt.Println(err)
+				}
+			}(i)
+		}
+		time.Sleep(time.Minute * 30)
+	}
 }
 
 func queryVM(scAddress, funcName string, args []string) ([]byte, error) {

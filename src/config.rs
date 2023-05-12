@@ -193,6 +193,12 @@ pub trait ConfigModule:
         self.get_reserve_egld_amount(&user_points)
     }
 
+    // arbitrage
+
+    #[view(getArbitrageProfit)]
+    #[storage_mapper("arbitrage_profit")]
+    fn arbitrage_profit(&self) -> SingleValueMapper<BigUint>;
+
     // misc
 
     #[view(getTokenPrice)]

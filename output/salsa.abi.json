@@ -104,6 +104,13 @@
             "outputs": []
         },
         {
+            "name": "distributeProfit",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
             "name": "registerLiquidToken",
             "onlyOwner": true,
             "mutability": "mutable",
@@ -363,6 +370,16 @@
                     "type": "Address"
                 }
             ],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "name": "getArbitrageProfit",
+            "mutability": "readonly",
+            "inputs": [],
             "outputs": [
                 {
                     "type": "BigUint"
