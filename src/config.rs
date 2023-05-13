@@ -193,6 +193,36 @@ pub trait ConfigModule:
         self.get_reserve_egld_amount(&user_points)
     }
 
+    // arbitrage
+
+    #[inline]
+    fn is_arbitrage_active(&self) -> bool {
+        let arbitrage = self.arbitrage().get();
+        arbitrage == State::Active
+    }
+
+    #[view(getArbitrageState)]
+    #[storage_mapper("arbitrage")]
+    fn arbitrage(&self) -> SingleValueMapper<State>;
+
+    #[view(getLiquidProfit)]
+    #[storage_mapper("liquid_profit")]
+    fn liquid_profit(&self) -> SingleValueMapper<BigUint>;
+
+    // onedex
+
+    #[storage_mapper("onedex_fee")]
+    fn onedex_fee(&self) -> SingleValueMapper<u64>;
+
+    #[storage_mapper("onedex_pair_id")]
+    fn onedex_pair_id(&self) -> SingleValueMapper<usize>;
+
+    #[only_owner]
+    #[endpoint(setOnedexPairId)]
+    fn set_onedex_pair_id(&self, id: usize) {
+        self.onedex_pair_id().set(id);
+    }
+
     // misc
 
     #[view(getTokenPrice)]
