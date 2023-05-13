@@ -13,6 +13,7 @@ import (
 	"math/rand"
 	"net/http"
 	"strings"
+	"test-salsa/oneDex"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
@@ -25,6 +26,7 @@ import (
 	"github.com/multiversx/mx-sdk-go/core"
 	"github.com/multiversx/mx-sdk-go/data"
 	"github.com/multiversx/mx-sdk-go/interactors"
+	"github.com/stakingagency/sa-mx-sdk-go/utils"
 )
 
 type accountKeys struct {
@@ -341,9 +343,13 @@ func scenario1() error {
 	// addReserveTester(2, big.NewInt(2000000000000000000))
 	// addReserveTester(3, big.NewInt(3000000000000000000))
 	// removeReserveTester(1)
-	// delegate(big.NewInt(9000000000000000000), 30000000, -1, privateKey, walletAddress)
 	// unDelegateNow(big.NewInt(1000000000000000000), 50000000, -1, privateKey, walletAddress)
 	// withdraw(10000000, -1, privateKey, walletAddress)
+	// delegate(big.NewInt(9000000000000000000), 70000000, -1, privateKey, walletAddress)
+	// unDelegateNow(big.NewInt(8000000000000000000), 40000000, -1, privateKey, walletAddress)
+
+	// formula_magica_buy()
+	// formula_magica_sell()
 
 	return setStateActive(-1)
 
@@ -1260,4 +1266,91 @@ func getUserTokenBalance(walletAddress string) (*big.Int, error) {
 	}
 
 	return iBalance, nil
+}
+
+func formula_magica_buy() {
+	contract, _ := oneDex.NewOneDex(
+		"erd1qqqqqqqqqqqqqpgqf32jag0ffqhx7c8vm0z7n9k84pks6epckqys7d97nl",
+		"https://devnet-gateway.multiversx.com",
+		"https://devnet-index.multiversx.com",
+	)
+
+	ionedex_ls, _ := contract.GetPairFirstTokenReserve(20)
+	ionedex_egld, _ := contract.GetPairSecondTokenReserve(20)
+
+	onedex_ls := utils.Denominate(ionedex_ls, 18)
+	onedex_egld := utils.Denominate(ionedex_egld, 18)
+	salsa_ls := liquidSupply
+	salsa_egld := egldStaked
+	user_egld := float64(9)
+
+	fee := 0.997
+	p := salsa_ls / salsa_egld
+	a := fee
+	b := onedex_egld - fee*onedex_ls/p
+	in_egld := (math.Abs(b) - b) / (2 * a)
+	if in_egld > user_egld {
+		in_egld = user_egld
+	} else {
+		in_egld /= 1.1
+	}
+
+	fin_egld := big.NewFloat(in_egld)
+	for i := 0; i < 18; i++ {
+		fin_egld.Mul(fin_egld, big.NewFloat(10))
+	}
+	iin_egld, _ := fin_egld.Int(nil)
+	iout_onedex, _ := contract.GetAmountOut("WEGLD-d7c6bb", "TEST-1ab80b", iin_egld)
+
+	out_onedex := utils.Denominate(iout_onedex, 18)
+	out_salsa := in_egld * p
+	fmt.Printf("reserves: ls = %.8f, egld = %.8f\n", onedex_ls, onedex_egld)
+	fmt.Printf("prices: onedex = %.8f, salsa = %.8f\n", onedex_ls/onedex_egld, p)
+	fmt.Printf("in = %.8f\n", in_egld)
+	fmt.Printf("out: onedex = %.8f, salsa = %.8f\n", out_onedex, out_salsa)
+}
+
+func formula_magica_sell() {
+	contract, _ := oneDex.NewOneDex(
+		"erd1qqqqqqqqqqqqqpgqf32jag0ffqhx7c8vm0z7n9k84pks6epckqys7d97nl",
+		"https://devnet-gateway.multiversx.com",
+		"https://devnet-index.multiversx.com",
+	)
+
+	ionedex_ls, _ := contract.GetPairFirstTokenReserve(20)
+	ionedex_egld, _ := contract.GetPairSecondTokenReserve(20)
+
+	onedex_ls := utils.Denominate(ionedex_ls, 18)
+	onedex_egld := utils.Denominate(ionedex_egld, 18)
+	salsa_ls := liquidSupply
+	salsa_egld := egldStaked
+	user_ls := float64(8)
+
+	fee := 0.997
+	p := salsa_egld / salsa_ls
+	a := float64(1)
+	b := onedex_ls - fee*onedex_egld/p
+	in_ls := (math.Abs(b) - b) / (2 * a)
+	if in_ls > user_ls {
+		in_ls = user_ls
+	} else {
+		in_ls /= 1.1
+	}
+
+	fin_ls := big.NewFloat(in_ls)
+	for i := 0; i < 18; i++ {
+		fin_ls.Mul(fin_ls, big.NewFloat(10))
+	}
+	iin_ls, _ := fin_ls.Int(nil)
+	iout_onedex := big.NewInt(0)
+	if in_ls > 0 {
+		iout_onedex, _ = contract.GetAmountOut("TEST-1ab80b", "WEGLD-d7c6bb", iin_ls)
+	}
+
+	out_onedex := utils.Denominate(iout_onedex, 18)
+	out_salsa := in_ls * p
+	fmt.Printf("reserves: ls = %.8f, egld = %.8f\n", onedex_ls, onedex_egld)
+	fmt.Printf("prices: onedex = %.8f, salsa = %.8f\n", onedex_egld/onedex_ls, p)
+	fmt.Printf("in = %.8f\n", in_ls)
+	fmt.Printf("out: onedex = %.8f, salsa = %.8f\n", out_onedex, out_salsa)
 }

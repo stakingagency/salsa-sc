@@ -11,15 +11,6 @@ pub trait OneDexProxy {
         path_args: MultiValueEncoded<TokenIdentifier>,
     );
 
-    #[payable("*")]
-    #[endpoint(swapMultiTokensFixedOutput)]
-    fn swap_multi_tokens_fixed_output(
-        &self,
-        amount_out_wanted: BigUint,
-        unwrap_required: bool,
-        path_args: MultiValueEncoded<TokenIdentifier>,
-    );
-
     #[endpoint(getAmountOut)]
     fn get_amount_out_view(
         &self,
@@ -27,4 +18,16 @@ pub trait OneDexProxy {
         token_out: &TokenIdentifier,
         amount_in: BigUint
     ) -> BigUint;
+
+    #[view(getPairFirstTokenReserve)]
+    #[storage_mapper("pair_first_token_reserve")]
+    fn pair_first_token_reserve(&self, pair_id: usize) -> SingleValueMapper<BigUint>;
+
+    #[view(getPairSecondTokenReserve)]
+    #[storage_mapper("pair_second_token_reserve")]
+    fn pair_second_token_reserve(&self, pair_id: usize) -> SingleValueMapper<BigUint>;
+
+    #[view(getTotalFeePercent)]
+    #[storage_mapper("total_fee_percent")]
+    fn total_fee_percent(&self) -> SingleValueMapper<u64>;
 }
