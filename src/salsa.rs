@@ -715,10 +715,10 @@ pub trait SalsaContract<ContractReader>:
             .execute_on_dest_context::<()>();
         let (new_balance, _new_ls_balance) = self.get_sc_balances();
 
-        require!(new_balance >= old_balance, ERROR_ARBITRAGE_ISSUE1);
+        require!(new_balance >= old_balance, ERROR_ARBITRAGE_ISSUE);
 
         let swapped_amount = &new_balance - &old_balance;
-        require!(swapped_amount >= salsa_amount_out, ERROR_ARBITRAGE_ISSUE2);
+        require!(swapped_amount >= salsa_amount_out, ERROR_ARBITRAGE_ISSUE);
 
         let profit = &swapped_amount - &salsa_amount_out;
         self.egld_reserve().update(|value| *value += &profit);
@@ -742,11 +742,11 @@ pub trait SalsaContract<ContractReader>:
             .execute_on_dest_context::<()>();
         let (new_balance, new_ls_balance) = self.get_sc_balances();
 
-        require!(new_ls_balance > old_ls_balance, ERROR_ARBITRAGE_ISSUE1);
-        require!(new_balance == old_balance, ERROR_ARBITRAGE_ISSUE2);
+        require!(new_ls_balance > old_ls_balance, ERROR_ARBITRAGE_ISSUE);
+        require!(new_balance == old_balance, ERROR_ARBITRAGE_ISSUE);
 
         let swapped_ls_amount = &new_ls_balance - &old_ls_balance;
-        require!(swapped_ls_amount >= salsa_amount_out, ERROR_ARBITRAGE_ISSUE3);
+        require!(swapped_ls_amount >= salsa_amount_out, ERROR_ARBITRAGE_ISSUE);
 
         let ls_profit = &swapped_ls_amount - &salsa_amount_out;
         self.liquid_profit()
@@ -873,7 +873,10 @@ pub trait SalsaContract<ContractReader>:
         require!(!self.liquid_token_id().is_empty(), ERROR_TOKEN_NOT_SET);
         
         let pair_id = self.onedex_pair_id().get();
-        require!(pair_id > 0, ERROR_ARBITRAGE_ISSUE);
+        require!(pair_id > 0, ERROR_ONEDEX_PAIR_ID);
+
+        let fee = self.onedex_fee().get();
+        require!(fee > 0, ERROR_ONEDEX_FEE);
 
         let fee = self.get_onedex_fee();
         self.onedex_fee().set(fee);
