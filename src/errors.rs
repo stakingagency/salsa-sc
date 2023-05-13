@@ -18,3 +18,6 @@ pub static ERROR_REPLENISH_NOT_EMPTY: &[u8] = b"Must undelegate reserves first";
 pub static ERROR_WRONG_EPOCH: &[u8] = b"Wrong epoch";
 pub static ERROR_TOO_MANY_USER_UNDELEGATIONS: &[u8] = b"Too many user undelegations";
 pub static ERROR_TOO_MANY_RESERVE_UNDELEGATIONS: &[u8] = b"Too many reserve undelegations";
+pub static ERROR_ARBITRAGE_ISSUE: &[u8] = b"Arbitrage issue";
+pub static ERROR_ONEDEX_PAIR_ID: &[u8] = b"OneDex pair ID not set";
+pub static ERROR_ONEDEX_FEE: &[u8] = b"OneDex fee not set";

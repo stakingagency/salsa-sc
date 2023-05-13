@@ -207,6 +207,7 @@ dependencies = [
 name = "salsa"
 version = "0.0.1"
 dependencies = [
+ "hex-literal",
  "multiversx-sc",
  "multiversx-sc-modules",
 ]
