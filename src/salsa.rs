@@ -824,7 +824,7 @@ pub trait SalsaContract<ContractReader>:
         if ux > uegld_amount {
             uegld_amount
         } else {
-            ux * 9_u64 / 10_u64
+            ux * ARBITRAGE_RATIO / MAX_PERCENT
         }
     }
 
@@ -856,7 +856,7 @@ pub trait SalsaContract<ContractReader>:
         if ux > uls_amount {
             uls_amount
         } else {
-            ux * 9_u64 / 10_u64
+            ux * ARBITRAGE_RATIO / MAX_PERCENT
         }
     }
 
