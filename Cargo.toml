@@ -9,7 +9,7 @@ publish = false
 path = "src/salsa.rs"
 
 [dev-dependencies]
-num-bigint = "0.4.2"
+num-bigint = "0.4.3"
 
 [dependencies.multiversx-sc]
 version = "0.39.8"

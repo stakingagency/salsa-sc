@@ -5,7 +5,6 @@ multiversx_sc::imports!();
 pub mod config;
 pub mod consts;
 pub mod delegation_proxy;
-pub mod wrapper_proxy;
 pub mod onedex_proxy;
 pub mod errors;
 
@@ -28,17 +27,43 @@ pub trait SalsaContract<ContractReader>:
     fn delegate(&self) -> EsdtTokenPayment<Self::Api> {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
-        let delegate_amount = self.call_value().egld_value();
+        let mut delegate_amount = self.call_value().egld_value();
         require!(
             delegate_amount >= MIN_EGLD_TO_DELEGATE,
             ERROR_INSUFFICIENT_DELEGATE_AMOUNT
         );
 
-        let onedex_amount_out = self.get_onedex_buy_amount_out(delegate_amount.clone());
+        let caller = self.blockchain().get_caller();
+        let liquid_token_id = self.liquid_token_id().get_token_id();
         let salsa_amount_out = self.add_liquidity(&delegate_amount, false);
 
-        let caller = self.blockchain().get_caller();
-        if salsa_amount_out >= onedex_amount_out || !self.is_arbitrage_active() {
+        if self.is_arbitrage_active() {
+            let mut egld_to_send_to_onedex = self.get_onedex_buy_quantity(
+                delegate_amount.clone(), salsa_amount_out.clone()
+            );
+            if egld_to_send_to_onedex >= MIN_EGLD_TO_DELEGATE {
+                let rest = &delegate_amount - &egld_to_send_to_onedex;
+                if rest < MIN_EGLD_TO_DELEGATE && rest > 0 {
+                    egld_to_send_to_onedex = &delegate_amount - MIN_EGLD_TO_DELEGATE;
+                }
+                // buy from onedex
+                let ls_from_onedex = self.get_onedex_buy_amount_out(egld_to_send_to_onedex.clone());
+                let ls_from_salsa = self.add_liquidity(&egld_to_send_to_onedex, false);
+                require!(ls_from_onedex >= ls_from_salsa, ERROR_ARBITRAGE_ISSUE);
+
+                self.buy_from_onedex(egld_to_send_to_onedex.clone(), ls_from_salsa.clone());
+                self.send().direct_esdt(
+                    &caller,
+                    &liquid_token_id,
+                    0,
+                    &ls_from_salsa,
+                );
+
+                delegate_amount = rest;
+            }
+        }
+
+        if delegate_amount > 0 {
             // normal delegate
             let delegation_contract = self.provider_address().get();
             let gas_for_async_call = self.get_gas_for_async_call();
@@ -54,16 +79,6 @@ pub trait SalsaContract<ContractReader>:
                 )
                 .call_and_exit()
         } else {
-            // arbitrage
-            let liquid_token_id = self.liquid_token_id().get_token_id();
-            self.swap_fixed_output(delegate_amount, salsa_amount_out.clone());
-            self.send().direct_esdt(
-                &caller,
-                &liquid_token_id,
-                0,
-                &salsa_amount_out,
-            );
-
             EsdtTokenPayment::new(liquid_token_id, 0, salsa_amount_out)
         }
     }
@@ -97,7 +112,7 @@ pub trait SalsaContract<ContractReader>:
     fn undelegate(&self) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
-        let payment = self.call_value().single_esdt();
+        let mut payment = self.call_value().single_esdt();
         let liquid_token_id = self.liquid_token_id().get_token_id();
         require!(
             payment.token_identifier == liquid_token_id,
@@ -105,10 +120,27 @@ pub trait SalsaContract<ContractReader>:
         );
         require!(payment.amount > 0u64, ERROR_BAD_PAYMENT_AMOUNT);
 
-        let onedex_amount_out = self.get_onedex_sell_amount_out(payment.amount.clone());
-        let salsa_amount_out = self.remove_liquidity(&payment.amount, false);
+        if self.is_arbitrage_active() {
+            let salsa_amount_out = self.remove_liquidity(&payment.amount, false);
+            let ls_to_send_to_onedex = self.get_onedex_sell_quantity(
+                payment.amount.clone(), salsa_amount_out.clone()
+            );
+            if ls_to_send_to_onedex > MIN_EGLD_TO_DELEGATE {
+                // sell on onedex
+                let egld_from_onedex = self.get_onedex_sell_amount_out(ls_to_send_to_onedex.clone());
+                let egld_from_salsa = self.remove_liquidity(&ls_to_send_to_onedex, false);
+                require!(egld_from_onedex >= egld_from_salsa, ERROR_ARBITRAGE_ISSUE);
 
-        if salsa_amount_out > onedex_amount_out || !self.is_arbitrage_active() {
+                let sell_payment = EsdtTokenPayment::new(liquid_token_id, 0, ls_to_send_to_onedex.clone());
+                self.sell_on_onedex(sell_payment, egld_from_salsa.clone());
+                let caller = self.blockchain().get_caller();
+                self.send().direct_egld(&caller, &egld_from_salsa);
+
+                payment.amount -= &ls_to_send_to_onedex;
+            }
+        }
+
+        if payment.amount > 0 {
             // normal undelegate
             let egld_to_undelegate = self.remove_liquidity(&payment.amount, true);
             self.burn_liquid_token(&payment.amount);
@@ -117,11 +149,6 @@ pub trait SalsaContract<ContractReader>:
             self.users_egld_to_undelegate()
                 .update(|value| *value += &egld_to_undelegate);
             self.add_user_undelegation(egld_to_undelegate, unbond_epoch);
-        } else {
-            // arbitrage
-            self.swap_fixed_input(payment, salsa_amount_out.clone());
-            let caller = self.blockchain().get_caller();
-            self.send().direct_egld(&caller, &salsa_amount_out);
         }
     }
 
@@ -294,7 +321,7 @@ pub trait SalsaContract<ContractReader>:
     fn undelegate_now(&self) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
-        let payment = self.call_value().single_esdt();
+        let mut payment = self.call_value().single_esdt();
         let liquid_token_id = self.liquid_token_id().get_token_id();
         require!(
             payment.token_identifier == liquid_token_id,
@@ -305,20 +332,31 @@ pub trait SalsaContract<ContractReader>:
         let fee = self.undelegate_now_fee().get();
         let caller = self.blockchain().get_caller();
 
-        let onedex_amount_out = self.get_onedex_sell_amount_out(payment.amount.clone());
-        let salsa_amount_out = self.remove_liquidity(&payment.amount, false);
+        if self.is_arbitrage_active() {
+            let salsa_amount_out = self.remove_liquidity(&payment.amount, false);
+            let ls_to_send_to_onedex = self.get_onedex_sell_quantity(
+                payment.amount.clone(), salsa_amount_out.clone()
+            );
+            if ls_to_send_to_onedex > MIN_EGLD_TO_DELEGATE {
+                // sell on onedex
+                let egld_from_onedex = self.get_onedex_sell_amount_out(ls_to_send_to_onedex.clone());
+                let egld_from_salsa = self.remove_liquidity(&ls_to_send_to_onedex, false);
+                require!(egld_from_onedex >= egld_from_salsa, ERROR_ARBITRAGE_ISSUE);
 
-        if salsa_amount_out < onedex_amount_out && self.is_arbitrage_active() {
-            // arbitrage
-            self.swap_fixed_input(payment, salsa_amount_out.clone());
-            let egld_to_undelegate_with_fee =
-                salsa_amount_out.clone() - salsa_amount_out.clone() * fee / MAX_PERCENT;
-            self.send().direct_egld(&caller, &egld_to_undelegate_with_fee);
-            let total_rewards = &salsa_amount_out - &egld_to_undelegate_with_fee;
-            self.egld_reserve().update(|value| *value += &total_rewards);
-            self.available_egld_reserve().update(|value| *value += &total_rewards);
+                let sell_payment = EsdtTokenPayment::new(liquid_token_id, 0, ls_to_send_to_onedex.clone());
+                self.sell_on_onedex(sell_payment, egld_from_salsa.clone());
+                let egld_from_salsa_with_fee =
+                    egld_from_salsa.clone() - egld_from_salsa.clone() * fee / MAX_PERCENT;
+                self.send().direct_egld(&caller, &egld_from_salsa_with_fee);
+                let total_rewards = &egld_from_salsa - &egld_from_salsa_with_fee;
+                self.egld_reserve().update(|value| *value += &total_rewards);
+                self.available_egld_reserve().update(|value| *value += &total_rewards);
 
-            return
+                payment.amount -= &ls_to_send_to_onedex;
+                if payment.amount == 0 {
+                    return
+                }
+            }
         }
 
         let egld_to_undelegate = self.remove_liquidity(&payment.amount, true);
@@ -570,31 +608,20 @@ pub trait SalsaContract<ContractReader>:
             .set(&total_withdrawn_egld);
     }
 
-    // endpoints: arbitrage
+    // endpoints: admin
 
     #[only_owner]
-    #[endpoint(distributeProfit)]
-    fn distribute_profit(&self) {
-        let wegld_balance = self.get_wegld_balance();
-        if wegld_balance > 0 {
-            let wrapper_sc_address = ManagedAddress::from(WRAPPER_SC);
-            let wegld_token_id = TokenIdentifier::from(WEGLD_ID);
-            let wegld_amount = EsdtTokenPayment::new(wegld_token_id, 0, wegld_balance);
-            let (old_balance, _old_ls_balance) = self.get_sc_balances();
-            self.wrapper_proxy_obj()
-                .contract(wrapper_sc_address)
-                .unwrap_egld()
-                .with_esdt_transfer(wegld_amount)
-                .execute_on_dest_context::<()>();
-            let (new_balance, _new_ls_balance) = self.get_sc_balances();
+    #[endpoint(burnLsProfit)]
+    fn burn_ls_profit(&self) {
+        require!(!self.is_state_active(), ERROR_ACTIVE);
 
-            require!(new_balance == old_balance, ERROR_ARBITRAGE_ISSUE);
-        }
+        let ls_profit = self.liquid_profit().get();
+        require!(ls_profit > 0, ERROR_NOT_ENOUGH_FUNDS);
 
-        let profit = self.arbitrage_profit().get();
-        self.egld_reserve().update(|value| *value += &profit);
-        self.available_egld_reserve().update(|value| *value += &profit);
-        self.arbitrage_profit().clear();
+        self.liquid_token_supply()
+            .update(|value| *value -= &ls_profit);
+        self.burn_liquid_token(&ls_profit);
+        self.liquid_profit().clear();
     }
 
     // helpers
@@ -666,21 +693,14 @@ pub trait SalsaContract<ContractReader>:
             .get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(liquid_token_id.clone()), 0);
         let balance = self.blockchain()
             .get_sc_balance(&EgldOrEsdtTokenIdentifier::egld(), 0);
-        let w_balance = self.get_wegld_balance();
 
-        (balance + w_balance, ls_balance)
-    }
-
-    fn get_wegld_balance(&self) -> BigUint {
-        let wegld_token_id = TokenIdentifier::from(WEGLD_ID);
-        self.blockchain()
-            .get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(wegld_token_id.clone()), 0)
+        (balance, ls_balance)
     }
 
     // onedex
 
     // sell
-    fn swap_fixed_input(&self, payment: EsdtTokenPayment, salsa_amount_out: BigUint) {
+    fn sell_on_onedex(&self, payment: EsdtTokenPayment, salsa_amount_out: BigUint) {
         let onedex_sc_address = ManagedAddress::from(ONEDEX_SC);
         let wegld_token_id = TokenIdentifier::from(WEGLD_ID);
         let liquid_token_id = self.liquid_token_id().get_token_id();
@@ -690,23 +710,23 @@ pub trait SalsaContract<ContractReader>:
         let (old_balance, _old_ls_balance) = self.get_sc_balances();
         self.onedex_proxy_obj()
             .contract(onedex_sc_address)
-            .swap_multi_tokens_fixed_input(&payment.amount, true, path)
+            .swap_multi_tokens_fixed_input(&salsa_amount_out, true, path)
             .with_esdt_transfer(payment)
             .execute_on_dest_context::<()>();
         let (new_balance, _new_ls_balance) = self.get_sc_balances();
 
-        require!(new_balance >= old_balance, ERROR_ARBITRAGE_ISSUE);
+        require!(new_balance >= old_balance, ERROR_ARBITRAGE_ISSUE1);
 
         let swapped_amount = &new_balance - &old_balance;
-        require!(swapped_amount >= salsa_amount_out, ERROR_ARBITRAGE_ISSUE);
+        require!(swapped_amount >= salsa_amount_out, ERROR_ARBITRAGE_ISSUE2);
 
         let profit = &swapped_amount - &salsa_amount_out;
-        self.arbitrage_profit()
-            .update(|value| *value += profit);
+        self.egld_reserve().update(|value| *value += &profit);
+        self.available_egld_reserve().update(|value| *value += &profit);
     }
 
     // buy
-    fn swap_fixed_output(&self, egld_amount: BigUint, salsa_amount_out: BigUint) {
+    fn buy_from_onedex(&self, egld_amount: BigUint, salsa_amount_out: BigUint) {
         let onedex_sc_address = ManagedAddress::from(ONEDEX_SC);
         let wegld_token_id = TokenIdentifier::from(WEGLD_ID);
         let liquid_token_id = self.liquid_token_id().get_token_id();
@@ -717,20 +737,20 @@ pub trait SalsaContract<ContractReader>:
         old_balance -= &egld_amount;
         self.onedex_proxy_obj()
             .contract(onedex_sc_address)
-            .swap_multi_tokens_fixed_output(&salsa_amount_out, false, path)
+            .swap_multi_tokens_fixed_input(&salsa_amount_out, false, path)
             .with_egld_transfer(egld_amount)
             .execute_on_dest_context::<()>();
         let (new_balance, new_ls_balance) = self.get_sc_balances();
 
-        require!(new_ls_balance >= old_ls_balance, ERROR_ARBITRAGE_ISSUE);
-        require!(new_balance >= old_balance, ERROR_ARBITRAGE_ISSUE);
+        require!(new_ls_balance > old_ls_balance, ERROR_ARBITRAGE_ISSUE1);
+        require!(new_balance == old_balance, ERROR_ARBITRAGE_ISSUE2);
 
         let swapped_ls_amount = &new_ls_balance - &old_ls_balance;
-        require!(swapped_ls_amount >= salsa_amount_out, ERROR_ARBITRAGE_ISSUE);
+        require!(swapped_ls_amount >= salsa_amount_out, ERROR_ARBITRAGE_ISSUE3);
 
-        let profit = &new_balance - &old_balance;
-        self.arbitrage_profit()
-            .update(|value| *value += profit);
+        let ls_profit = &swapped_ls_amount - &salsa_amount_out;
+        self.liquid_profit()
+            .update(|value| *value += ls_profit);
     }
 
     fn get_onedex_sell_amount_out(&self, amount: BigUint) -> BigUint {
@@ -761,6 +781,113 @@ pub trait SalsaContract<ContractReader>:
             .execute_on_dest_context()
     }
 
+    fn get_onedex_reserves(&self, pair_id: usize) -> (BigUint, BigUint) {
+        let onedex_sc_address = ManagedAddress::from(ONEDEX_SC);
+        let ls_reserve: BigUint = self.onedex_proxy_obj()
+            .contract(onedex_sc_address.clone())
+            .pair_first_token_reserve(pair_id)
+            .execute_on_dest_context();
+        let egld_reserve: BigUint = self.onedex_proxy_obj()
+            .contract(onedex_sc_address.clone())
+            .pair_second_token_reserve(pair_id)
+            .execute_on_dest_context();
+
+        (ls_reserve, egld_reserve)
+    }
+
+    fn get_onedex_buy_quantity(&self, uegld_amount: BigUint, uls_amount: BigUint) -> BigUint {
+        let fee = self.onedex_fee().get();
+        let pair_id = self.onedex_pair_id().get();
+        let (uls_reserve, uegld_reserve) = self.get_onedex_reserves(pair_id);
+
+        let ls_amount = BigInt::from_biguint(Sign::Plus, uls_amount);
+        let egld_amount = BigInt::from_biguint(Sign::Plus, uegld_amount.clone());
+        let ls_reserve = BigInt::from_biguint(Sign::Plus, uls_reserve);
+        let egld_reserve = BigInt::from_biguint(Sign::Plus, uegld_reserve);
+        let imax = BigInt::from_biguint(Sign::Plus, BigUint::from(MAX_PERCENT));
+        let ifee = BigInt::from_biguint(Sign::Plus, BigUint::from(MAX_PERCENT - fee));
+
+        let mut b = ifee.clone() * ls_reserve * egld_amount / ls_amount / imax.clone();
+        b = egld_reserve - b;
+        let mut x = BigInt::from_biguint(Sign::Plus, b.magnitude()) - b;
+        if x < 0 {
+            return BigUint::zero()
+        }
+        x = x * imax / ifee;
+
+        let opt_x = x.into_big_uint();
+        let mut ux = match opt_x.into_option() {
+            Some(value) => value,
+            None => BigUint::zero(),
+        };
+        ux /= 2_u64;
+        if ux > uegld_amount {
+            uegld_amount
+        } else {
+            ux * 9_u64 / 10_u64
+        }
+    }
+
+    fn get_onedex_sell_quantity(&self, uls_amount: BigUint, uegld_amount: BigUint, ) -> BigUint {
+        let fee = self.onedex_fee().get();
+        let pair_id = self.onedex_pair_id().get();
+        let (uls_reserve, uegld_reserve) = self.get_onedex_reserves(pair_id);
+
+        let ls_amount = BigInt::from_biguint(Sign::Plus, uls_amount.clone());
+        let egld_amount = BigInt::from_biguint(Sign::Plus, uegld_amount);
+        let ls_reserve = BigInt::from_biguint(Sign::Plus, uls_reserve);
+        let egld_reserve = BigInt::from_biguint(Sign::Plus, uegld_reserve);
+        let imax = BigInt::from_biguint(Sign::Plus, BigUint::from(MAX_PERCENT));
+        let ifee = BigInt::from_biguint(Sign::Plus, BigUint::from(MAX_PERCENT - fee));
+
+        let mut b = ifee * egld_reserve * ls_amount / egld_amount / imax;
+        b = ls_reserve - b;
+        let x = BigInt::from_biguint(Sign::Plus, b.magnitude()) - b;
+        if x < 0 {
+            return BigUint::zero()
+        }
+        
+        let opt_x = x.into_big_uint();
+        let mut ux = match opt_x.into_option() {
+            Some(value) => value,
+            None => BigUint::zero(),
+        };
+        ux /= 2_u64;
+        if ux > uls_amount {
+            uls_amount
+        } else {
+            ux * 9_u64 / 10_u64
+        }
+    }
+
+    #[only_owner]
+    #[endpoint(setArbitrageInactive)]
+    fn set_arbitrage_inactive(&self) {
+        self.arbitrage().set(State::Inactive);
+    }
+
+    #[only_owner]
+    #[endpoint(setArbitrageActive)]
+    fn set_arbitrage_active(&self) {
+        require!(!self.provider_address().is_empty(), ERROR_PROVIDER_NOT_SET);
+        require!(!self.liquid_token_id().is_empty(), ERROR_TOKEN_NOT_SET);
+        
+        let pair_id = self.onedex_pair_id().get();
+        require!(pair_id > 0, ERROR_ARBITRAGE_ISSUE);
+
+        let fee = self.get_onedex_fee();
+        self.onedex_fee().set(fee);
+        self.arbitrage().set(State::Active);
+    }
+
+    fn get_onedex_fee(&self) -> u64 {
+        let onedex_sc_address = ManagedAddress::from(ONEDEX_SC);
+        self.onedex_proxy_obj()
+            .contract(onedex_sc_address.clone())
+            .total_fee_percent()
+            .execute_on_dest_context()
+    }
+
     // proxies
 
     #[proxy]
@@ -768,7 +895,4 @@ pub trait SalsaContract<ContractReader>:
 
     #[proxy]
     fn onedex_proxy_obj(&self) -> onedex_proxy::Proxy<Self::Api>;
-
-    #[proxy]
-    fn wrapper_proxy_obj(&self) -> wrapper_proxy::Proxy<Self::Api>;
 }

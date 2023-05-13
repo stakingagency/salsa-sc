@@ -195,21 +195,6 @@ pub trait ConfigModule:
 
     // arbitrage
 
-    #[only_owner]
-    #[endpoint(setArbitrageActive)]
-    fn set_arbitrage_active(&self) {
-        require!(!self.provider_address().is_empty(), ERROR_PROVIDER_NOT_SET);
-        require!(!self.liquid_token_id().is_empty(), ERROR_TOKEN_NOT_SET);
-
-        self.arbitrage().set(State::Active);
-    }
-
-    #[only_owner]
-    #[endpoint(setArbitrageInactive)]
-    fn set_arbitrage_inactive(&self) {
-        self.arbitrage().set(State::Inactive);
-    }
-
     #[inline]
     fn is_arbitrage_active(&self) -> bool {
         let arbitrage = self.arbitrage().get();
@@ -220,9 +205,23 @@ pub trait ConfigModule:
     #[storage_mapper("arbitrage")]
     fn arbitrage(&self) -> SingleValueMapper<State>;
 
-    #[view(getArbitrageProfit)]
-    #[storage_mapper("arbitrage_profit")]
-    fn arbitrage_profit(&self) -> SingleValueMapper<BigUint>;
+    #[view(getLiquidProfit)]
+    #[storage_mapper("liquid_profit")]
+    fn liquid_profit(&self) -> SingleValueMapper<BigUint>;
+
+    // onedex
+
+    #[storage_mapper("onedex_fee")]
+    fn onedex_fee(&self) -> SingleValueMapper<u64>;
+
+    #[storage_mapper("onedex_pair_id")]
+    fn onedex_pair_id(&self) -> SingleValueMapper<usize>;
+
+    #[only_owner]
+    #[endpoint(setOnedexPairId)]
+    fn set_onedex_pair_id(&self, id: usize) {
+        self.onedex_pair_id().set(id);
+    }
 
     // misc
 

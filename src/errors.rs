@@ -19,3 +19,6 @@ pub static ERROR_WRONG_EPOCH: &[u8] = b"Wrong epoch";
 pub static ERROR_TOO_MANY_USER_UNDELEGATIONS: &[u8] = b"Too many user undelegations";
 pub static ERROR_TOO_MANY_RESERVE_UNDELEGATIONS: &[u8] = b"Too many reserve undelegations";
 pub static ERROR_ARBITRAGE_ISSUE: &[u8] = b"Arbitrage issue";
+pub static ERROR_ARBITRAGE_ISSUE1: &[u8] = b"Arbitrage issue1";
+pub static ERROR_ARBITRAGE_ISSUE2: &[u8] = b"Arbitrage issue2";
+pub static ERROR_ARBITRAGE_ISSUE3: &[u8] = b"Arbitrage issue3";

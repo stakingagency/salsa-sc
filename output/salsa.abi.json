@@ -104,7 +104,21 @@
             "outputs": []
         },
         {
-            "name": "distributeProfit",
+            "name": "burnLsProfit",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "setArbitrageInactive",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "setArbitrageActive",
             "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [],
@@ -377,20 +391,6 @@
             ]
         },
         {
-            "name": "setArbitrageActive",
-            "onlyOwner": true,
-            "mutability": "mutable",
-            "inputs": [],
-            "outputs": []
-        },
-        {
-            "name": "setArbitrageInactive",
-            "onlyOwner": true,
-            "mutability": "mutable",
-            "inputs": [],
-            "outputs": []
-        },
-        {
             "name": "getArbitrageState",
             "mutability": "readonly",
             "inputs": [],
@@ -401,7 +401,7 @@
             ]
         },
         {
-            "name": "getArbitrageProfit",
+            "name": "getLiquidProfit",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
@@ -409,6 +409,18 @@
                     "type": "BigUint"
                 }
             ]
+        },
+        {
+            "name": "setOnedexPairId",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "id",
+                    "type": "u32"
+                }
+            ],
+            "outputs": []
         },
         {
             "name": "getTokenPrice",
