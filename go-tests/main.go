@@ -351,7 +351,7 @@ func scenario1() error {
 	// formula_magica_buy()
 	// formula_magica_sell()
 
-	// return setStateActive(-1)
+	return setStateActive(-1)
 
 	// for i := 0; i < 10; i++ {
 	// 	compound(50000000, int64(nonce))
@@ -483,11 +483,11 @@ func main() {
 	// os.Exit(1)
 
 	// CHECK TEST RESULTS
-	for i := 0; i < testN; i++ {
-		if err := checkTestResults(i); err != nil {
-			fmt.Println(err)
-		}
-	}
+	// for i := 0; i < testN; i++ {
+	// 	if err := checkTestResults(i); err != nil {
+	// 		fmt.Println(err)
+	// 	}
+	// }
 
 	// WITHDRAW EACH
 	// for i := 0; i < testN; i++ {
@@ -511,17 +511,17 @@ func main() {
 	// }
 
 	// STRESS TEST
-	// for {
-	// 	for i := 0; i < testN; i++ {
-	// 		go func(i int) {
-	// 			err = test(i)
-	// 			if err != nil {
-	// 				fmt.Println(err)
-	// 			}
-	// 		}(i)
-	// 	}
-	// 	time.Sleep(time.Minute * 30)
-	// }
+	for {
+		for i := 0; i < testN; i++ {
+			go func(i int) {
+				err = test(i)
+				if err != nil {
+					fmt.Println(err)
+				}
+			}(i)
+		}
+		time.Sleep(time.Minute * 30)
+	}
 }
 
 func queryVM(scAddress, funcName string, args []string) ([]byte, error) {
