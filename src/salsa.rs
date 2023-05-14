@@ -29,7 +29,7 @@ pub trait SalsaContract<ContractReader>:
 
         let mut delegate_amount = self.call_value().egld_value();
         require!(
-            delegate_amount >= MIN_EGLD_TO_DELEGATE,
+            delegate_amount >= MIN_EGLD,
             ERROR_INSUFFICIENT_DELEGATE_AMOUNT
         );
 
@@ -41,10 +41,10 @@ pub trait SalsaContract<ContractReader>:
             let mut egld_to_send_to_onedex = self.get_onedex_buy_quantity(
                 delegate_amount.clone(), salsa_amount_out.clone()
             );
-            if egld_to_send_to_onedex >= MIN_EGLD_TO_DELEGATE {
+            if egld_to_send_to_onedex >= MIN_EGLD {
                 let rest = &delegate_amount - &egld_to_send_to_onedex;
-                if rest < MIN_EGLD_TO_DELEGATE && rest > 0 {
-                    egld_to_send_to_onedex = &delegate_amount - MIN_EGLD_TO_DELEGATE;
+                if rest < MIN_EGLD && rest > 0 {
+                    egld_to_send_to_onedex = &delegate_amount - MIN_EGLD;
                 }
                 // buy from onedex
                 let ls_from_onedex = self.get_onedex_buy_amount_out(egld_to_send_to_onedex.clone());
@@ -125,7 +125,7 @@ pub trait SalsaContract<ContractReader>:
             let ls_to_send_to_onedex = self.get_onedex_sell_quantity(
                 payment.amount.clone(), salsa_amount_out.clone()
             );
-            if ls_to_send_to_onedex > MIN_EGLD_TO_DELEGATE {
+            if ls_to_send_to_onedex > MIN_EGLD {
                 // sell on onedex
                 let egld_from_onedex = self.get_onedex_sell_amount_out(ls_to_send_to_onedex.clone());
                 let egld_from_salsa = self.remove_liquidity(&ls_to_send_to_onedex, false);
@@ -145,7 +145,7 @@ pub trait SalsaContract<ContractReader>:
             let egld_to_undelegate = self.remove_liquidity(&payment.amount, true);
             self.burn_liquid_token(&payment.amount);
             let current_epoch = self.blockchain().get_block_epoch();
-            let unbond_epoch = current_epoch + UNBOND_PERIOD;
+            let unbond_epoch = current_epoch + self.unbond_period().get();
             self.users_egld_to_undelegate()
                 .update(|value| *value += &egld_to_undelegate);
             self.add_user_undelegation(egld_to_undelegate, unbond_epoch);
@@ -241,7 +241,7 @@ pub trait SalsaContract<ContractReader>:
         let caller = self.blockchain().get_caller();
         let reserve_amount = self.call_value().egld_value();
         require!(
-            reserve_amount >= MIN_EGLD_TO_DELEGATE,
+            reserve_amount >= MIN_EGLD,
             ERROR_INSUFFICIENT_RESERVE_AMOUNT
         );
 
@@ -263,17 +263,15 @@ pub trait SalsaContract<ContractReader>:
         let caller = self.blockchain().get_caller();
         let old_reserve_points = self.users_reserve_points(&caller).get();
         let old_reserve = self.get_reserve_egld_amount(&old_reserve_points);
+        require!(old_reserve > 0, ERROR_USER_NOT_PROVIDER);
         require!(old_reserve >= amount, ERROR_NOT_ENOUGH_FUNDS);
 
         self.compute_withdrawn();
         
         let mut egld_to_remove = amount.clone();
-        let mut points_to_remove = self.get_reserve_points_amount(&egld_to_remove);
-        // don't leave dust
-        if &old_reserve - &amount < MIN_EGLD_TO_DELEGATE {
-            egld_to_remove = old_reserve.clone();
-            points_to_remove = old_reserve_points.clone();
-        }
+        let points_to_remove = self.get_reserve_points_amount(&egld_to_remove);
+        require!(&old_reserve - &amount >= MIN_EGLD, ERROR_DUST_REMAINING);
+
         let available_egld_reserve = self.available_egld_reserve().get();
         // if there is not enough available reserve, move the reserve to user undelegation
         if egld_to_remove > available_egld_reserve {
@@ -337,7 +335,7 @@ pub trait SalsaContract<ContractReader>:
             let ls_to_send_to_onedex = self.get_onedex_sell_quantity(
                 payment.amount.clone(), salsa_amount_out.clone()
             );
-            if ls_to_send_to_onedex > MIN_EGLD_TO_DELEGATE {
+            if ls_to_send_to_onedex > MIN_EGLD {
                 // sell on onedex
                 let egld_from_onedex = self.get_onedex_sell_amount_out(ls_to_send_to_onedex.clone());
                 let egld_from_salsa = self.remove_liquidity(&ls_to_send_to_onedex, false);
@@ -362,7 +360,7 @@ pub trait SalsaContract<ContractReader>:
         let egld_to_undelegate = self.remove_liquidity(&payment.amount, true);
         self.burn_liquid_token(&payment.amount);
         require!(
-            egld_to_undelegate >= MIN_EGLD_TO_DELEGATE,
+            egld_to_undelegate >= MIN_EGLD,
             ERROR_BAD_PAYMENT_AMOUNT
         );
 
@@ -378,7 +376,7 @@ pub trait SalsaContract<ContractReader>:
 
         // add to reserve undelegations
         let current_epoch = self.blockchain().get_block_epoch();
-        let unbond_epoch = current_epoch + UNBOND_PERIOD;
+        let unbond_epoch = current_epoch + self.unbond_period().get();
         let mut reserve_undelegations = self.reserve_undelegations().get();
         let mut found = false;
         for mut reserve_undelegation in reserve_undelegations.into_iter() {
@@ -417,7 +415,7 @@ pub trait SalsaContract<ContractReader>:
         let reserves_egld_to_undelegate = self.egld_to_replenish_reserve().get();
         let total_egld_to_undelegate = &users_egld_to_undelegate + &reserves_egld_to_undelegate;
         require!(
-            total_egld_to_undelegate >= MIN_EGLD_TO_DELEGATE,
+            total_egld_to_undelegate >= MIN_EGLD,
             ERROR_INSUFFICIENT_DELEGATE_AMOUNT
         );
 
