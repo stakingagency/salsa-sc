@@ -186,7 +186,11 @@ pub trait ConfigModule:
         let reserve_points = self.reserve_points().get();
         let mut user_reserve_points = egld_amount.clone();
         if egld_reserve > 0 {
-            user_reserve_points = egld_amount * &reserve_points / &egld_reserve
+            if reserve_points == 0 {
+                user_reserve_points += egld_reserve
+            } else {
+                user_reserve_points = egld_amount * &reserve_points / &egld_reserve
+            }
         }
 
         user_reserve_points
@@ -218,6 +222,10 @@ pub trait ConfigModule:
         let staked_egld = self.total_egld_staked().get();
         let token_supply = self.liquid_token_supply().get();
 
-        staked_egld / token_supply
+        if token_supply == 0 {
+            BigUint::zero()
+        } else {
+            staked_egld / token_supply
+        }
     }
 }
