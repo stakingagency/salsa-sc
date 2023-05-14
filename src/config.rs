@@ -1,7 +1,7 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use crate::{consts::MAX_PERCENT, errors::*};
+use crate::{consts::*, errors::*};
 
 #[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Eq, Copy, Clone, Debug)]
 pub enum State {
@@ -54,6 +54,7 @@ pub trait ConfigModule:
     fn set_state_active(&self) {
         require!(!self.provider_address().is_empty(), ERROR_PROVIDER_NOT_SET);
         require!(!self.liquid_token_id().is_empty(), ERROR_TOKEN_NOT_SET);
+        require!(!self.unbond_period().is_empty(), ERROR_UNBOND_PERIOD_NOT_SET);
 
         self.state().set(State::Active);
     }
@@ -90,6 +91,22 @@ pub trait ConfigModule:
     #[view(getProviderAddress)]
     #[storage_mapper("provider_address")]
     fn provider_address(&self) -> SingleValueMapper<ManagedAddress>;
+
+    #[view(getUnbondPeriod)]
+    #[storage_mapper("unbond_period")]
+    fn unbond_period(&self) -> SingleValueMapper<u64>;
+
+    #[only_owner]
+    #[endpoint(setUnbondPeriod)]
+    fn set_unbond_period(&self, period: u64) {
+        require!(!self.is_state_active(), ERROR_ACTIVE);
+        require!(
+            period > 0 && period <= MAX_UNBOND_PERIOD,
+            ERROR_UNBOND_PERIOD_NOT_SET
+        );
+
+        self.unbond_period().set(period);
+    }
 
     // delegation
 
@@ -150,6 +167,7 @@ pub trait ConfigModule:
     #[only_owner]
     #[endpoint(setUndelegateNowFee)]
     fn set_undelegate_now_fee(&self, new_fee: u64) {
+        require!(!self.is_state_active(), ERROR_ACTIVE);
         require!(new_fee < MAX_PERCENT, ERROR_INCORRECT_FEE);
 
         self.undelegate_now_fee().set(new_fee);
