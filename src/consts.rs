@@ -5,3 +5,4 @@ pub const MAX_PERCENT: u64 = 10_000;
 pub const MAX_USER_UNDELEGATIONS: usize = 10;
 pub const MAX_EPOCH_UNDELEGATIONS: usize = 20;
 pub const MAX_UNBOND_PERIOD: u64 = 20;
+pub const DUST_THRESHOLD: u64 = 1_000;
