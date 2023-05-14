@@ -1,7 +1,7 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use crate::{consts::MAX_PERCENT, errors::*};
+use crate::{consts::*, errors::*};
 
 #[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Eq, Copy, Clone, Debug)]
 pub enum State {
@@ -54,6 +54,7 @@ pub trait ConfigModule:
     fn set_state_active(&self) {
         require!(!self.provider_address().is_empty(), ERROR_PROVIDER_NOT_SET);
         require!(!self.liquid_token_id().is_empty(), ERROR_TOKEN_NOT_SET);
+        require!(!self.unbond_period().is_empty(), ERROR_UNBOND_PERIOD_NOT_SET);
 
         self.state().set(State::Active);
     }
@@ -91,17 +92,27 @@ pub trait ConfigModule:
     #[storage_mapper("provider_address")]
     fn provider_address(&self) -> SingleValueMapper<ManagedAddress>;
 
+    #[view(getUnbondPeriod)]
+    #[storage_mapper("unbond_period")]
+    fn unbond_period(&self) -> SingleValueMapper<u64>;
+
+    #[only_owner]
+    #[endpoint(setUnbondPeriod)]
+    fn set_unbond_period(&self, period: u64) {
+        require!(!self.is_state_active(), ERROR_ACTIVE);
+        require!(
+            period > 0 && period <= MAX_UNBOND_PERIOD,
+            ERROR_UNBOND_PERIOD_NOT_SET
+        );
+
+        self.unbond_period().set(period);
+    }
+
     // delegation
 
     #[view(getUserUndelegations)]
     #[storage_mapper("user_undelegations")]
     fn user_undelegations(
-        &self,
-        user: &ManagedAddress,
-    ) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
-
-    #[storage_mapper("backup_user_undelegations")]
-    fn backup_user_undelegations(
         &self,
         user: &ManagedAddress,
     ) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
@@ -120,11 +131,26 @@ pub trait ConfigModule:
     #[storage_mapper("user_withdrawn_egld")]
     fn user_withdrawn_egld(&self) -> SingleValueMapper<BigUint>;
 
+    #[view(getTotalWithdrawnEgld)]
+    #[storage_mapper("total_withdrawn_egld")]
+    fn total_withdrawn_egld(&self) -> SingleValueMapper<BigUint>;
+
+    #[view(getTotalUserUndelegations)] // total user undelegations per epoch
+    #[storage_mapper("total_user_undelegations")]
+    fn total_user_undelegations(&self) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
+
+    #[storage_mapper("users_egld_to_undelegate")]
+    fn users_egld_to_undelegate(&self) -> SingleValueMapper<BigUint>;
+
     // reserves
 
     #[view(getEgldReserve)]
     #[storage_mapper("egld_reserve")]
     fn egld_reserve(&self) -> SingleValueMapper<BigUint>;
+
+    #[view(getReservePoints)]
+    #[storage_mapper("reserve_points")]
+    fn reserve_points(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getAvailableEgldReserve)]
     #[storage_mapper("available_egld_reserve")]
@@ -134,27 +160,14 @@ pub trait ConfigModule:
     #[storage_mapper("reserve_undelegations")]
     fn reserve_undelegations(&self) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
 
-    #[storage_mapper("reservers_ids")]
-    fn reservers_ids(&self) -> MapMapper<usize, ManagedAddress>;
-
-    #[view(getReserverID)]
-    #[storage_mapper("reservers_addresses")]
-    fn reservers_addresses(&self, user: ManagedAddress) -> SingleValueMapper<usize>;
-
-    #[view(getUsersReserves)]
-    #[storage_mapper("users_reserves")]
-    fn users_reserves(&self) -> VecMapper<BigUint>;
-
-    #[view(getUserReserveByAddress)]
-    fn get_user_reserve_by_address(&self, user: ManagedAddress) -> BigUint {
-        let id = self.reservers_addresses(user).get();
-
-        self.users_reserves().get(id)
-    }
+    #[view(getUsersReservePoints)]
+    #[storage_mapper("users_reserve_points")]
+    fn users_reserve_points(&self, user: &ManagedAddress) -> SingleValueMapper<BigUint>;
 
     #[only_owner]
     #[endpoint(setUndelegateNowFee)]
     fn set_undelegate_now_fee(&self, new_fee: u64) {
+        require!(!self.is_state_active(), ERROR_ACTIVE);
         require!(new_fee < MAX_PERCENT, ERROR_INCORRECT_FEE);
 
         self.undelegate_now_fee().set(new_fee);
@@ -167,8 +180,36 @@ pub trait ConfigModule:
     #[storage_mapper("egld_to_replenish_reserve")]
     fn egld_to_replenish_reserve(&self) -> SingleValueMapper<BigUint>;
 
-    #[storage_mapper("backup_egld_to_replenish_reserve")]
-    fn backup_egld_to_replenish_reserve(&self) -> SingleValueMapper<BigUint>;
+    #[view(getReservePointsAmount)]
+    fn get_reserve_points_amount(&self, egld_amount: &BigUint) -> BigUint {
+        let egld_reserve = self.egld_reserve().get();
+        let reserve_points = self.reserve_points().get();
+        let mut user_reserve_points = egld_amount.clone();
+        if egld_reserve > 0 {
+            user_reserve_points = egld_amount * &reserve_points / &egld_reserve
+        }
+
+        user_reserve_points
+    }
+
+    #[view(getReserveEgldAmount)]
+    fn get_reserve_egld_amount(&self, points_amount: &BigUint) -> BigUint {
+        let egld_reserve = self.egld_reserve().get();
+        let reserve_points = self.reserve_points().get();
+        let mut user_egld_amount = points_amount.clone();
+        if reserve_points > 0 {
+            user_egld_amount = points_amount * &egld_reserve / &reserve_points
+        }
+
+        user_egld_amount
+    }
+
+    #[view(getUserReserve)]
+    fn get_user_reserve(&self, user: &ManagedAddress) -> BigUint {
+        let user_points = self.users_reserve_points(user).get();
+        
+        self.get_reserve_egld_amount(&user_points)
+    }
 
     // misc
 

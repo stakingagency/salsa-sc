@@ -80,7 +80,7 @@
             "outputs": []
         },
         {
-            "name": "undelegateReserves",
+            "name": "unDelegateAll",
             "mutability": "mutable",
             "inputs": [],
             "outputs": []
@@ -93,6 +93,12 @@
         },
         {
             "name": "withdrawAll",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "computeWithdrawn",
             "mutability": "mutable",
             "inputs": [],
             "outputs": []
@@ -187,6 +193,28 @@
             ]
         },
         {
+            "name": "getUnbondPeriod",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "setUnbondPeriod",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "period",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
             "name": "getUserUndelegations",
             "mutability": "readonly",
             "inputs": [
@@ -222,7 +250,37 @@
             ]
         },
         {
+            "name": "getTotalWithdrawnEgld",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "name": "getTotalUserUndelegations",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "List<Undelegation>"
+                }
+            ]
+        },
+        {
             "name": "getEgldReserve",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "name": "getReservePoints",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
@@ -252,33 +310,7 @@
             ]
         },
         {
-            "name": "getReserverID",
-            "mutability": "readonly",
-            "inputs": [
-                {
-                    "name": "user",
-                    "type": "Address"
-                }
-            ],
-            "outputs": [
-                {
-                    "type": "u32"
-                }
-            ]
-        },
-        {
-            "name": "getUsersReserves",
-            "mutability": "readonly",
-            "inputs": [],
-            "outputs": [
-                {
-                    "type": "variadic<BigUint>",
-                    "multi_result": true
-                }
-            ]
-        },
-        {
-            "name": "getUserReserveByAddress",
+            "name": "getUsersReservePoints",
             "mutability": "readonly",
             "inputs": [
                 {
@@ -311,6 +343,51 @@
             "outputs": [
                 {
                     "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "getReservePointsAmount",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "egld_amount",
+                    "type": "BigUint"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "name": "getReserveEgldAmount",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "points_amount",
+                    "type": "BigUint"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "name": "getUserReserve",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "user",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "BigUint"
                 }
             ]
         },
