@@ -1,5 +1,4 @@
-pub static ERROR_INSUFFICIENT_DELEGATE_AMOUNT: &[u8] = b"Insufficient delegation amount";
-pub static ERROR_INSUFFICIENT_RESERVE_AMOUNT: &[u8] = b"Insufficient reserve amount";
+pub static ERROR_INSUFFICIENT_AMOUNT: &[u8] = b"Insufficient amount";
 pub static ERROR_INSUFFICIENT_GAS: &[u8] = b"Insufficient gas remaining for the callback";
 pub static ERROR_NOT_ACTIVE: &[u8] = b"Not active";
 pub static ERROR_ACTIVE: &[u8] = b"Active state";
