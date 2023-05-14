@@ -118,12 +118,15 @@ pub trait SalsaContract<ContractReader>:
             unbond_epoch,
         };
         let mut found = false;
+        let mut idx = 0;
         for mut user_undelegation in user_undelegations.into_iter() {
             if user_undelegation.unbond_epoch == unbond_epoch {
                 user_undelegation.amount += &amount;
+                let _ = user_undelegations.set(idx, &user_undelegation);
                 found = true;
                 break;
             }
+            idx += 1;
         }
         if !found {
             user_undelegations.push(undelegation.clone());
@@ -132,12 +135,15 @@ pub trait SalsaContract<ContractReader>:
 
         let mut total_user_undelegations = self.total_user_undelegations().get();
         found = false;
+        idx = 0;
         for mut total_user_undelegation in total_user_undelegations.into_iter() {
             if total_user_undelegation.unbond_epoch == unbond_epoch {
                 total_user_undelegation.amount += &amount;
+                let _ = total_user_undelegations.set(idx, &total_user_undelegation);
                 found = true;
                 break;
             }
+            idx += 1;
         }
         if !found {
             total_user_undelegations.push(undelegation);
@@ -159,7 +165,7 @@ pub trait SalsaContract<ContractReader>:
             ManagedVec::new();
         let mut withdraw_amount = BigUint::zero();
         let mut overflow = false;
-        for user_undelegation in &user_undelegations {
+        for user_undelegation in user_undelegations.into_iter() {
             let new_withdraw_amount = &withdraw_amount + &user_undelegation.amount;
             let would_overflow = new_withdraw_amount > total_user_withdrawn_egld;
             overflow = overflow || would_overflow;
@@ -305,12 +311,15 @@ pub trait SalsaContract<ContractReader>:
         let unbond_epoch = current_epoch + self.unbond_period().get();
         let mut reserve_undelegations = self.reserve_undelegations().get();
         let mut found = false;
+        let mut idx = 0;
         for mut reserve_undelegation in reserve_undelegations.into_iter() {
             if reserve_undelegation.unbond_epoch == unbond_epoch {
                 reserve_undelegation.amount += &egld_to_undelegate;
+                let _ = reserve_undelegations.set(idx, &reserve_undelegation);
                 found = true;
                 break;
             }
+            idx += 1;
         }
         if !found {
             let undelegation = config::Undelegation {
@@ -484,7 +493,7 @@ pub trait SalsaContract<ContractReader>:
             Self::Api,
             config::Undelegation<Self::Api>,
         > = ManagedVec::new();
-        for mut user_undelegation in &user_undelegations {
+        for mut user_undelegation in user_undelegations.into_iter() {
             if user_undelegation.unbond_epoch <= current_epoch {
                 let mut egld_to_unbond = user_undelegation.amount.clone();
                 if egld_to_unbond > total_withdrawn_egld {
@@ -509,7 +518,7 @@ pub trait SalsaContract<ContractReader>:
             Self::Api,
             config::Undelegation<Self::Api>,
         > = ManagedVec::new();
-        for mut reserve_undelegation in &reserve_undelegations {
+        for mut reserve_undelegation in reserve_undelegations.into_iter() {
             if reserve_undelegation.unbond_epoch <= current_epoch {
                 let mut egld_to_unbond = reserve_undelegation.amount.clone();
                 if egld_to_unbond > total_withdrawn_egld {
