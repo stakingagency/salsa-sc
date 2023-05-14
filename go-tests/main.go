@@ -167,7 +167,7 @@ func undelegateAllTester(idx int) error {
 
 	fmt.Printf("%v ", idx)
 
-	return unDelegate(balance, 10000000, int64(tAccount.Nonce), tPrivateKey, tWalletAddress)
+	return unDelegate(balance, 30000000, int64(tAccount.Nonce), tPrivateKey, tWalletAddress)
 }
 
 func removeReserveTester(idx int) error {
@@ -191,7 +191,7 @@ func removeReserveTester(idx int) error {
 
 	fmt.Printf("%v ", idx)
 
-	return removeReserve(balance, 10000000, int64(tAccount.Nonce), tPrivateKey, tWalletAddress)
+	return removeReserve(balance, 20000000, int64(tAccount.Nonce), tPrivateKey, tWalletAddress)
 }
 
 func addReserveTester(idx int, amount *big.Int) error {
@@ -504,24 +504,24 @@ func main() {
 	// }
 
 	// REMOVE RESERVE EACH
-	// for i := 0; i < testN; i++ {
-	// 	if err := removeReserveTester(i); err != nil {
-	// 		// panic(err)
-	// 	}
-	// }
+	for i := 0; i < testN; i++ {
+		if err := removeReserveTester(i); err != nil {
+			// panic(err)
+		}
+	}
 
 	// STRESS TEST
-	for {
-		for i := 0; i < testN; i++ {
-			go func(i int) {
-				err = test(i)
-				if err != nil {
-					fmt.Println(err)
-				}
-			}(i)
-		}
-		time.Sleep(time.Minute * 30)
-	}
+	// for {
+	// 	for i := 0; i < testN; i++ {
+	// 		go func(i int) {
+	// 			err = test(i)
+	// 			if err != nil {
+	// 				fmt.Println(err)
+	// 			}
+	// 		}(i)
+	// 	}
+	// 	time.Sleep(time.Minute * 30)
+	// }
 }
 
 func queryVM(scAddress, funcName string, args []string) ([]byte, error) {

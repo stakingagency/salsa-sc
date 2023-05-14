@@ -278,8 +278,14 @@ pub trait SalsaContract<ContractReader>:
         self.compute_withdrawn();
         
         let mut egld_to_remove = amount.clone();
-        let points_to_remove = self.get_reserve_points_amount(&egld_to_remove);
-        require!(&old_reserve - &amount >= MIN_EGLD, ERROR_DUST_REMAINING);
+        let mut points_to_remove = self.get_reserve_points_amount(&egld_to_remove);
+        if &old_reserve - &amount < DUST_THRESHOLD {
+            // avoid rounding issues
+            points_to_remove = old_reserve_points.clone();
+            egld_to_remove = old_reserve.clone();
+        } else {
+            require!(&old_reserve - &amount >= MIN_EGLD, ERROR_DUST_REMAINING);
+        }
 
         let available_egld_reserve = self.available_egld_reserve().get();
         // if there is not enough available reserve, move the reserve to user undelegation
