@@ -30,7 +30,7 @@ pub trait SalsaContract<ContractReader>:
         let mut delegate_amount = self.call_value().egld_value();
         require!(
             delegate_amount >= MIN_EGLD,
-            ERROR_INSUFFICIENT_DELEGATE_AMOUNT
+            ERROR_INSUFFICIENT_AMOUNT
         );
 
         let caller = self.blockchain().get_caller();
@@ -251,7 +251,7 @@ pub trait SalsaContract<ContractReader>:
         let reserve_amount = self.call_value().egld_value();
         require!(
             reserve_amount >= MIN_EGLD,
-            ERROR_INSUFFICIENT_RESERVE_AMOUNT
+            ERROR_INSUFFICIENT_AMOUNT
         );
 
         let user_reserve_points = self.get_reserve_points_amount(&reserve_amount);
@@ -432,7 +432,7 @@ pub trait SalsaContract<ContractReader>:
         let total_egld_to_undelegate = &users_egld_to_undelegate + &reserves_egld_to_undelegate;
         require!(
             total_egld_to_undelegate >= MIN_EGLD,
-            ERROR_INSUFFICIENT_DELEGATE_AMOUNT
+            ERROR_INSUFFICIENT_AMOUNT
         );
 
         self.users_egld_to_undelegate().clear();
@@ -654,7 +654,11 @@ pub trait SalsaContract<ContractReader>:
         let total_egld_staked = self.total_egld_staked().get();
         let liquid_token_supply = self.liquid_token_supply().get();
         let ls_amount = if total_egld_staked > 0 {
-            new_stake_amount * &liquid_token_supply / &total_egld_staked
+            if liquid_token_supply == 0 {
+                new_stake_amount + &total_egld_staked
+            } else {
+                new_stake_amount * &liquid_token_supply / &total_egld_staked
+            }
         } else {
             new_stake_amount.clone()
         };
