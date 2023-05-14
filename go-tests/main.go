@@ -51,9 +51,9 @@ type accountKey struct {
 }
 
 const (
-	scAddress = "erd1qqqqqqqqqqqqqpgq965crvye4cmnqle60szxtt8nydykx7ytvcqsts3k2n"
+	scAddress = "erd1qqqqqqqqqqqqqpgqx20lxjcfven6mgxelse5g4frumda2gn5vcqsjsuqjs"
 	// proxyAddress = "http://localhost:8079"
-	proxyAddress = "http://193.70.44.72:8079"
+	proxyAddress = "http://95.216.220.113:8079"
 	// proxyAddress = "https://devnet-gateway.multiversx.com"
 	walletFile = "/home/mihai/walletKey.pem"
 	mnemonic   = "asdfghjkl"
@@ -249,7 +249,7 @@ func test(idx int) error {
 		op := rand.Intn(10)
 		switch op {
 		case 0:
-			if err = delegate(big.NewInt(1000000000000000000), 30000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = delegate(big.NewInt(1000000000000000000), 40000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 1:
@@ -268,7 +268,7 @@ func test(idx int) error {
 				i--
 				continue
 			}
-			if err = unDelegate(big.NewInt(1000000000000000000), 10000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = unDelegate(big.NewInt(1000000000000000000), 30000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 3:
@@ -298,11 +298,11 @@ func test(idx int) error {
 				i--
 				continue
 			}
-			if err = unDelegateNow(big.NewInt(1000000000000000000), 10000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = unDelegateNow(big.NewInt(1000000000000000000), 30000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 5:
-			if err = withdraw(50000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = withdraw(30000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 6:
@@ -351,7 +351,7 @@ func scenario1() error {
 	// formula_magica_buy()
 	// formula_magica_sell()
 
-	return setStateActive(-1)
+	// return setStateActive(-1)
 
 	// for i := 0; i < 10; i++ {
 	// 	compound(50000000, int64(nonce))
@@ -476,7 +476,7 @@ func main() {
 	// }
 	// time.Sleep(time.Second * 30)
 
-	err = scenario1()
+	// err = scenario1()
 	// if err != nil {
 	// 	fmt.Println(err)
 	// }
@@ -511,17 +511,17 @@ func main() {
 	// }
 
 	// STRESS TEST
-	// for {
-	// 	for i := 0; i < testN; i++ {
-	// 		go func(i int) {
-	// 			err = test(i)
-	// 			if err != nil {
-	// 				fmt.Println(err)
-	// 			}
-	// 		}(i)
-	// 	}
-	// 	time.Sleep(time.Minute * 30)
-	// }
+	for {
+		for i := 0; i < testN; i++ {
+			go func(i int) {
+				err = test(i)
+				if err != nil {
+					fmt.Println(err)
+				}
+			}(i)
+		}
+		time.Sleep(time.Minute * 30)
+	}
 }
 
 func queryVM(scAddress, funcName string, args []string) ([]byte, error) {
