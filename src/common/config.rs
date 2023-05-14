@@ -1,7 +1,7 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use crate::{consts::*, errors::*};
+use crate::{common::consts::*, common::errors::*};
 
 #[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Eq, Copy, Clone, Debug)]
 pub enum State {
@@ -16,9 +16,7 @@ pub struct Undelegation<M: ManagedTypeApi> {
 }
 
 #[multiversx_sc::module]
-pub trait ConfigModule:
-    multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
-{
+pub trait ConfigModule {
     #[only_owner]
     #[payable("EGLD")]
     #[endpoint(registerLiquidToken)]

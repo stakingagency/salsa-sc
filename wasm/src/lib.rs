@@ -24,13 +24,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         addReserve
         removeReserve
         unDelegateNow
-        unDelegateAll
-        compound
-        withdrawAll
-        computeWithdrawn
         distributeProfit
-        setArbitrageInactive
-        setArbitrageActive
         registerLiquidToken
         getLiquidTokenId
         getLiquidTokenSupply
@@ -61,6 +55,12 @@ multiversx_sc_wasm_adapter::endpoints! {
         getEgldProfit
         setOnedexPairId
         getTokenPrice
+        unDelegateAll
+        compound
+        withdrawAll
+        computeWithdrawn
+        setArbitrageInactive
+        setArbitrageActive
         callBack
     )
 }
