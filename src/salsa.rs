@@ -631,17 +631,26 @@ pub trait SalsaContract<ContractReader>:
     // endpoints: admin
 
     #[only_owner]
-    #[endpoint(burnLsProfit)]
+    #[endpoint(distributeProfit)]
     fn burn_ls_profit(&self) {
         require!(!self.is_state_active(), ERROR_ACTIVE);
 
-        let ls_profit = self.liquid_profit().get();
-        require!(ls_profit > 0, ERROR_NOT_ENOUGH_FUNDS);
+        let egld_profit = self.egld_profit().get();
+        if egld_profit > 0 {
+            self.egld_reserve()
+                .update(|value| *value += &egld_profit);
+            self.available_egld_reserve()
+                .update(|value| *value += &egld_profit);    
+            self.egld_profit().clear();
+        }
 
-        self.liquid_token_supply()
-            .update(|value| *value -= &ls_profit);
-        self.burn_liquid_token(&ls_profit);
-        self.liquid_profit().clear();
+        let ls_profit = self.liquid_profit().get();
+        if ls_profit > 0 {
+            self.liquid_token_supply()
+                .update(|value| *value -= &ls_profit);
+            self.burn_liquid_token(&ls_profit);
+            self.liquid_profit().clear();
+        }
     }
 
     // helpers
@@ -745,8 +754,8 @@ pub trait SalsaContract<ContractReader>:
         require!(swapped_amount >= salsa_amount_out, ERROR_ARBITRAGE_ISSUE);
 
         let profit = &swapped_amount - &salsa_amount_out;
-        self.egld_reserve().update(|value| *value += &profit);
-        self.available_egld_reserve().update(|value| *value += &profit);
+        self.egld_profit()
+            .update(|value| *value += profit);
     }
 
     // buy

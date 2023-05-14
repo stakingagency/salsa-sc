@@ -483,11 +483,11 @@ func main() {
 	// os.Exit(1)
 
 	// CHECK TEST RESULTS
-	// for i := 0; i < testN; i++ {
-	// 	if err := checkTestResults(i); err != nil {
-	// 		fmt.Println(err)
-	// 	}
-	// }
+	for i := 0; i < testN; i++ {
+		if err := checkTestResults(i); err != nil {
+			fmt.Println(err)
+		}
+	}
 
 	// WITHDRAW EACH
 	// for i := 0; i < testN; i++ {
@@ -1234,6 +1234,10 @@ func getUserReserves(walletAddress string) (*big.Int, error) {
 
 	reserve := big.NewInt(0).Set(points)
 	reserve.Mul(reserve, totalReserve)
+	if totalPoints.Cmp(big.NewInt(0)) == 0 {
+		return big.NewInt(0), nil
+	}
+
 	reserve.Quo(reserve, totalPoints)
 
 	return reserve, nil
