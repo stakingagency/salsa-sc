@@ -3,5 +3,5 @@ pub const MIN_GAS_FOR_ASYNC_CALL: u64 = 12_000_000;
 pub const MIN_GAS_FOR_CALLBACK: u64 = 12_000_000;
 pub const MAX_PERCENT: u64 = 10_000;
 pub const MAX_USER_UNDELEGATIONS: usize = 10;
-pub const MAX_RESERVE_UNDELEGATIONS: usize = 20;
+pub const MAX_EPOCH_UNDELEGATIONS: usize = 20;
 pub const MAX_UNBOND_PERIOD: u64 = 20;

@@ -15,5 +15,5 @@ pub static ERROR_TOKEN_ALREADY_SET: &[u8] = b"Token already set";
 pub static ERROR_TOKEN_NOT_SET: &[u8] = b"Token not set";
 pub static ERROR_NOT_ENOUGH_LIQUID_SUPPLY: &[u8] = b"Not enough liquid token supply";
 pub static ERROR_INCORRECT_FEE: &[u8] = b"Fee must be less than 100%";
-pub static ERROR_TOO_MANY_USER_UNDELEGATIONS: &[u8] = b"Too many user undelegations";
+pub static ERROR_TOO_MANY_UNDELEGATIONS: &[u8] = b"Too many undelegations";
 pub static ERROR_DUST_REMAINING: &[u8] = b"Can't leave dust";
