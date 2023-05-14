@@ -814,7 +814,11 @@ pub trait SalsaContract<ContractReader>:
     }
 
     fn get_onedex_buy_quantity(&self, uegld_amount: BigUint, uls_amount: BigUint) -> BigUint {
+        require!(uls_amount > 0, ERROR_INSUFFICIENT_AMOUNT);
+
         let fee = self.onedex_fee().get();
+        require!(fee > 0, ERROR_FEE_ZERO);
+
         let pair_id = self.onedex_pair_id().get();
         let (uls_reserve, uegld_reserve) = self.get_onedex_reserves(pair_id);
 
@@ -847,6 +851,8 @@ pub trait SalsaContract<ContractReader>:
     }
 
     fn get_onedex_sell_quantity(&self, uls_amount: BigUint, uegld_amount: BigUint, ) -> BigUint {
+        require!(uegld_amount > 0, ERROR_INSUFFICIENT_AMOUNT);
+
         let fee = self.onedex_fee().get();
         let pair_id = self.onedex_pair_id().get();
         let (uls_reserve, uegld_reserve) = self.get_onedex_reserves(pair_id);
