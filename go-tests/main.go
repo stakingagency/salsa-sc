@@ -124,7 +124,7 @@ func checkTestResults(idx int) error {
 	}
 
 	fmt.Printf("%v %s %.2f\n", idx, tWalletAddress, balance)
-	if balance < 99 {
+	if balance < 99.7 {
 		return errors.New("low balance for address " + tWalletAddress)
 	}
 
@@ -504,11 +504,11 @@ func main() {
 	// }
 
 	// REMOVE RESERVE EACH
-	for i := 0; i < testN; i++ {
-		if err := removeReserveTester(i); err != nil {
-			// panic(err)
-		}
-	}
+	// for i := 0; i < testN; i++ {
+	// 	if err := removeReserveTester(i); err != nil {
+	// 		// panic(err)
+	// 	}
+	// }
 
 	// STRESS TEST
 	// for {
