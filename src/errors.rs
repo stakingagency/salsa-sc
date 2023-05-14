@@ -18,3 +18,4 @@ pub static ERROR_TOO_MANY_UNDELEGATIONS: &[u8] = b"Too many undelegations";
 pub static ERROR_ARBITRAGE_ISSUE: &[u8] = b"Arbitrage issue";
 pub static ERROR_ONEDEX_PAIR_ID: &[u8] = b"OneDex pair ID not set";
 pub static ERROR_DUST_REMAINING: &[u8] = b"Can't leave dust";
+pub static ERROR_FEE_ZERO: &[u8] = b"Fee can't be zero";

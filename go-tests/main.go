@@ -249,7 +249,7 @@ func test(idx int) error {
 		op := rand.Intn(10)
 		switch op {
 		case 0:
-			if err = delegate(big.NewInt(1000000000000000000), 40000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = delegate(big.NewInt(2000000000000000000), 50000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 1:
@@ -268,7 +268,7 @@ func test(idx int) error {
 				i--
 				continue
 			}
-			if err = unDelegate(big.NewInt(1000000000000000000), 30000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = unDelegate(big.NewInt(2000000000000000000), 30000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 3:
@@ -298,7 +298,7 @@ func test(idx int) error {
 				i--
 				continue
 			}
-			if err = unDelegateNow(big.NewInt(1000000000000000000), 30000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = unDelegateNow(big.NewInt(2000000000000000000), 30000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 5:
@@ -346,7 +346,7 @@ func scenario1() error {
 	// unDelegateNow(big.NewInt(1000000000000000000), 50000000, -1, privateKey, walletAddress)
 	// withdraw(10000000, -1, privateKey, walletAddress)
 	// delegate(big.NewInt(9000000000000000000), 70000000, -1, privateKey, walletAddress)
-	// unDelegateNow(big.NewInt(8000000000000000000), 40000000, -1, privateKey, walletAddress)
+	// unDelegate(big.NewInt(3000000000000000000), 40000000, -1, privateKey, walletAddress)
 
 	// formula_magica_buy()
 	// formula_magica_sell()
@@ -1275,8 +1275,8 @@ func formula_magica_buy() {
 		"https://devnet-index.multiversx.com",
 	)
 
-	ionedex_ls, _ := contract.GetPairFirstTokenReserve(20)
-	ionedex_egld, _ := contract.GetPairSecondTokenReserve(20)
+	ionedex_ls, _ := contract.GetPairFirstTokenReserve(21)
+	ionedex_egld, _ := contract.GetPairSecondTokenReserve(21)
 
 	onedex_ls := utils.Denominate(ionedex_ls, 18)
 	onedex_egld := utils.Denominate(ionedex_egld, 18)
@@ -1300,7 +1300,10 @@ func formula_magica_buy() {
 		fin_egld.Mul(fin_egld, big.NewFloat(10))
 	}
 	iin_egld, _ := fin_egld.Int(nil)
-	iout_onedex, _ := contract.GetAmountOut("WEGLD-d7c6bb", "TEST-1ab80b", iin_egld)
+	iout_onedex := big.NewInt(0)
+	if in_egld > 0 {
+		iout_onedex, _ = contract.GetAmountOut("WEGLD-d7c6bb", "TEST-9b3da2", iin_egld)
+	}
 
 	out_onedex := utils.Denominate(iout_onedex, 18)
 	out_salsa := in_egld * p
@@ -1317,8 +1320,8 @@ func formula_magica_sell() {
 		"https://devnet-index.multiversx.com",
 	)
 
-	ionedex_ls, _ := contract.GetPairFirstTokenReserve(20)
-	ionedex_egld, _ := contract.GetPairSecondTokenReserve(20)
+	ionedex_ls, _ := contract.GetPairFirstTokenReserve(21)
+	ionedex_egld, _ := contract.GetPairSecondTokenReserve(21)
 
 	onedex_ls := utils.Denominate(ionedex_ls, 18)
 	onedex_egld := utils.Denominate(ionedex_egld, 18)
@@ -1344,7 +1347,7 @@ func formula_magica_sell() {
 	iin_ls, _ := fin_ls.Int(nil)
 	iout_onedex := big.NewInt(0)
 	if in_ls > 0 {
-		iout_onedex, _ = contract.GetAmountOut("TEST-1ab80b", "WEGLD-d7c6bb", iin_ls)
+		iout_onedex, _ = contract.GetAmountOut("TEST-9b3da2", "WEGLD-d7c6bb", iin_ls)
 	}
 
 	out_onedex := utils.Denominate(iout_onedex, 18)
