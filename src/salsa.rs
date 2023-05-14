@@ -155,11 +155,6 @@ pub trait SalsaContract<ContractReader>:
     fn add_user_undelegation(&self, amount: BigUint, unbond_epoch: u64) {
         let user = self.blockchain().get_caller();
         let mut user_undelegations = self.user_undelegations(&user).get();
-        require!(
-            user_undelegations.len() < MAX_USER_UNDELEGATIONS,
-            ERROR_TOO_MANY_USER_UNDELEGATIONS
-        );
-
         let undelegation = config::Undelegation {
             amount: amount.clone(),
             unbond_epoch,
@@ -176,6 +171,10 @@ pub trait SalsaContract<ContractReader>:
             idx += 1;
         }
         if !found {
+            require!(
+                user_undelegations.len() < MAX_USER_UNDELEGATIONS,
+                ERROR_TOO_MANY_UNDELEGATIONS
+            );
             user_undelegations.push(undelegation.clone());
         }
         self.user_undelegations(&user).set(user_undelegations);
@@ -193,6 +192,10 @@ pub trait SalsaContract<ContractReader>:
             idx += 1;
         }
         if !found {
+            require!(
+                total_user_undelegations.len() < MAX_EPOCH_UNDELEGATIONS,
+                ERROR_TOO_MANY_UNDELEGATIONS
+            );
             total_user_undelegations.push(undelegation);
         }
         self.total_user_undelegations().set(total_user_undelegations);
@@ -396,6 +399,10 @@ pub trait SalsaContract<ContractReader>:
             idx += 1;
         }
         if !found {
+            require!(
+                reserve_undelegations.len() < MAX_EPOCH_UNDELEGATIONS,
+                ERROR_TOO_MANY_UNDELEGATIONS
+            );
             let undelegation = config::Undelegation {
                 amount: egld_to_undelegate.clone(),
                 unbond_epoch,
