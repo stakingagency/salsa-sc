@@ -17,5 +17,4 @@ pub static ERROR_INCORRECT_FEE: &[u8] = b"Fee must be less than 100%";
 pub static ERROR_TOO_MANY_UNDELEGATIONS: &[u8] = b"Too many undelegations";
 pub static ERROR_ARBITRAGE_ISSUE: &[u8] = b"Arbitrage issue";
 pub static ERROR_ONEDEX_PAIR_ID: &[u8] = b"OneDex pair ID not set";
-pub static ERROR_ONEDEX_FEE: &[u8] = b"OneDex fee not set";
 pub static ERROR_DUST_REMAINING: &[u8] = b"Can't leave dust";

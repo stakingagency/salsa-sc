@@ -893,9 +893,6 @@ pub trait SalsaContract<ContractReader>:
         let pair_id = self.onedex_pair_id().get();
         require!(pair_id > 0, ERROR_ONEDEX_PAIR_ID);
 
-        let fee = self.onedex_fee().get();
-        require!(fee > 0, ERROR_ONEDEX_FEE);
-
         let fee = self.get_onedex_fee();
         self.onedex_fee().set(fee);
         self.arbitrage().set(State::Active);
