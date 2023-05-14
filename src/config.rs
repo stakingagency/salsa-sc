@@ -231,6 +231,10 @@ pub trait ConfigModule:
     #[storage_mapper("liquid_profit")]
     fn liquid_profit(&self) -> SingleValueMapper<BigUint>;
 
+    #[view(getEgldProfit)]
+    #[storage_mapper("egld_profit")]
+    fn egld_profit(&self) -> SingleValueMapper<BigUint>;
+
     // onedex
 
     #[storage_mapper("onedex_fee")]

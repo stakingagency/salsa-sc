@@ -104,7 +104,7 @@
             "outputs": []
         },
         {
-            "name": "burnLsProfit",
+            "name": "distributeProfit",
             "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [],
@@ -424,6 +424,16 @@
         },
         {
             "name": "getLiquidProfit",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "name": "getEgldProfit",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
