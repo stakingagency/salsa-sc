@@ -49,14 +49,14 @@ type accountKey struct {
 }
 
 const (
-	scAddress = "erd1qqqqqqqqqqqqqpgqzrjkarajdgwseyafhlvkvfdszvhvhf0tvcqsdslp2u"
+	scAddress = "erd1qqqqqqqqqqqqqpgqx20lxjcfven6mgxelse5g4frumda2gn5vcqsjsuqjs"
 	// proxyAddress = "http://localhost:8079"
-	proxyAddress = "http://193.70.44.72:8079"
-	// proxyAddress = "https://devnet-gateway.multiversx.com"
-	walletFile = "/home/mihai/walletKey.pem"
-	mnemonic   = "asdfghjkl"
+	// proxyAddress = "http://193.70.44.72:8079"
+	proxyAddress = "https://devnet-gateway.multiversx.com"
+	walletFile   = "/home/mihai/walletKey.pem"
+	mnemonic     = "asdfghjkl"
 
-	testN = 1000
+	testN = 100
 )
 
 var (
@@ -313,7 +313,7 @@ func scenario1() error {
 	// delegate(big.NewInt(9000000000000000000), 50000000, -1, privateKey, walletAddress)
 	// unDelegateNow(big.NewInt(1000000000000000000), 200000000, -1, privateKey, walletAddress)
 
-	// return setStateActive(-1)
+	return setStateActive(-1)
 
 	// for i := 0; i < 10; i++ {
 	// 	compound(50000000, int64(nonce))
@@ -466,7 +466,7 @@ func main() {
 	// 	}
 	// }
 
-	// 	err = scenario1()
+	err = scenario1()
 	// 	if err != nil {
 	// 		fmt.Println(err)
 	// 	}
