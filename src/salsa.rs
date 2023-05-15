@@ -208,6 +208,7 @@ pub trait SalsaContract<ContractReader>:
         } else {
             require!(&old_reserve - &amount >= MIN_EGLD, ERROR_DUST_REMAINING);
         }
+        self.egld_reserve().update(|value| *value -= &egld_to_remove);
 
         let available_egld_reserve = self.available_egld_reserve().get();
         // if there is not enough available reserve, move the reserve to user undelegation
@@ -238,12 +239,10 @@ pub trait SalsaContract<ContractReader>:
             require!(remaining_egld == 0, ERROR_NOT_ENOUGH_FUNDS);
 
             self.reserve_undelegations().set(remaining_reserve_undelegations);
-            self.egld_reserve().update(|value| *value -= &egld_to_move);
             self.add_user_undelegation(egld_to_move.clone(), unbond_epoch);
             egld_to_remove = available_egld_reserve.clone();
         }
         self.available_egld_reserve().update(|value| *value -= &egld_to_remove);
-        self.egld_reserve().update(|value| *value -= &egld_to_remove);
         self.users_reserve_points(&caller)
             .update(|value| *value -= &points_to_remove);
         self.reserve_points()
