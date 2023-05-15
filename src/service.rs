@@ -15,25 +15,21 @@ pub trait ServiceModule:
     fn undelegate_all(&self) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
-        let users_egld_to_undelegate = self.users_egld_to_undelegate().get();
-        let reserves_egld_to_undelegate = self.egld_to_replenish_reserve().get();
-        let total_egld_to_undelegate = &users_egld_to_undelegate + &reserves_egld_to_undelegate;
+        let egld_to_undelegate = self.egld_to_undelegate().take();
         require!(
-            total_egld_to_undelegate >= MIN_EGLD,
+            egld_to_undelegate >= MIN_EGLD,
             ERROR_INSUFFICIENT_AMOUNT
         );
 
-        self.users_egld_to_undelegate().clear();
-        self.egld_to_replenish_reserve().clear();
         let delegation_contract = self.provider_address().get();
         let gas_for_async_call = self.get_gas_for_async_call();
         self.service_delegation_proxy_obj()
             .contract(delegation_contract)
-            .undelegate(total_egld_to_undelegate)
+            .undelegate(egld_to_undelegate.clone())
             .with_gas_limit(gas_for_async_call)
             .async_call()
             .with_callback(
-                ServiceModule::callbacks(self).undelegate_all_callback(users_egld_to_undelegate, reserves_egld_to_undelegate),
+                ServiceModule::callbacks(self).undelegate_all_callback(egld_to_undelegate),
             )
             .call_and_exit()
     }
@@ -41,17 +37,14 @@ pub trait ServiceModule:
     #[callback]
     fn undelegate_all_callback(
         &self,
-        users_egld_to_undelegate: BigUint,
-        reserves_egld_to_undelegate: BigUint,
+        egld_to_undelegate: BigUint,
         #[call_result] result: ManagedAsyncCallResult<()>,
     ) {
         match result {
             ManagedAsyncCallResult::Ok(()) => {}
             ManagedAsyncCallResult::Err(_) => {
-                self.users_egld_to_undelegate()
-                    .update(|value| *value += users_egld_to_undelegate);
-                self.egld_to_replenish_reserve()
-                    .update(|value| *value += reserves_egld_to_undelegate);
+                self.egld_to_undelegate()
+                    .update(|value| *value += egld_to_undelegate);
             }
         }
     }
@@ -84,7 +77,7 @@ pub trait ServiceModule:
                 .with_gas_limit(gas_for_async_call)
                 .async_call()
                 .with_callback(
-                    ServiceModule::callbacks(self).compound_callback(claimable_rewards_amount),
+                    ServiceModule::callbacks(self).compound_callback(),
                 )
                 .call_and_exit()
         }
@@ -106,19 +99,15 @@ pub trait ServiceModule:
     }
 
     #[callback]
-    fn compound_callback(
-        &self,
-        claimable_rewards: BigUint,
-        #[call_result] result: ManagedAsyncCallResult<()>,
-    ) {
+    fn compound_callback(&self, #[call_result] result: ManagedAsyncCallResult<()>) {
         match result {
             ManagedAsyncCallResult::Ok(()) => {
+                let claimable_rewards = self.claimable_rewards_amount().take();
                 self.total_egld_staked()
                     .update(|value| *value += claimable_rewards);
             }
             ManagedAsyncCallResult::Err(_) => {}
         }
-        self.claimable_rewards_amount().clear();
     }
 
     #[endpoint(withdrawAll)]
