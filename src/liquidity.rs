@@ -5,6 +5,7 @@ use crate::{common::errors::*};
 #[multiversx_sc::module]
 pub trait LiquidityModule:
     crate::common::config::ConfigModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     fn add_liquidity(&self, new_stake_amount: &BigUint, update_storage: bool) -> BigUint {
         let total_egld_staked = self.total_egld_staked().get();

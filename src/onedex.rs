@@ -7,6 +7,7 @@ use crate::proxies::onedex_proxy;
 pub trait OnedexModule:
     crate::common::config::ConfigModule
     + crate::liquidity::LiquidityModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     fn get_sc_balances(&self) -> (BigUint, BigUint) {
         let liquid_token_id = self.liquid_token_id().get_token_id();
