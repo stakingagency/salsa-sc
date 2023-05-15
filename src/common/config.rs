@@ -246,10 +246,11 @@ pub trait ConfigModule {
         let staked_egld = self.total_egld_staked().get();
         let token_supply = self.liquid_token_supply().get();
 
-        if token_supply == 0 {
-            BigUint::zero()
+        let one = BigUint::from(1_000_000_000_000_000_000u64);
+        if (token_supply == 0) || (staked_egld == 0) {
+            one
         } else {
-            staked_egld / token_supply
+            one * staked_egld / token_supply
         }
     }
 }
