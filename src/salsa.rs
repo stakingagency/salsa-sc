@@ -87,60 +87,11 @@ pub trait SalsaContract<ContractReader>:
 
         let egld_to_undelegate = self.remove_liquidity(&payment.amount, true);
         self.burn_liquid_token(&payment.amount);
-        let current_epoch = self.blockchain().get_block_epoch();
-        let unbond_epoch = current_epoch + self.unbond_period().get();
-        self.users_egld_to_undelegate()
+        self.egld_to_undelegate()
             .update(|value| *value += &egld_to_undelegate);
-        self.add_user_undelegation(egld_to_undelegate, unbond_epoch);
-    }
-
-    fn add_user_undelegation(&self, amount: BigUint, unbond_epoch: u64) {
-        let user = self.blockchain().get_caller();
-        let mut user_undelegations = self.user_undelegations(&user).get();
-        let undelegation = config::Undelegation {
-            amount: amount.clone(),
-            unbond_epoch,
-        };
-        let mut found = false;
-        let mut idx = 0;
-        for mut user_undelegation in user_undelegations.into_iter() {
-            if user_undelegation.unbond_epoch == unbond_epoch {
-                user_undelegation.amount += &amount;
-                let _ = user_undelegations.set(idx, &user_undelegation);
-                found = true;
-                break;
-            }
-            idx += 1;
-        }
-        if !found {
-            require!(
-                user_undelegations.len() < MAX_USER_UNDELEGATIONS,
-                ERROR_TOO_MANY_UNDELEGATIONS
-            );
-            user_undelegations.push(undelegation.clone());
-        }
-        self.user_undelegations(&user).set(user_undelegations);
-
-        let mut total_user_undelegations = self.total_user_undelegations().get();
-        found = false;
-        idx = 0;
-        for mut total_user_undelegation in total_user_undelegations.into_iter() {
-            if total_user_undelegation.unbond_epoch == unbond_epoch {
-                total_user_undelegation.amount += &amount;
-                let _ = total_user_undelegations.set(idx, &total_user_undelegation);
-                found = true;
-                break;
-            }
-            idx += 1;
-        }
-        if !found {
-            require!(
-                total_user_undelegations.len() < MAX_EPOCH_UNDELEGATIONS,
-                ERROR_TOO_MANY_UNDELEGATIONS
-            );
-            total_user_undelegations.push(undelegation);
-        }
-        self.total_user_undelegations().set(total_user_undelegations);
+        let current_epoch = self.blockchain().get_block_epoch();
+        let unbond_period = current_epoch + self.unbond_period().get();
+        self.add_user_undelegation(egld_to_undelegate, unbond_period);
     }
 
     #[endpoint(withdraw)]
@@ -307,33 +258,14 @@ pub trait SalsaContract<ContractReader>:
         // add to reserve undelegations
         let current_epoch = self.blockchain().get_block_epoch();
         let unbond_epoch = current_epoch + self.unbond_period().get();
-        let mut reserve_undelegations = self.reserve_undelegations().get();
-        let mut found = false;
-        let mut idx = 0;
-        for mut reserve_undelegation in reserve_undelegations.into_iter() {
-            if reserve_undelegation.unbond_epoch == unbond_epoch {
-                reserve_undelegation.amount += &egld_to_undelegate;
-                let _ = reserve_undelegations.set(idx, &reserve_undelegation);
-                found = true;
-                break;
-            }
-            idx += 1;
-        }
-        if !found {
-            require!(
-                reserve_undelegations.len() < MAX_EPOCH_UNDELEGATIONS,
-                ERROR_TOO_MANY_UNDELEGATIONS
-            );
-            let undelegation = config::Undelegation {
-                amount: egld_to_undelegate.clone(),
-                unbond_epoch,
-            };
-            reserve_undelegations.push(undelegation);
-        }
-        self.reserve_undelegations().set(reserve_undelegations);
+        let reserve_undelegations = self.reserve_undelegations().get();
+        let new_reserve_undelegations = self.add_undelegation(
+            egld_to_undelegate.clone(), unbond_epoch, reserve_undelegations
+        );
+        self.reserve_undelegations().set(new_reserve_undelegations);
 
         // update storage
-        self.egld_to_replenish_reserve()
+        self.egld_to_undelegate()
             .update(|value| *value += &egld_to_undelegate);
         self.available_egld_reserve().update(|value| *value -= &egld_to_undelegate_with_fee);
         let total_rewards = &egld_to_undelegate - &egld_to_undelegate_with_fee;
@@ -342,31 +274,81 @@ pub trait SalsaContract<ContractReader>:
         self.send().direct_egld(&caller, &egld_to_undelegate_with_fee);
     }
 
+    fn add_undelegation(
+        &self,
+        amount: BigUint,
+        unbond_epoch: u64,
+        undelegations: ManagedVec<Self::Api, config::Undelegation<Self::Api>>
+    ) -> ManagedVec<Self::Api, config::Undelegation<Self::Api>> {
+        let current_epoch = self.blockchain().get_block_epoch();
+        let new_undelegation = config::Undelegation {
+            amount: amount.clone(),
+            unbond_epoch,
+        };
+        let mut found = false;
+        let mut withdrawable_amount = BigUint::zero();
+        let mut remaining_undelegations: ManagedVec<Self::Api, config::Undelegation<Self::Api>> =
+            ManagedVec::new();
+        for mut undelegation in undelegations.into_iter() {
+            if undelegation.unbond_epoch == unbond_epoch {
+                undelegation.amount += &amount;
+                found = true;
+            }
+            if undelegation.unbond_epoch <= current_epoch {
+                withdrawable_amount += undelegation.amount;
+            } else {
+                remaining_undelegations.push(undelegation);
+            }
+        }
+        if withdrawable_amount > 0 {
+            let merged_undelegation = config::Undelegation {
+                amount: withdrawable_amount,
+                unbond_epoch: current_epoch,
+            };
+            remaining_undelegations.push(merged_undelegation);
+        }
+        if !found {
+            remaining_undelegations.push(new_undelegation);
+        }
+        
+        remaining_undelegations
+    }
+
+    fn add_user_undelegation(&self, amount: BigUint, unbond_epoch: u64) {
+        let user = self.blockchain().get_caller();
+
+        let mut undelegations = self.user_undelegations(&user).get();
+        let mut new_undelegations = self.add_undelegation(amount.clone(), unbond_epoch, undelegations);
+        self.user_undelegations(&user).set(new_undelegations);
+
+        undelegations = self.total_user_undelegations().get();
+        new_undelegations = self.add_undelegation(amount.clone(), unbond_epoch, undelegations);
+        self.total_user_undelegations().set(new_undelegations);
+    }
+
     // endpoints: service
 
     #[endpoint(unDelegateAll)]
     fn undelegate_all(&self) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
-        let users_egld_to_undelegate = self.users_egld_to_undelegate().get();
-        let reserves_egld_to_undelegate = self.egld_to_replenish_reserve().get();
-        let total_egld_to_undelegate = &users_egld_to_undelegate + &reserves_egld_to_undelegate;
+        let egld_to_undelegate = self.egld_to_undelegate().get();
         require!(
-            total_egld_to_undelegate >= MIN_EGLD,
+            egld_to_undelegate >= MIN_EGLD,
             ERROR_INSUFFICIENT_AMOUNT
         );
 
-        self.users_egld_to_undelegate().clear();
-        self.egld_to_replenish_reserve().clear();
+        self.egld_to_undelegate().clear();
+
         let delegation_contract = self.provider_address().get();
         let gas_for_async_call = self.get_gas_for_async_call();
         self.delegation_proxy_obj()
             .contract(delegation_contract)
-            .undelegate(total_egld_to_undelegate)
+            .undelegate(egld_to_undelegate.clone())
             .with_gas_limit(gas_for_async_call)
             .async_call()
             .with_callback(
-                SalsaContract::callbacks(self).undelegate_all_callback(users_egld_to_undelegate, reserves_egld_to_undelegate),
+                SalsaContract::callbacks(self).undelegate_all_callback(egld_to_undelegate),
             )
             .call_and_exit()
     }
@@ -374,17 +356,14 @@ pub trait SalsaContract<ContractReader>:
     #[callback]
     fn undelegate_all_callback(
         &self,
-        users_egld_to_undelegate: BigUint,
-        reserves_egld_to_undelegate: BigUint,
+        egld_to_undelegate: BigUint,
         #[call_result] result: ManagedAsyncCallResult<()>,
     ) {
         match result {
             ManagedAsyncCallResult::Ok(()) => {}
             ManagedAsyncCallResult::Err(_) => {
-                self.users_egld_to_undelegate()
-                    .update(|value| *value += users_egld_to_undelegate);
-                self.egld_to_replenish_reserve()
-                    .update(|value| *value += reserves_egld_to_undelegate);
+                self.egld_to_undelegate()
+                    .update(|value| *value += egld_to_undelegate);
             }
         }
     }
@@ -417,7 +396,7 @@ pub trait SalsaContract<ContractReader>:
                 .with_gas_limit(gas_for_async_call)
                 .async_call()
                 .with_callback(
-                    SalsaContract::callbacks(self).compound_callback(claimable_rewards_amount),
+                    SalsaContract::callbacks(self).compound_callback(),
                 )
                 .call_and_exit()
         }
@@ -439,19 +418,15 @@ pub trait SalsaContract<ContractReader>:
     }
 
     #[callback]
-    fn compound_callback(
-        &self,
-        claimable_rewards: BigUint,
-        #[call_result] result: ManagedAsyncCallResult<()>,
-    ) {
+    fn compound_callback(&self, #[call_result] result: ManagedAsyncCallResult<()>) {
         match result {
             ManagedAsyncCallResult::Ok(()) => {
+                let claimable_rewards = self.claimable_rewards_amount().take();
                 self.total_egld_staked()
                     .update(|value| *value += claimable_rewards);
             }
             ManagedAsyncCallResult::Err(_) => {}
         }
-        self.claimable_rewards_amount().clear();
     }
 
     #[endpoint(withdrawAll)]
