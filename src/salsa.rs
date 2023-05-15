@@ -407,6 +407,20 @@ pub trait SalsaContract<ContractReader>:
         }
     }
 
+    #[only_owner]
+    #[endpoint(setArbitrageActive)]
+    fn set_arbitrage_active(&self) {
+        require!(!self.provider_address().is_empty(), ERROR_PROVIDER_NOT_SET);
+        require!(!self.liquid_token_id().is_empty(), ERROR_TOKEN_NOT_SET);
+        
+        let pair_id = self.onedex_pair_id().get();
+        require!(pair_id > 0, ERROR_ONEDEX_PAIR_ID);
+
+        let fee = self.get_onedex_fee();
+        self.onedex_fee().set(fee);
+        self.arbitrage().set(State::Active);
+    }
+
     // proxy
 
     #[proxy]

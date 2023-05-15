@@ -51,7 +51,7 @@ type accountKey struct {
 }
 
 const (
-	scAddress = "erd1qqqqqqqqqqqqqpgqx20lxjcfven6mgxelse5g4frumda2gn5vcqsjsuqjs"
+	scAddress = "erd1qqqqqqqqqqqqqpgqpk3qzj86tme9kzxdq87f2rdf5nlwsgvjvcqs5hke3x"
 	// proxyAddress = "http://localhost:8079"
 	proxyAddress = "http://95.216.220.113:8079"
 	// proxyAddress = "https://devnet-gateway.multiversx.com"
@@ -476,7 +476,7 @@ func main() {
 	// }
 	// time.Sleep(time.Second * 30)
 
-	// err = scenario1()
+	err = scenario1()
 	// if err != nil {
 	// 	fmt.Println(err)
 	// }
@@ -511,17 +511,17 @@ func main() {
 	// }
 
 	// STRESS TEST
-	for {
-		for i := 0; i < testN; i++ {
-			go func(i int) {
-				err = test(i)
-				if err != nil {
-					fmt.Println(err)
-				}
-			}(i)
-		}
-		time.Sleep(time.Minute * 30)
-	}
+	// for {
+	// 	for i := 0; i < testN; i++ {
+	// 		go func(i int) {
+	// 			err = test(i)
+	// 			if err != nil {
+	// 				fmt.Println(err)
+	// 			}
+	// 		}(i)
+	// 	}
+	// 	time.Sleep(time.Minute * 30)
+	// }
 }
 
 func queryVM(scAddress, funcName string, args []string) ([]byte, error) {
@@ -606,6 +606,7 @@ func getAccountKey(address string, key string) ([]byte, error) {
 
 func initSC() error {
 	var err error
+
 	allKeys, err = getAccountKeys(scAddress, "")
 	if err != nil {
 		return err
