@@ -33,27 +33,19 @@ pub trait SalsaContract<ContractReader>:
         );
 
         let caller = self.blockchain().get_caller();
-        let liquid_token_id = self.liquid_token_id().get_token_id();
-        let salsa_amount_out = self.add_liquidity(&delegate_amount, false);
+        let delegation_contract = self.provider_address().get();
+        let gas_for_async_call = self.get_gas_for_async_call();
 
-        if delegate_amount > 0 {
-            // normal delegate
-            let delegation_contract = self.provider_address().get();
-            let gas_for_async_call = self.get_gas_for_async_call();
-
-            self.delegation_proxy_obj()
-                .contract(delegation_contract)
-                .delegate()
-                .with_gas_limit(gas_for_async_call)
-                .with_egld_transfer(delegate_amount.clone())
-                .async_call()
-                .with_callback(
-                    SalsaContract::callbacks(self).delegate_callback(caller, delegate_amount),
-                )
-                .call_and_exit()
-        } else {
-            EsdtTokenPayment::new(liquid_token_id, 0, salsa_amount_out)
-        }
+        self.delegation_proxy_obj()
+            .contract(delegation_contract)
+            .delegate()
+            .with_gas_limit(gas_for_async_call)
+            .with_egld_transfer(delegate_amount.clone())
+            .async_call()
+            .with_callback(
+                SalsaContract::callbacks(self).delegate_callback(caller, delegate_amount),
+            )
+            .call_and_exit()
     }
 
     #[callback]
@@ -93,16 +85,13 @@ pub trait SalsaContract<ContractReader>:
         );
         require!(payment.amount > 0u64, ERROR_BAD_PAYMENT_AMOUNT);
 
-        if payment.amount > 0 {
-            // normal undelegate
-            let egld_to_undelegate = self.remove_liquidity(&payment.amount, true);
-            self.burn_liquid_token(&payment.amount);
-            let current_epoch = self.blockchain().get_block_epoch();
-            let unbond_epoch = current_epoch + self.unbond_period().get();
-            self.users_egld_to_undelegate()
-                .update(|value| *value += &egld_to_undelegate);
-            self.add_user_undelegation(egld_to_undelegate, unbond_epoch);
-        }
+        let egld_to_undelegate = self.remove_liquidity(&payment.amount, true);
+        self.burn_liquid_token(&payment.amount);
+        let current_epoch = self.blockchain().get_block_epoch();
+        let unbond_epoch = current_epoch + self.unbond_period().get();
+        self.users_egld_to_undelegate()
+            .update(|value| *value += &egld_to_undelegate);
+        self.add_user_undelegation(egld_to_undelegate, unbond_epoch);
     }
 
     fn add_user_undelegation(&self, amount: BigUint, unbond_epoch: u64) {
