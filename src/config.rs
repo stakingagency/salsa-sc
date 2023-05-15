@@ -37,8 +37,22 @@ pub trait ConfigModule:
             token_display_name,
             token_ticker,
             num_decimals,
-            None,
+            Some(ConfigModule::callbacks(self).issue_callback()),
         );
+    }
+
+    #[callback]
+    fn issue_callback(&self, #[call_result] result: ManagedAsyncCallResult<TokenIdentifier>) {
+        match result {
+            ManagedAsyncCallResult::Ok(token_id) => {
+                let liquid_token_id = self.liquid_token_id();
+                if liquid_token_id.is_empty() {
+                    self.liquid_token_id().set_token_id(token_id);
+                }
+            }
+            ManagedAsyncCallResult::Err(_) => {
+            }
+        }
     }
 
     #[view(getLiquidTokenId)]
