@@ -116,61 +116,12 @@ pub trait SalsaContract<ContractReader>:
         // normal undelegate
         let egld_to_undelegate = self.remove_liquidity(&payment.amount, true);
         self.burn_liquid_token(&payment.amount);
-        let current_epoch = self.blockchain().get_block_epoch();
-        let unbond_epoch = current_epoch + self.unbond_period().get();
-        self.users_egld_to_undelegate()
+        self.egld_to_undelegate()
             .update(|value| *value += &egld_to_undelegate);
-        self.add_user_undelegation(egld_to_undelegate, unbond_epoch);
-    }
-
-    fn add_user_undelegation(&self, amount: BigUint, unbond_epoch: u64) {
-        let user = self.blockchain().get_caller();
-        let mut user_undelegations = self.user_undelegations(&user).get();
-        let undelegation = Undelegation {
-            amount: amount.clone(),
-            unbond_epoch,
-        };
-        let mut found = false;
-        let mut idx = 0;
-        for mut user_undelegation in user_undelegations.into_iter() {
-            if user_undelegation.unbond_epoch == unbond_epoch {
-                user_undelegation.amount += &amount;
-                let _ = user_undelegations.set(idx, &user_undelegation);
-                found = true;
-                break;
-            }
-            idx += 1;
+        let current_epoch = self.blockchain().get_block_epoch();
+        let unbond_period = current_epoch + self.unbond_period().get();
+        self.add_user_undelegation(egld_to_undelegate, unbond_period);
         }
-        if !found {
-            require!(
-                user_undelegations.len() < MAX_USER_UNDELEGATIONS,
-                ERROR_TOO_MANY_UNDELEGATIONS
-            );
-            user_undelegations.push(undelegation.clone());
-        }
-        self.user_undelegations(&user).set(user_undelegations);
-
-        let mut total_user_undelegations = self.total_user_undelegations().get();
-        found = false;
-        idx = 0;
-        for mut total_user_undelegation in total_user_undelegations.into_iter() {
-            if total_user_undelegation.unbond_epoch == unbond_epoch {
-                total_user_undelegation.amount += &amount;
-                let _ = total_user_undelegations.set(idx, &total_user_undelegation);
-                found = true;
-                break;
-            }
-            idx += 1;
-        }
-        if !found {
-            require!(
-                total_user_undelegations.len() < MAX_EPOCH_UNDELEGATIONS,
-                ERROR_TOO_MANY_UNDELEGATIONS
-            );
-            total_user_undelegations.push(undelegation);
-        }
-        self.total_user_undelegations().set(total_user_undelegations);
-    }
 
     #[endpoint(withdraw)]
     fn withdraw(&self) {
@@ -347,39 +298,72 @@ pub trait SalsaContract<ContractReader>:
         // add to reserve undelegations
         let current_epoch = self.blockchain().get_block_epoch();
         let unbond_epoch = current_epoch + self.unbond_period().get();
-        let mut reserve_undelegations = self.reserve_undelegations().get();
-        let mut found = false;
-        let mut idx = 0;
-        for mut reserve_undelegation in reserve_undelegations.into_iter() {
-            if reserve_undelegation.unbond_epoch == unbond_epoch {
-                reserve_undelegation.amount += &egld_to_undelegate;
-                let _ = reserve_undelegations.set(idx, &reserve_undelegation);
-                found = true;
-                break;
-            }
-            idx += 1;
-        }
-        if !found {
-            require!(
-                reserve_undelegations.len() < MAX_EPOCH_UNDELEGATIONS,
-                ERROR_TOO_MANY_UNDELEGATIONS
-            );
-            let undelegation = Undelegation {
-                amount: egld_to_undelegate.clone(),
-                unbond_epoch,
-            };
-            reserve_undelegations.push(undelegation);
-        }
-        self.reserve_undelegations().set(reserve_undelegations);
+        let reserve_undelegations = self.reserve_undelegations().get();
+        let new_reserve_undelegations = self.add_undelegation(
+            egld_to_undelegate.clone(), unbond_epoch, reserve_undelegations
+        );
+        self.reserve_undelegations().set(new_reserve_undelegations);
 
         // update storage
-        self.egld_to_replenish_reserve()
+        self.egld_to_undelegate()
             .update(|value| *value += &egld_to_undelegate);
         self.available_egld_reserve().update(|value| *value -= &egld_to_undelegate_with_fee);
         let total_rewards = &egld_to_undelegate - &egld_to_undelegate_with_fee;
         self.egld_reserve().update(|value| *value += &total_rewards);
 
         self.send().direct_egld(&caller, &egld_to_undelegate_with_fee);
+    }
+
+    fn add_undelegation(
+        &self,
+        amount: BigUint,
+        unbond_epoch: u64,
+        undelegations: ManagedVec<Self::Api, Undelegation<Self::Api>>
+    ) -> ManagedVec<Self::Api, Undelegation<Self::Api>> {
+        let current_epoch = self.blockchain().get_block_epoch();
+        let new_undelegation = Undelegation {
+            amount: amount.clone(),
+            unbond_epoch,
+        };
+        let mut found = false;
+        let mut withdrawable_amount = BigUint::zero();
+        let mut remaining_undelegations: ManagedVec<Self::Api, Undelegation<Self::Api>> =
+            ManagedVec::new();
+        for mut undelegation in undelegations.into_iter() {
+            if undelegation.unbond_epoch == unbond_epoch {
+                undelegation.amount += &amount;
+                found = true;
+            }
+            if undelegation.unbond_epoch <= current_epoch {
+                withdrawable_amount += undelegation.amount;
+            } else {
+                remaining_undelegations.push(undelegation);
+            }
+        }
+        if withdrawable_amount > 0 {
+            let merged_undelegation = Undelegation {
+                amount: withdrawable_amount,
+                unbond_epoch: current_epoch,
+            };
+            remaining_undelegations.push(merged_undelegation);
+        }
+        if !found {
+            remaining_undelegations.push(new_undelegation);
+        }
+        
+        remaining_undelegations
+    }
+
+    fn add_user_undelegation(&self, amount: BigUint, unbond_epoch: u64) {
+        let user = self.blockchain().get_caller();
+
+        let mut undelegations = self.user_undelegations(&user).get();
+        let mut new_undelegations = self.add_undelegation(amount.clone(), unbond_epoch, undelegations);
+        self.user_undelegations(&user).set(new_undelegations);
+
+        undelegations = self.total_user_undelegations().get();
+        new_undelegations = self.add_undelegation(amount.clone(), unbond_epoch, undelegations);
+        self.total_user_undelegations().set(new_undelegations);
     }
 
     // endpoints: admin
