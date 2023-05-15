@@ -104,6 +104,7 @@ pub trait ConfigModule:
             period > 0 && period <= MAX_UNBOND_PERIOD,
             ERROR_UNBOND_PERIOD_NOT_SET
         );
+        require!(self.unbond_period().get() == 0, ERROR_UNBOND_PERIOD_ALREADY_SET);
 
         self.unbond_period().set(period);
     }
@@ -139,8 +140,8 @@ pub trait ConfigModule:
     #[storage_mapper("total_user_undelegations")]
     fn total_user_undelegations(&self) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
 
-    #[storage_mapper("users_egld_to_undelegate")]
-    fn users_egld_to_undelegate(&self) -> SingleValueMapper<BigUint>;
+    #[storage_mapper("egld_to_undelegate")]
+    fn egld_to_undelegate(&self) -> SingleValueMapper<BigUint>;
 
     // reserves
 
@@ -176,9 +177,6 @@ pub trait ConfigModule:
     #[view(getUndelegateNowFee)]
     #[storage_mapper("undelegate_now_fee")]
     fn undelegate_now_fee(&self) -> SingleValueMapper<u64>;
-
-    #[storage_mapper("egld_to_replenish_reserve")]
-    fn egld_to_replenish_reserve(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getReservePointsAmount)]
     fn get_reserve_points_amount(&self, egld_amount: &BigUint) -> BigUint {
