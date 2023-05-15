@@ -50,8 +50,7 @@ pub trait ConfigModule:
                     self.liquid_token_id().set_token_id(token_id);
                 }
             }
-            ManagedAsyncCallResult::Err(_) => {
-            }
+            ManagedAsyncCallResult::Err(_) => {}
         }
     }
 
