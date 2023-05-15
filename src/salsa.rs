@@ -32,10 +32,11 @@ pub trait SalsaContract<ContractReader>:
             ERROR_INSUFFICIENT_AMOUNT
         );
 
+        let ls_amount = self.add_liquidity(&delegate_amount, true);
+
         let caller = self.blockchain().get_caller();
         let delegation_contract = self.provider_address().get();
         let gas_for_async_call = self.get_gas_for_async_call();
-
         self.delegation_proxy_obj()
             .contract(delegation_contract)
             .delegate()
@@ -43,7 +44,7 @@ pub trait SalsaContract<ContractReader>:
             .with_egld_transfer(delegate_amount.clone())
             .async_call()
             .with_callback(
-                SalsaContract::callbacks(self).delegate_callback(caller, delegate_amount),
+                SalsaContract::callbacks(self).delegate_callback(caller, delegate_amount, ls_amount),
             )
             .call_and_exit()
     }
@@ -53,12 +54,12 @@ pub trait SalsaContract<ContractReader>:
         &self,
         caller: ManagedAddress,
         staked_tokens: BigUint,
+        liquid_tokens: BigUint,
         #[call_result] result: ManagedAsyncCallResult<()>,
     ) {
         match result {
             ManagedAsyncCallResult::Ok(()) => {
-                let ls_amount = self.add_liquidity(&staked_tokens, true);
-                let user_payment = self.mint_liquid_token(ls_amount);
+                let user_payment = self.mint_liquid_token(liquid_tokens);
                 self.send().direct_esdt(
                     &caller,
                     &user_payment.token_identifier,
@@ -67,6 +68,10 @@ pub trait SalsaContract<ContractReader>:
                 );
             }
             ManagedAsyncCallResult::Err(_) => {
+                self.total_egld_staked()
+                    .update(|value| *value -= &staked_tokens);
+                self.liquid_token_supply()
+                    .update(|value| *value -= liquid_tokens);
                 self.send().direct_egld(&caller, &staked_tokens);
             }
         }
