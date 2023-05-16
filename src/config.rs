@@ -33,7 +33,7 @@ pub trait ConfigModule:
 
         let payment_amount = self.call_value().egld_value();
         self.liquid_token_id().issue_and_set_all_roles(
-            payment_amount,
+            payment_amount.clone_value(),
             token_display_name,
             token_ticker,
             num_decimals,

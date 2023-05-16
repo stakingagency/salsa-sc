@@ -44,6 +44,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
+name = "delegation-mock"
+version = "0.0.0"
+dependencies = [
+ "itertools",
+ "multiversx-sc",
+]
+
+[[package]]
+name = "either"
+version = "1.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7fcaabb2fef8c910e7f4c7ce9f67a1283a1715879a7c230ca9d6d1ae31f16d91"
+
+[[package]]
 name = "endian-type"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -71,6 +85,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ebdb29d2ea9ed0083cd8cece49bbd968021bd99b0849edb4a9a7ee0fdf6a4e0"
 
 [[package]]
+name = "itertools"
+version = "0.10.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.141"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -84,9 +107,9 @@ checksum = "8452105ba047068f40ff7093dd1d9da90898e63dd61736462e9cdda6a90ad3c3"
 
 [[package]]
 name = "multiversx-sc"
-version = "0.39.8"
+version = "0.41.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31561133b64837f1a7835ae4ba96383ab07d9ce401e703ad2a37aef45789a1e7"
+checksum = "842795458f7aa56ca04191993628980987baa8558357f708a93514c1b2e9948a"
 dependencies = [
  "bitflags",
  "hashbrown",
@@ -121,9 +144,9 @@ dependencies = [
 
 [[package]]
 name = "multiversx-sc-derive"
-version = "0.39.8"
+version = "0.41.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23187464277575f8055c92cffbd664592825591f5cebb8dae038d2af04c5e639"
+checksum = "99390a0cc0406e86993772bdf16c6be4e990117f939df94a6a6e2f89d18c4983"
 dependencies = [
  "hex",
  "proc-macro2",
@@ -134,21 +157,20 @@ dependencies = [
 
 [[package]]
 name = "multiversx-sc-modules"
-version = "0.39.8"
+version = "0.41.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dbcb0b06f37396484f01d89295091db401b8b515ab781e3580a6bb333e912591"
+checksum = "bf2f13e0d94bd5e2d1b0c1b1f31ffe7ef223d396a4b939d46a66c3519557d0a3"
 dependencies = [
  "multiversx-sc",
 ]
 
 [[package]]
 name = "multiversx-sc-wasm-adapter"
-version = "0.39.8"
+version = "0.41.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af5fee54f1498ec8181593cd54a96ef7436543ad78848e2e805b9b62c27c4095"
+checksum = "70852439508cfbbc1d92f11210f76c8c1ca2a8869fe8cbd316c2a82518c58249"
 dependencies = [
  "multiversx-sc",
- "wee_alloc",
 ]
 
 [[package]]
@@ -207,6 +229,7 @@ dependencies = [
 name = "salsa"
 version = "0.0.1"
 dependencies = [
+ "delegation-mock",
  "multiversx-sc",
  "multiversx-sc-modules",
 ]
