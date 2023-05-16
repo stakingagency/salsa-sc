@@ -5,8 +5,8 @@ multiversx_sc::imports!();
 pub mod common;
 pub mod proxies;
 mod liquidity;
-mod service;
-mod onedex;
+pub mod service;
+pub mod onedex;
 
 use crate::{common::config::*, common::consts::*, common::errors::*};
 
