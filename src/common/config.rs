@@ -226,6 +226,9 @@ pub trait ConfigModule:
         self.get_reserve_egld_amount(&user_points)
     }
 
+    #[storage_mapper("add_reserve_epoch")]
+    fn add_reserve_epoch(&self, user: &ManagedAddress) -> SingleValueMapper<u64>;
+
     // arbitrage
 
     #[only_owner]

@@ -19,3 +19,4 @@ pub static ERROR_DUST_REMAINING: &[u8] = b"Can't leave dust";
 pub static ERROR_ARBITRAGE_ISSUE: &[u8] = b"Arbitrage issue";
 pub static ERROR_ONEDEX_PAIR_ID: &[u8] = b"OneDex pair ID not set";
 pub static ERROR_FEE_ZERO: &[u8] = b"Fee can't be zero";
+pub static ERROR_REMOVE_RESERVE_TOO_SOON: &[u8] = b"You can remove reserve only 1 epoch after add";
