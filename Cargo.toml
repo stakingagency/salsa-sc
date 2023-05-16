@@ -19,3 +19,14 @@ version = "0.39.8"
 
 [dev-dependencies.multiversx-sc-scenario]
 version = "0.39.8"
+
+[dependencies.delegation-mock]
+path = "./delegation-mock"
+
+[workspace]
+members = [
+    ".",
+    "./meta",
+    "delegation-mock",
+    "delegation-mock/meta"
+]

@@ -1,0 +1,16 @@
+[package]
+name = "delegation-mock"
+version = "0.0.0"
+authors = [ "Sorin Petreasca <sorin.petreasca@multiversx.com>",]
+edition = "2021"
+publish = false
+
+[lib]
+path = "src/delegation.rs"
+
+[dependencies.multiversx-sc]
+version = "0.39.8"
+
+[dependencies.itertools]
+version = "0.10.1"
+default-features = false

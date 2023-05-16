@@ -241,6 +241,7 @@ pub trait SalsaContract<ContractReader>:
 
         let fee = self.undelegate_now_fee().get();
         let caller = self.blockchain().get_caller();
+        let total_egld_staked = self.total_egld_staked().get();
 
         let egld_to_undelegate = self.remove_liquidity(&payment.amount, true);
         self.burn_liquid_token(&payment.amount);
@@ -250,7 +251,6 @@ pub trait SalsaContract<ContractReader>:
         );
 
         let available_egld_reserve = self.available_egld_reserve().get();
-        let total_egld_staked = self.total_egld_staked().get();
         let egld_to_undelegate_with_fee =
             egld_to_undelegate.clone() - egld_to_undelegate.clone() * fee / MAX_PERCENT;
         require!(
