@@ -178,6 +178,9 @@ pub trait SalsaContract<ContractReader>:
             ERROR_REMOVE_RESERVE_TOO_SOON
         );
 
+        if add_reserve_epoch > 0 {
+            self.add_reserve_epoch(&caller).clear();
+        }
         let old_reserve_points = self.users_reserve_points(&caller).get();
         let old_reserve = self.get_reserve_egld_amount(&old_reserve_points);
         require!(old_reserve > 0, ERROR_USER_NOT_PROVIDER);
@@ -231,9 +234,6 @@ pub trait SalsaContract<ContractReader>:
         self.available_egld_reserve().update(|value| *value -= &egld_to_remove);
         self.users_reserve_points(&caller)
             .update(|value| *value -= &points_to_remove);
-        if old_reserve_points == points_to_remove {
-            self.add_reserve_epoch(&caller).clear();
-        }
         self.reserve_points()
             .update(|value| *value -= &points_to_remove);
         self.send().direct_egld(&caller, &egld_to_remove);
@@ -413,7 +413,7 @@ pub trait SalsaContract<ContractReader>:
                 .with_gas_limit(gas_for_async_call)
                 .async_call()
                 .with_callback(
-                    SalsaContract::callbacks(self).compound_callback(),
+                    SalsaContract::callbacks(self).compound_callback(claimable_rewards_amount),
                 )
                 .call_and_exit()
         }
@@ -435,12 +435,16 @@ pub trait SalsaContract<ContractReader>:
     }
 
     #[callback]
-    fn compound_callback(&self, #[call_result] result: ManagedAsyncCallResult<()>) {
+    fn compound_callback(
+        &self,
+        claimable_rewards: BigUint,
+        #[call_result] result: ManagedAsyncCallResult<()>,
+    ) {
         match result {
             ManagedAsyncCallResult::Ok(()) => {
-                let claimable_rewards = self.claimable_rewards_amount().take();
                 self.total_egld_staked()
                     .update(|value| *value += claimable_rewards);
+                self.claimable_rewards_amount().clear();
             }
             ManagedAsyncCallResult::Err(_) => {}
         }
