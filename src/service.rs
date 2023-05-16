@@ -77,7 +77,7 @@ pub trait ServiceModule:
                 .with_gas_limit(gas_for_async_call)
                 .async_call()
                 .with_callback(
-                    ServiceModule::callbacks(self).compound_callback(),
+                    ServiceModule::callbacks(self).compound_callback(claimable_rewards_amount),
                 )
                 .call_and_exit()
         }
@@ -99,12 +99,16 @@ pub trait ServiceModule:
     }
 
     #[callback]
-    fn compound_callback(&self, #[call_result] result: ManagedAsyncCallResult<()>) {
+    fn compound_callback(
+        &self,
+        claimable_rewards: BigUint,
+        #[call_result] result: ManagedAsyncCallResult<()>,
+    ) {
         match result {
             ManagedAsyncCallResult::Ok(()) => {
-                let claimable_rewards = self.claimable_rewards_amount().take();
                 self.total_egld_staked()
                     .update(|value| *value += claimable_rewards);
+                self.claimable_rewards_amount().clear();
             }
             ManagedAsyncCallResult::Err(_) => {}
         }
