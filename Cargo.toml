@@ -22,3 +22,14 @@ version = "0.41.1"
 
 [dependencies]
 hex-literal = "0.3.1"
+
+[dependencies.delegation-mock]
+path = "./delegation-mock"
+
+[workspace]
+members = [
+    ".",
+    "./meta",
+    "delegation-mock",
+    "delegation-mock/meta"
+]
