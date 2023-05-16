@@ -19,7 +19,7 @@ pub trait DelegationMock {
     fn deposit_egld(&self) {
         let payment_amount = self.call_value().egld_value();
         self.egld_token_supply()
-            .update(|value| *value += &payment_amount);
+            .update(|value| *value += payment_amount.clone_value());
     }
 
     #[payable("EGLD")]
@@ -28,9 +28,9 @@ pub trait DelegationMock {
         let caller = self.blockchain().get_caller();
         let payment_amount = self.call_value().egld_value();
         self.address_deposit(&caller)
-            .update(|value| *value += &payment_amount);
+            .update(|value| *value += payment_amount.clone_value());
         self.egld_token_supply()
-            .update(|value| *value += &payment_amount);
+            .update(|value| *value += payment_amount.clone_value());
     }
 
     #[endpoint(unDelegate)]

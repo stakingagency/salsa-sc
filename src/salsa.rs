@@ -28,7 +28,7 @@ pub trait SalsaContract<ContractReader>:
 
         let delegate_amount = self.call_value().egld_value();
         require!(
-            delegate_amount >= MIN_EGLD,
+            delegate_amount.clone_value() >= MIN_EGLD,
             ERROR_INSUFFICIENT_AMOUNT
         );
 
@@ -41,10 +41,10 @@ pub trait SalsaContract<ContractReader>:
             .contract(delegation_contract)
             .delegate()
             .with_gas_limit(gas_for_async_call)
-            .with_egld_transfer(delegate_amount.clone())
+            .with_egld_transfer(delegate_amount.clone_value())
             .async_call()
             .with_callback(
-                SalsaContract::callbacks(self).delegate_callback(caller, delegate_amount, ls_amount),
+                SalsaContract::callbacks(self).delegate_callback(caller, delegate_amount.clone_value(), ls_amount),
             )
             .call_and_exit()
     }
@@ -148,7 +148,7 @@ pub trait SalsaContract<ContractReader>:
         let caller = self.blockchain().get_caller();
         let reserve_amount = self.call_value().egld_value();
         require!(
-            reserve_amount >= MIN_EGLD,
+            reserve_amount.clone_value() >= MIN_EGLD,
             ERROR_INSUFFICIENT_AMOUNT
         );
 
@@ -159,8 +159,8 @@ pub trait SalsaContract<ContractReader>:
         self.reserve_points()
             .update(|value| *value += user_reserve_points);
 
-        self.egld_reserve().update(|value| *value += &reserve_amount);
-        self.available_egld_reserve().update(|value| *value += reserve_amount);
+        self.egld_reserve().update(|value| *value += reserve_amount.clone_value());
+        self.available_egld_reserve().update(|value| *value += reserve_amount.clone_value());
     }
 
     #[endpoint(removeReserve)]
@@ -455,7 +455,7 @@ pub trait SalsaContract<ContractReader>:
             ManagedAsyncCallResult::Ok(()) => {
                 let withdrawn_amount = self.call_value().egld_value();
                 self.total_withdrawn_egld()
-                    .update(|value| *value += withdrawn_amount);
+                    .update(|value| *value += withdrawn_amount.clone_value());
             }
             ManagedAsyncCallResult::Err(_) => {}
         }
