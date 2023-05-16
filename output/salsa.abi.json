@@ -13,7 +13,7 @@
         },
         "framework": {
             "name": "multiversx-sc",
-            "version": "0.39.8"
+            "version": "0.41.1"
         }
     },
     "name": "SalsaContract",

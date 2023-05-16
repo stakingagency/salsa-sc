@@ -30,7 +30,8 @@ pub trait SalsaContract<ContractReader>:
     fn delegate(&self) -> EsdtTokenPayment<Self::Api> {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
-        let mut delegate_amount = self.call_value().egld_value();
+        let call_value = self.call_value().egld_value();
+        let mut delegate_amount = call_value.clone_value();
         require!(
             delegate_amount >= MIN_EGLD,
             ERROR_INSUFFICIENT_AMOUNT
@@ -44,7 +45,7 @@ pub trait SalsaContract<ContractReader>:
         let sold_amount = self.do_arbitrage_on_onedex(
             &TokenIdentifier::from(WEGLD_ID), &delegate_amount, &salsa_amount_out
         );
-        delegate_amount -= sold_amount;
+        delegate_amount -= &sold_amount;
 
         if delegate_amount > 0 {
             // normal delegate
@@ -175,7 +176,8 @@ pub trait SalsaContract<ContractReader>:
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         let caller = self.blockchain().get_caller();
-        let reserve_amount = self.call_value().egld_value();
+        let call_value = self.call_value().egld_value();
+        let reserve_amount = call_value.clone_value();
         require!(
             reserve_amount >= MIN_EGLD,
             ERROR_INSUFFICIENT_AMOUNT
@@ -282,6 +284,7 @@ pub trait SalsaContract<ContractReader>:
         };
 
         // normal unDelegateNow
+        let total_egld_staked = self.total_egld_staked().get();
         let egld_to_undelegate = self.remove_liquidity(&payment.amount, true);
         self.burn_liquid_token(&payment.amount);
         require!(
@@ -290,7 +293,6 @@ pub trait SalsaContract<ContractReader>:
         );
 
         let available_egld_reserve = self.available_egld_reserve().get();
-        let total_egld_staked = self.total_egld_staked().get();
         let egld_to_undelegate_with_fee =
             egld_to_undelegate.clone() - egld_to_undelegate.clone() * fee / MAX_PERCENT;
         require!(

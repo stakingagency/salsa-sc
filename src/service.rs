@@ -132,7 +132,7 @@ pub trait ServiceModule:
             ManagedAsyncCallResult::Ok(()) => {
                 let withdrawn_amount = self.call_value().egld_value();
                 self.total_withdrawn_egld()
-                    .update(|value| *value += withdrawn_amount);
+                    .update(|value| *value += withdrawn_amount.clone_value());
             }
             ManagedAsyncCallResult::Err(_) => {}
         }
