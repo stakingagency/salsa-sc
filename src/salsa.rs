@@ -146,6 +146,9 @@ pub trait SalsaContract<ContractReader>:
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         let caller = self.blockchain().get_caller();
+        let current_epoch = self.blockchain().get_block_epoch();
+        self.add_reserve_epoch(&caller).set(current_epoch);
+
         let reserve_amount = self.call_value().egld_value();
         require!(
             reserve_amount.clone_value() >= MIN_EGLD,
@@ -168,6 +171,13 @@ pub trait SalsaContract<ContractReader>:
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         let caller = self.blockchain().get_caller();
+        let current_epoch = self.blockchain().get_block_epoch();
+        let add_reserve_epoch = self.add_reserve_epoch(&caller).get();
+        require!(
+            add_reserve_epoch < current_epoch,
+            ERROR_REMOVE_RESERVE_TOO_SOON
+        );
+
         let old_reserve_points = self.users_reserve_points(&caller).get();
         let old_reserve = self.get_reserve_egld_amount(&old_reserve_points);
         require!(old_reserve > 0, ERROR_USER_NOT_PROVIDER);
@@ -221,6 +231,9 @@ pub trait SalsaContract<ContractReader>:
         self.available_egld_reserve().update(|value| *value -= &egld_to_remove);
         self.users_reserve_points(&caller)
             .update(|value| *value -= &points_to_remove);
+        if old_reserve_points == points_to_remove {
+            self.add_reserve_epoch(&caller).clear();
+        }
         self.reserve_points()
             .update(|value| *value -= &points_to_remove);
         self.send().direct_egld(&caller, &egld_to_remove);
