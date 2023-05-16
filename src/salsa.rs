@@ -539,6 +539,36 @@ pub trait SalsaContract<ContractReader>:
             .set(&total_withdrawn_egld);
     }
 
+    #[only_owner]
+    #[endpoint(updateTotalEgldStaked)]
+    fn update_total_egld_staked(&self) {
+        require!(!self.is_state_active(), ERROR_ACTIVE);
+
+        let delegation_contract = self.provider_address().get();
+        let this_contract = self.blockchain().get_sc_address();
+        let gas_for_async_call = self.get_gas_for_async_call();
+
+        self.delegation_proxy_obj()
+            .contract(delegation_contract)
+            .get_user_active_stake(this_contract)
+            .with_gas_limit(gas_for_async_call)
+            .async_call()
+            .with_callback(SalsaContract::callbacks(self).update_egld_staked_callback())
+            .call_and_exit()
+    }
+
+    #[callback]
+    fn update_egld_staked_callback(&self, #[call_result] result: ManagedAsyncCallResult<BigUint>) {
+        match result {
+            ManagedAsyncCallResult::Ok(total_stake) => {
+                require!(!self.is_state_active(), ERROR_ACTIVE);
+
+                self.total_egld_staked().set(total_stake);
+            }
+            ManagedAsyncCallResult::Err(_) => {}
+        }
+    }
+    
     // helpers
 
     fn get_gas_for_async_call(&self) -> u64 {

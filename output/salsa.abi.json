@@ -104,6 +104,13 @@
             "outputs": []
         },
         {
+            "name": "updateTotalEgldStaked",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
             "name": "registerLiquidToken",
             "onlyOwner": true,
             "mutability": "mutable",
