@@ -49,7 +49,7 @@ type accountKey struct {
 }
 
 const (
-	scAddress = "erd1qqqqqqqqqqqqqpgqx20lxjcfven6mgxelse5g4frumda2gn5vcqsjsuqjs"
+	scAddress = "erd1qqqqqqqqqqqqqpgqpk3qzj86tme9kzxdq87f2rdf5nlwsgvjvcqs5hke3x"
 	// proxyAddress = "http://localhost:8079"
 	// proxyAddress = "http://193.70.44.72:8079"
 	proxyAddress = "https://devnet-gateway.multiversx.com"
@@ -217,15 +217,15 @@ func test(idx int) error {
 
 	tNonce := tAccount.Nonce
 
-	for i := 0; i < 1; i++ {
-		op := rand.Intn(1)
+	for i := 0; i < 20; i++ {
+		op := rand.Intn(10)
 		switch op {
 		case 0:
 			if err = delegate(big.NewInt(2000000000000000000), 50000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 1:
-			if err = addReserve(big.NewInt(2000000000000000000), 10000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = addReserve(big.NewInt(2000000000000000000), 20000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 2:
@@ -240,7 +240,7 @@ func test(idx int) error {
 				i--
 				continue
 			}
-			if err = unDelegate(big.NewInt(1000000000000000000), 50000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = unDelegate(big.NewInt(1000000000000000000), 40000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 3:
@@ -255,7 +255,7 @@ func test(idx int) error {
 				i--
 				continue
 			}
-			if err = removeReserve(big.NewInt(1000000000000000000), 10000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = removeReserve(big.NewInt(1000000000000000000), 20000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 4:
@@ -270,23 +270,27 @@ func test(idx int) error {
 				i--
 				continue
 			}
-			if err = unDelegateNow(big.NewInt(1000000000000000000), 250000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = unDelegateNow(big.NewInt(1000000000000000000), 40000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 5:
-			if err = withdraw(50000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = withdraw(40000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 6:
-			if err = withdrawAll(100000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = withdrawAll(40000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 7:
-			if err = compound(100000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = compound(30000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 8:
-			if err = undelegateReserves(100000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = unDelegateAll(30000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+				return err
+			}
+		case 9:
+			if err = computeWithdrawn(20000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		}
@@ -314,33 +318,6 @@ func scenario1() error {
 	// unDelegateNow(big.NewInt(1000000000000000000), 200000000, -1, privateKey, walletAddress)
 
 	return setStateActive(-1)
-
-	// for i := 0; i < 10; i++ {
-	// 	compound(50000000, int64(nonce))
-	// 	nonce++
-	// 	withdrawAll(200000000, int64(nonce))
-	// 	nonce++
-	// 	undelegateReserves(200000000, int64(nonce))
-	// 	nonce++
-	// }
-
-	// go func() {
-	// 	for {
-	// 		undelegateReserves(100000000, -1)
-	// 		time.Sleep(time.Minute * 10)
-	// 	}
-	// }()
-	// time.Sleep(time.Second * 30)
-	// for {
-	// 	compound(100000000, -1)
-	// 	time.Sleep(time.Second * 30)
-
-	// 	updateTotalEgldStaked(100000000, -1)
-	// 	time.Sleep(time.Minute)
-
-	// 	withdrawAll(200000000, -1)
-	// 	time.Sleep(time.Hour*2 - time.Second*84)
-	// }
 
 	// return configSC("TESTTEST", "TEST", 18, "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqx0llllsdx93z0", 2, int64(nonce))
 
@@ -466,23 +443,22 @@ func main() {
 	// 	}
 	// }
 
-	err = scenario1()
+	// err = scenario1()
 	// 	if err != nil {
 	// 		fmt.Println(err)
 	// 	}
 
 	// STRESS TEST
 	// for {
-	// for i := 0; i < testN; i++ {
-	// 	go func(i int) {
-	// 		err = test(i)
-	// 		if err != nil {
-	// 			fmt.Println(err)
-	// 		}
-	// 	}(i)
-	// }
-
-	// time.Sleep(time.Minute * 20)
+	// 	for i := 0; i < testN; i++ {
+	// 		go func(i int) {
+	// 			err = test(i)
+	// 			if err != nil {
+	// 				fmt.Println(err)
+	// 			}
+	// 		}(i)
+	// 	}
+	// 	time.Sleep(time.Minute * 20)
 	// }
 }
 
@@ -958,13 +934,24 @@ func withdrawAll(gas uint64, nonce int64, privateKey []byte, walletAddress strin
 	return nil
 }
 
-func undelegateReserves(gas uint64, nonce int64, privateKey []byte, walletAddress string) error {
-	hash, err := sendTx(big.NewInt(0), gas, "undelegateReserves", nonce, privateKey, walletAddress, "")
+func unDelegateAll(gas uint64, nonce int64, privateKey []byte, walletAddress string) error {
+	hash, err := sendTx(big.NewInt(0), gas, "unDelegateAll", nonce, privateKey, walletAddress, "")
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("undelegateReserves %s\n", hash)
+	fmt.Printf("unDelegateAll %s\n", hash)
+
+	return nil
+}
+
+func computeWithdrawn(gas uint64, nonce int64, privateKey []byte, walletAddress string) error {
+	hash, err := sendTx(big.NewInt(0), gas, "computeWithdrawn", nonce, privateKey, walletAddress, "")
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("computeWithdrawn %s\n", hash)
 
 	return nil
 }
@@ -1159,20 +1146,39 @@ func getUserReserves(walletAddress string) (*big.Int, error) {
 		return nil, err
 	}
 
-	searchKey := hex.EncodeToString(append([]byte("reservers_addresses"), pubkey...))
-	keys, err := getAccountKey(scAddress, searchKey)
+	searchKey := hex.EncodeToString(append([]byte("users_reserve_points"), pubkey...))
+	key, err := getAccountKey(scAddress, searchKey)
 	if err != nil {
 		return nil, err
 	}
 
-	index := big.NewInt(0).SetBytes(keys)
-	searchKey2 := hex.EncodeToString([]byte("users_reserves.item")) + fmt.Sprintf("%.8x", index)
-	keys, err = getAccountKey(scAddress, searchKey2)
+	points := big.NewInt(0).SetBytes(key)
+
+	searchKey = hex.EncodeToString([]byte("reserve_points"))
+	key, err = getAccountKey(scAddress, searchKey)
 	if err != nil {
 		return nil, err
 	}
 
-	return big.NewInt(0).SetBytes(keys), nil
+	totalPoints := big.NewInt(0).SetBytes(key)
+
+	searchKey = hex.EncodeToString([]byte("egld_reserve"))
+	key, err = getAccountKey(scAddress, searchKey)
+	if err != nil {
+		return nil, err
+	}
+
+	totalReserve := big.NewInt(0).SetBytes(key)
+
+	reserve := big.NewInt(0).Set(points)
+	reserve.Mul(reserve, totalReserve)
+	if totalPoints.Cmp(big.NewInt(0)) == 0 {
+		return big.NewInt(0), nil
+	}
+
+	reserve.Quo(reserve, totalPoints)
+
+	return reserve, nil
 }
 
 type tokenBalance struct {
