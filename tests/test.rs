@@ -224,8 +224,8 @@ fn merge_undelegations_test() {
     }
 
     // check undelegations lenghts
-    sc_setup.check_user_undelegations_lenghts(managed_address!(&delegator));
-    sc_setup.check_reserve_undelegations_lenghts();
+    sc_setup.check_user_undelegations_length(managed_address!(&delegator));
+    sc_setup.check_total_undelegations_lengths();
 
     // undelegate all
     sc_setup.undelegate_all_test(&caller);
