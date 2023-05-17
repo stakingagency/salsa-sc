@@ -30,28 +30,14 @@ pub trait ConfigModule:
     ) {
         require!(!self.is_state_active(), ERROR_ACTIVE);
         require!(self.liquid_token_id().is_empty(), ERROR_TOKEN_ALREADY_SET);
-
         let payment_amount = self.call_value().egld_value();
         self.liquid_token_id().issue_and_set_all_roles(
             payment_amount.clone_value(),
             token_display_name,
             token_ticker,
             num_decimals,
-            Some(ConfigModule::callbacks(self).issue_callback()),
+            None,
         );
-    }
-
-    #[callback]
-    fn issue_callback(&self, #[call_result] result: ManagedAsyncCallResult<TokenIdentifier>) {
-        match result {
-            ManagedAsyncCallResult::Ok(token_id) => {
-                let liquid_token_id = self.liquid_token_id();
-                if liquid_token_id.is_empty() {
-                    self.liquid_token_id().set_token_id(token_id);
-                }
-            }
-            ManagedAsyncCallResult::Err(_) => {}
-        }
     }
 
     #[view(getLiquidTokenId)]
@@ -195,10 +181,10 @@ pub trait ConfigModule:
     fn get_reserve_points_amount(&self, egld_amount: &BigUint) -> BigUint {
         let egld_reserve = self.egld_reserve().get();
         let reserve_points = self.reserve_points().get();
-        let mut user_reserve_points = egld_amount.clone();
+        let mut user_reserve_points = egld_amount.clone() * POINTS_PER_EGLD;
         if egld_reserve > 0 {
             if reserve_points == 0 {
-                user_reserve_points += egld_reserve
+                user_reserve_points += egld_reserve * POINTS_PER_EGLD
             } else {
                 user_reserve_points = egld_amount * &reserve_points / &egld_reserve
             }
@@ -211,7 +197,7 @@ pub trait ConfigModule:
     fn get_reserve_egld_amount(&self, points_amount: &BigUint) -> BigUint {
         let egld_reserve = self.egld_reserve().get();
         let reserve_points = self.reserve_points().get();
-        let mut user_egld_amount = points_amount.clone();
+        let mut user_egld_amount = points_amount.clone() / POINTS_PER_EGLD;
         if reserve_points > 0 {
             user_egld_amount = points_amount * &egld_reserve / &reserve_points
         }

@@ -17,3 +17,4 @@ pub static ERROR_NOT_ENOUGH_LIQUID_SUPPLY: &[u8] = b"Not enough liquid token sup
 pub static ERROR_INCORRECT_FEE: &[u8] = b"Fee must be less than 100%";
 pub static ERROR_DUST_REMAINING: &[u8] = b"Can't leave dust";
 pub static ERROR_REMOVE_RESERVE_TOO_SOON: &[u8] = b"You can remove reserve only 1 epoch after add";
+pub static ERROR_FEE_CHANGED: &[u8] = b"Fee changed and you would receive less";

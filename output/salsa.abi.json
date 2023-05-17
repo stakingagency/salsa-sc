@@ -76,7 +76,12 @@
             "payableInTokens": [
                 "*"
             ],
-            "inputs": [],
+            "inputs": [
+                {
+                    "name": "min_amount_out",
+                    "type": "BigUint"
+                }
+            ],
             "outputs": []
         },
         {
@@ -99,13 +104,6 @@
         },
         {
             "name": "computeWithdrawn",
-            "mutability": "mutable",
-            "inputs": [],
-            "outputs": []
-        },
-        {
-            "name": "updateTotalEgldStaked",
-            "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [],
             "outputs": []

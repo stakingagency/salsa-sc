@@ -82,10 +82,11 @@ where
         &mut self,
         sender: &Address,
         amount: num_bigint::BigUint,
+        min_amount: num_bigint::BigUint,
     ) {
         self.blockchain_wrapper
             .execute_esdt_transfer(sender, &self.salsa_wrapper, TOKEN_ID, 0, &amount, |sc| {
-                sc.undelegate_now()
+                sc.undelegate_now(to_managed_biguint(min_amount))
             })
             .assert_ok();
     }
