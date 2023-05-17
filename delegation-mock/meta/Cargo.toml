@@ -10,8 +10,8 @@ authors = [ "Sorin Petreasca <sorin.petreasca@multiversx.com>",]
 [dependencies.delegation-mock]
 path = ".."
 
-[dependencies.elrond-wasm]
-version = "0.38.0"
+[dependencies.multiversx-sc]
+version = "0.41.1"
 
-[dependencies.elrond-wasm-debug]
-version = "0.38.0"
+[dependencies.multiversx-sc-meta]
+version = "0.41.1"
