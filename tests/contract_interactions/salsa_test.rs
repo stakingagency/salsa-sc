@@ -125,4 +125,16 @@ where
             })
             .assert_ok();
     }
+
+    // pub fn compound_test(
+    //     &mut self,
+    //     sender: &Address,
+    // ) {
+    //     let big_zero = rust_biguint!(0);
+    //     self.blockchain_wrapper
+    //         .execute_tx(sender, &self.salsa_wrapper, &big_zero, |sc| {
+    //             sc.compound()
+    //         })
+    //         .assert_ok();
+    // }
 }

@@ -9,7 +9,7 @@ pub const EPOCHS_IN_YEAR: u64 = 365;
 pub const UNBOND_PERIOD: u64 = 10;
 
 #[multiversx_sc::contract]
-pub trait DelegationMock {
+pub trait DelegationMock<ContractReader> {
     #[init]
     fn init(&self) {}
 
@@ -76,8 +76,8 @@ pub trait DelegationMock {
         );
     }
 
-    #[endpoint(claimRewards)]
-    fn claim_rewards(&self) {
+    #[endpoint(reDelegateRewards)]
+    fn redelegate_rewards(&self) {
         let caller = self.blockchain().get_caller();
         let current_epoch = self.blockchain().get_block_epoch();
         let last_claim_epoch = self.address_last_claim_epoch(&caller).get();
@@ -85,14 +85,39 @@ pub trait DelegationMock {
 
         if current_epoch > last_claim_epoch {
             let rewards = (total_deposit * APY / MAX_PERCENTAGE)
-                * (current_epoch - last_claim_epoch)
-                / EPOCHS_IN_YEAR;
+                * (current_epoch - last_claim_epoch) / EPOCHS_IN_YEAR;
             if rewards > 0u64 {
-                self.send().direct_egld(&caller, &rewards);
+                self.address_deposit(&caller)
+                    .update(|value| *value += &rewards);
+                // self.egld_token_supply()
+                //     .update(|value| *value += payment_amount.clone_value());
                 self.address_last_claim_epoch(&caller).set(current_epoch);
-                self.egld_token_supply().update(|value| *value -= &rewards);
             }
         }
+    }
+
+    #[endpoint(getClaimableRewards)]
+    fn get_claimable_rewards(&self) -> BigUint {
+        let caller = self.blockchain().get_caller();
+        let current_epoch = self.blockchain().get_block_epoch();
+        let last_claim_epoch = self.address_last_claim_epoch(&caller).get();
+        let total_deposit = self.address_deposit(&caller).get();
+
+        if current_epoch > last_claim_epoch {
+            let rewards = (total_deposit * APY / MAX_PERCENTAGE)
+                * (current_epoch - last_claim_epoch) / EPOCHS_IN_YEAR;
+
+            rewards
+        } else {
+            BigUint::zero()
+        }
+    }
+
+    #[endpoint(getUserActiveStake)]
+    fn get_user_active_stake(&self) -> BigUint {
+        let caller = self.blockchain().get_caller();
+
+        self.address_deposit(&caller).get()
     }
 
     #[storage_mapper("egldTokenSupply")]

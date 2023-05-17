@@ -23,8 +23,8 @@ panic = "abort"
 [dependencies.delegation-mock]
 path = ".."
 
-[dependencies.elrond-wasm-node]
-version = "0.38.0"
+[dependencies.multiversx-sc-wasm-adapter]
+version = "0.41.1"
 
 [dependencies.elrond-wasm-output]
 version = "0.38.0"

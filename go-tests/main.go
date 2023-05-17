@@ -217,7 +217,7 @@ func test(idx int) error {
 
 	tNonce := tAccount.Nonce
 
-	for i := 0; i < 20; i++ {
+	for i := 0; i < 50; i++ {
 		op := rand.Intn(10)
 		switch op {
 		case 0:

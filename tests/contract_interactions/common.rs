@@ -3,7 +3,8 @@ use salsa::config::ConfigModule;
 
 use multiversx_sc::{
     types::{
-        Address
+        Address,
+        ManagedAddress
     }
 };
 
@@ -107,6 +108,30 @@ where
                     assert_eq!(
                         sc.available_egld_reserve().get(),
                         to_managed_biguint(amount)
+                    );
+                }
+            ).assert_ok();
+    }
+
+    pub fn check_user_undelegations_lenghts(&mut self, user: ManagedAddress<DebugApi>) {
+        self.blockchain_wrapper
+            .execute_query(
+                &self.salsa_wrapper, |sc| {
+                    assert_eq!(
+                        sc.user_undelegations(&user).get().len() <= 11,
+                        true
+                    );
+                }
+            ).assert_ok();
+    }
+
+    pub fn check_reserve_undelegations_lenghts(&mut self) {
+        self.blockchain_wrapper
+            .execute_query(
+                &self.salsa_wrapper, |sc| {
+                    assert_eq!(
+                        sc.reserve_undelegations().get().len() <= 11,
+                        true
                     );
                 }
             ).assert_ok();
