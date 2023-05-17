@@ -99,7 +99,7 @@ fn reserves_test() {
     sc_setup.check_available_egld_reserve(one.clone());
 
     // undelegate now
-    sc_setup.undelegate_now_test(&caller, one.clone());
+    sc_setup.undelegate_now_test(&caller, one.clone(), one_minus_fee.clone());
     sc_setup.blockchain_wrapper.check_egld_balance(&caller, &one_minus_fee);
     sc_setup.blockchain_wrapper.check_esdt_balance(&caller, TOKEN_ID, &big_zero);
     sc_setup.check_available_egld_reserve(rest.clone());
@@ -156,8 +156,8 @@ fn reserve_to_user_undelegation_test() {
     // stake = 5, reserve = 5, available reserve = 5
 
     // undelegate: 1, undelegate now 3
-    sc_setup.undelegate_now_test(&delegator1, one.clone());
-    sc_setup.undelegate_now_test(&delegator2, one.clone() * 2u64);
+    sc_setup.undelegate_now_test(&delegator1, one.clone(), exp(98u64, 16));
+    sc_setup.undelegate_now_test(&delegator2, one.clone() * 2u64, exp(196u64, 16));
     sc_setup.undelegate_test(&delegator2, one.clone());
     // stake = 1, reserve = 5.06, available reserve = 2.06
 
@@ -218,7 +218,7 @@ fn merge_undelegations_test() {
     // undelegate and undelegate now reserve in 15 epochs
     for i in 1u64..16u64 {
         sc_setup.undelegate_test(&delegator, exp(i, 18));
-        sc_setup.undelegate_now_test(&delegator, exp(i, 18));
+        sc_setup.undelegate_now_test(&delegator, exp(i, 18), exp(i * 98u64, 16));
         epoch += 1u64;
         sc_setup.blockchain_wrapper.set_block_epoch(epoch);
     }
