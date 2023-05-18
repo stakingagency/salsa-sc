@@ -89,13 +89,47 @@ where
             ).assert_ok();
     }
 
+    pub fn check_user_reserve(&mut self, user: ManagedAddress<DebugApi>, amount: num_bigint::BigUint) {
+        self.blockchain_wrapper
+            .execute_query(
+                &self.salsa_wrapper, |sc| {
+                    assert_eq!(
+                        sc.get_reserve_egld_amount(&sc.users_reserve_points(&user).get()),
+                        to_managed_biguint(amount)
+                    );
+                }
+            ).assert_ok();
+    }
+
+    pub fn check_user_reserve_points(&mut self, user: ManagedAddress<DebugApi>, amount: num_bigint::BigUint) {
+        self.blockchain_wrapper
+            .execute_query(
+                &self.salsa_wrapper, |sc| {
+                    assert_eq!(
+                        sc.users_reserve_points(&user).get(),
+                        to_managed_biguint(amount)
+                    );
+                }
+            ).assert_ok();
+    }
+
     pub fn check_egld_reserve(&mut self, amount: num_bigint::BigUint) {
         self.blockchain_wrapper
             .execute_query(
                 &self.salsa_wrapper, |sc| {
                     assert_eq!(
                         sc.egld_reserve().get(),
-                        to_managed_biguint(amount)
+                        to_managed_biguint(amount.clone())
+                    );
+                }
+            ).assert_ok();
+
+        self.blockchain_wrapper
+            .execute_query(
+                &self.salsa_wrapper, |sc| {
+                    assert_eq!(
+                        sc.get_reserve_egld_amount(&sc.reserve_points().get()),
+                        to_managed_biguint(amount.clone())
                     );
                 }
             ).assert_ok();

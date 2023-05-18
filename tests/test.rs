@@ -123,6 +123,8 @@ fn reserves_test() {
     sc_setup.remove_reserve_test(&reserver, one_plus_fee);
     sc_setup.check_egld_reserve(big_zero.clone());
     sc_setup.check_available_egld_reserve(big_zero.clone());
+    sc_setup.check_user_reserve(managed_address!(&reserver), big_zero.clone());
+    sc_setup.check_user_reserve_points(managed_address!(&reserver), big_zero.clone());
 }
 
 #[test]
@@ -191,6 +193,8 @@ fn reserve_to_user_undelegation_test() {
     sc_setup.blockchain_wrapper.check_egld_balance(&reserver1, &(exp(9024u64, 15)));
     sc_setup.blockchain_wrapper.check_egld_balance(&reserver2, &(exp(9016u64, 15)));
     sc_setup.check_available_egld_reserve(exp(202u64, 16));
+    sc_setup.check_user_reserve(managed_address!(&reserver1), one.clone());
+    // sc_setup.check_user_reserve(managed_address!(&reserver2), exp(102u64, 16));
 }
 
 #[test]
