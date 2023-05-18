@@ -101,18 +101,9 @@ pub trait SalsaContract<ContractReader>:
 
     #[endpoint(withdraw)]
     fn withdraw(&self) {
-        let caller = self.blockchain().get_caller();
-        self.do_withdraw(caller);
-    }
-
-    #[endpoint(withdrawForUser)]
-    fn withdraw_for_user(&self, user: ManagedAddress) {
-        self.do_withdraw(user);
-    }
-
-    fn do_withdraw(&self, user: ManagedAddress) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
+        let user = self.blockchain().get_caller();
         self.compute_withdrawn();
         let current_epoch = self.blockchain().get_block_epoch();
         let mut total_user_withdrawn_egld = self.user_withdrawn_egld().get();
@@ -368,9 +359,7 @@ pub trait SalsaContract<ContractReader>:
             }
             if undelegation.amount == 0 {
                 clone_list.remove_node_by_id(node_id.clone());
-                clone_list = self.get_undelegations_list(list_type, &user);
-            }
-            if modified {
+            } else if modified {
                 clone_list.set_node_value_by_id(node_id, undelegation);
             }
         }
