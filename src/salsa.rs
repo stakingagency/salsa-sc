@@ -343,7 +343,9 @@ pub trait SalsaContract<ContractReader>:
         mut clone_list: LinkedListMapper<Undelegation<Self::Api>>
     ) -> (BigUint, u64) { // left amount, last epoch
         let mut total_amount = amount;
-        let mut last_epoch = 0u64;
+        let current_epoch = self.blockchain().get_block_epoch();
+        let unbond_period = self.unbond_period().get();
+        let mut last_epoch = &current_epoch + &unbond_period;
         for node in list.iter() {
             let mut modified = false;
             let node_id = node.get_node_id();
