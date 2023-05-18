@@ -4,6 +4,7 @@ use salsa::config::ConfigModule;
 use multiversx_sc::{
     types::{
         Address,
+        BigUint,
         ManagedAddress
     }
 };
@@ -141,30 +142,135 @@ where
             ).assert_ok();
     }
 
-    pub fn check_user_undelegations_length(&mut self, user: ManagedAddress<DebugApi>) {
+    pub fn check_user_undelegations_length(&mut self, user: ManagedAddress<DebugApi>, len: usize) {
         self.blockchain_wrapper
             .execute_query(
                 &self.salsa_wrapper, |sc| {
                     assert_eq!(
-                        sc.luser_undelegations(&user).len() <= 11,
+                        sc.luser_undelegations(&user).len() == len,
                         true
                     );
                 }
             ).assert_ok();
     }
 
-    pub fn check_total_undelegations_lengths(&mut self) {
+    pub fn check_total_users_undelegations_lengths(&mut self, len: usize) {
         self.blockchain_wrapper
             .execute_query(
                 &self.salsa_wrapper, |sc| {
                     assert_eq!(
-                        sc.lreserve_undelegations().len() <= 11,
+                        sc.ltotal_user_undelegations().len() == len,
                         true
                     );
+                }
+            ).assert_ok();
+    }
+
+    pub fn check_reserve_undelegations_lengths(&mut self, len: usize) {
+        self.blockchain_wrapper
+            .execute_query(
+                &self.salsa_wrapper, |sc| {
                     assert_eq!(
-                        sc.ltotal_user_undelegations().len() <= 11,
+                        sc.lreserve_undelegations().len() == len,
                         true
                     );
+                }
+            ).assert_ok();
+    }
+
+    pub fn check_user_undelegations_order(&mut self, user: ManagedAddress<DebugApi>) {
+        self.blockchain_wrapper
+            .execute_query(
+                &self.salsa_wrapper, |sc| {
+                    let mut last_epoch = 0u64;
+                    let undelegations = sc.luser_undelegations(&user);
+                    for node in undelegations.iter() {
+                        let undelegation = node.into_value();
+                        assert_eq!(
+                            last_epoch <= undelegation.unbond_epoch,
+                            true
+                        );
+                        last_epoch = undelegation.unbond_epoch;
+                    }
+                }
+            ).assert_ok();
+    }
+
+    pub fn check_user_undelegations_amount(
+        &mut self, user: ManagedAddress<DebugApi>, amount: num_bigint::BigUint
+    ) {
+        self.blockchain_wrapper
+            .execute_query(
+                &self.salsa_wrapper, |sc| {
+                    let mut total = BigUint::zero();
+                    let undelegations = sc.luser_undelegations(&user);
+                    for node in undelegations.iter() {
+                        let undelegation = node.into_value();
+                        total += undelegation.amount;
+                    }
+                    assert_eq!(total, to_managed_biguint(amount));
+                }
+            ).assert_ok();
+    }
+
+    pub fn check_total_users_undelegations_amount(
+        &mut self, amount: num_bigint::BigUint
+    ) {
+        self.blockchain_wrapper
+            .execute_query(
+                &self.salsa_wrapper, |sc| {
+                    let mut total = BigUint::zero();
+                    let undelegations = sc.ltotal_user_undelegations();
+                    for node in undelegations.iter() {
+                        let undelegation = node.into_value();
+                        total += undelegation.amount;
+                    }
+                    assert_eq!(total, to_managed_biguint(amount));
+                }
+            ).assert_ok();
+    }
+
+    pub fn check_reserve_undelegations_amount(
+        &mut self, amount: num_bigint::BigUint
+    ) {
+        self.blockchain_wrapper
+            .execute_query(
+                &self.salsa_wrapper, |sc| {
+                    let mut total = BigUint::zero();
+                    let undelegations = sc.lreserve_undelegations();
+                    for node in undelegations.iter() {
+                        let undelegation = node.into_value();
+                        total += undelegation.amount;
+                    }
+                    assert_eq!(total, to_managed_biguint(amount));
+                }
+            ).assert_ok();
+    }
+
+    pub fn check_total_undelegations_order(&mut self) {
+        self.blockchain_wrapper
+            .execute_query(
+                &self.salsa_wrapper, |sc| {
+                    let mut last_epoch = 0u64;
+                    let undelegations = sc.ltotal_user_undelegations();
+                    for node in undelegations.iter() {
+                        let undelegation = node.into_value();
+                        assert_eq!(
+                            last_epoch <= undelegation.unbond_epoch,
+                            true
+                        );
+                        last_epoch = undelegation.unbond_epoch;
+                    }
+                    last_epoch = 0u64;
+                    let undelegations = sc.lreserve_undelegations();
+                    for node in undelegations.iter() {
+                        let undelegation = node.into_value();
+                        assert_eq!(
+                            last_epoch <= undelegation.unbond_epoch,
+                            true
+                        );
+                        last_epoch = undelegation.unbond_epoch;
+                    }
                 }
             ).assert_ok();
     }
