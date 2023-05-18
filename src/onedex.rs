@@ -6,7 +6,7 @@ use crate::proxies::onedex_proxy;
 #[multiversx_sc::module]
 pub trait OnedexModule:
     crate::common::config::ConfigModule
-    + crate::liquidity::LiquidityModule
+    + crate::helpers::HelpersModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     fn get_sc_balances(&self) -> (BigUint, BigUint) {

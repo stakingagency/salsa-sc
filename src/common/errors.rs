@@ -16,7 +16,9 @@ pub static ERROR_TOKEN_NOT_SET: &[u8] = b"Token not set";
 pub static ERROR_NOT_ENOUGH_LIQUID_SUPPLY: &[u8] = b"Not enough liquid token supply";
 pub static ERROR_INCORRECT_FEE: &[u8] = b"Fee must be less than 100%";
 pub static ERROR_DUST_REMAINING: &[u8] = b"Can't leave dust";
+pub static ERROR_REMOVE_RESERVE_TOO_SOON: &[u8] = b"You can remove reserve only 1 epoch after add";
+pub static ERROR_FEE_CHANGED: &[u8] = b"Fee changed and you would receive less";
+
 pub static ERROR_ARBITRAGE_ISSUE: &[u8] = b"Arbitrage issue";
 pub static ERROR_ONEDEX_PAIR_ID: &[u8] = b"OneDex pair ID not set";
 pub static ERROR_FEE_ZERO: &[u8] = b"Fee can't be zero";
-pub static ERROR_REMOVE_RESERVE_TOO_SOON: &[u8] = b"You can remove reserve only 1 epoch after add";

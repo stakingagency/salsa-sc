@@ -51,6 +51,17 @@
             "outputs": []
         },
         {
+            "name": "withdrawForUser",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "user",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
             "name": "addReserve",
             "mutability": "mutable",
             "payableInTokens": [
@@ -76,7 +87,12 @@
             "payableInTokens": [
                 "*"
             ],
-            "inputs": [],
+            "inputs": [
+                {
+                    "name": "min_amount_out",
+                    "type": "BigUint"
+                }
+            ],
             "outputs": []
         },
         {
@@ -215,7 +231,8 @@
             ],
             "outputs": [
                 {
-                    "type": "List<Undelegation>"
+                    "type": "variadic<Undelegation>",
+                    "multi_result": true
                 }
             ]
         },
@@ -255,7 +272,8 @@
             "inputs": [],
             "outputs": [
                 {
-                    "type": "List<Undelegation>"
+                    "type": "variadic<Undelegation>",
+                    "multi_result": true
                 }
             ]
         },
@@ -295,7 +313,8 @@
             "inputs": [],
             "outputs": [
                 {
-                    "type": "List<Undelegation>"
+                    "type": "variadic<Undelegation>",
+                    "multi_result": true
                 }
             ]
         },
