@@ -317,7 +317,7 @@ func scenario1() error {
 	// delegate(big.NewInt(9000000000000000000), 50000000, -1, privateKey, walletAddress)
 	// unDelegateNow(big.NewInt(1000000000000000000), 200000000, -1, privateKey, walletAddress)
 
-	return setStateActive(-1)
+	// return setStateActive(-1)
 
 	// return configSC("TESTTEST", "TEST", 18, "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqx0llllsdx93z0", 2, int64(nonce))
 
@@ -449,17 +449,17 @@ func main() {
 	// 	}
 
 	// STRESS TEST
-	for {
-		for i := 0; i < testN; i++ {
-			go func(i int) {
-				err = test(i)
-				if err != nil {
-					fmt.Println(err)
-				}
-			}(i)
-		}
-		time.Sleep(time.Minute * 20)
-	}
+	// for {
+	// 	for i := 0; i < testN; i++ {
+	// 		go func(i int) {
+	// 			err = test(i)
+	// 			if err != nil {
+	// 				fmt.Println(err)
+	// 			}
+	// 		}(i)
+	// 	}
+	// 	time.Sleep(time.Minute * 20)
+	// }
 }
 
 func queryVM(scAddress, funcName string, args []string) ([]byte, error) {
