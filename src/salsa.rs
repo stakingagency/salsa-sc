@@ -347,13 +347,13 @@ pub trait SalsaContract<ContractReader>:
             let node_id = node.get_node_id();
             let mut undelegation = node.clone().into_value();
             if undelegation.unbond_epoch <= ref_epoch && total_amount > 0 {
+                last_epoch = undelegation.unbond_epoch;
                 if total_amount > undelegation.amount {
                     total_amount -= undelegation.amount;
                     undelegation.amount = BigUint::zero();
                 } else {
                     undelegation.amount -= total_amount;
                     total_amount = BigUint::zero();
-                    last_epoch = undelegation.unbond_epoch;
                     modified = true;
                 }
             }
