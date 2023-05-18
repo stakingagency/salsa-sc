@@ -110,12 +110,19 @@ pub trait ConfigModule:
 
     // delegation
 
-    #[view(getUserUndelegations)]
-    #[storage_mapper("user_undelegations")]
-    fn user_undelegations(
+    // #[view(getUserUndelegations)]
+    // #[storage_mapper("user_undelegations")]
+    // fn user_undelegations(
+    //     &self,
+    //     user: &ManagedAddress,
+    // ) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
+
+    #[view(getLUserUndelegations)]
+    #[storage_mapper("luser_undelegations")]
+    fn luser_undelegations(
         &self,
         user: &ManagedAddress,
-    ) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
+    ) -> LinkedListMapper<Undelegation<Self::Api>>;
 
     #[view(getTotalEgldStaked)]
     #[storage_mapper("total_egld_staked")]
@@ -135,9 +142,13 @@ pub trait ConfigModule:
     #[storage_mapper("total_withdrawn_egld")]
     fn total_withdrawn_egld(&self) -> SingleValueMapper<BigUint>;
 
-    #[view(getTotalUserUndelegations)] // total user undelegations per epoch
-    #[storage_mapper("total_user_undelegations")]
-    fn total_user_undelegations(&self) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
+    // #[view(getTotalUserUndelegations)] // total user undelegations per epoch
+    // #[storage_mapper("total_user_undelegations")]
+    // fn total_user_undelegations(&self) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
+
+    #[view(getLTotalUserUndelegations)] // total user undelegations per epoch
+    #[storage_mapper("ltotal_user_undelegations")]
+    fn ltotal_user_undelegations(&self) -> LinkedListMapper<Undelegation<Self::Api>>;
 
     #[storage_mapper("egld_to_undelegate")]
     fn egld_to_undelegate(&self) -> SingleValueMapper<BigUint>;
@@ -156,9 +167,13 @@ pub trait ConfigModule:
     #[storage_mapper("available_egld_reserve")]
     fn available_egld_reserve(&self) -> SingleValueMapper<BigUint>;
 
-    #[view(getReserveUndelegations)]
-    #[storage_mapper("reserve_undelegations")]
-    fn reserve_undelegations(&self) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
+    // #[view(getReserveUndelegations)]
+    // #[storage_mapper("reserve_undelegations")]
+    // fn reserve_undelegations(&self) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
+
+    #[view(getLReserveUndelegations)]
+    #[storage_mapper("lreserve_undelegations")]
+    fn lreserve_undelegations(&self) -> LinkedListMapper<Undelegation<Self::Api>>;
 
     #[view(getUsersReservePoints)]
     #[storage_mapper("users_reserve_points")]

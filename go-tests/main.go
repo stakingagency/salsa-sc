@@ -217,7 +217,7 @@ func test(idx int) error {
 
 	tNonce := tAccount.Nonce
 
-	for i := 0; i < 50; i++ {
+	for i := 0; i < 20; i++ {
 		op := rand.Intn(10)
 		switch op {
 		case 0:
@@ -449,17 +449,17 @@ func main() {
 	// 	}
 
 	// STRESS TEST
-	// for {
-	// 	for i := 0; i < testN; i++ {
-	// 		go func(i int) {
-	// 			err = test(i)
-	// 			if err != nil {
-	// 				fmt.Println(err)
-	// 			}
-	// 		}(i)
-	// 	}
-	// 	time.Sleep(time.Minute * 20)
-	// }
+	for {
+		for i := 0; i < testN; i++ {
+			go func(i int) {
+				err = test(i)
+				if err != nil {
+					fmt.Println(err)
+				}
+			}(i)
+		}
+		time.Sleep(time.Minute * 20)
+	}
 }
 
 func queryVM(scAddress, funcName string, args []string) ([]byte, error) {

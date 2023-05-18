@@ -121,12 +121,6 @@ where
                         sc.egld_reserve().get(),
                         to_managed_biguint(amount.clone())
                     );
-                }
-            ).assert_ok();
-
-        self.blockchain_wrapper
-            .execute_query(
-                &self.salsa_wrapper, |sc| {
                     assert_eq!(
                         sc.get_reserve_egld_amount(&sc.reserve_points().get()),
                         to_managed_biguint(amount.clone())
@@ -152,7 +146,7 @@ where
             .execute_query(
                 &self.salsa_wrapper, |sc| {
                     assert_eq!(
-                        sc.user_undelegations(&user).get().len() <= 11,
+                        sc.luser_undelegations(&user).len() <= 11,
                         true
                     );
                 }
@@ -164,16 +158,11 @@ where
             .execute_query(
                 &self.salsa_wrapper, |sc| {
                     assert_eq!(
-                        sc.reserve_undelegations().get().len() <= 11,
+                        sc.lreserve_undelegations().len() <= 11,
                         true
                     );
-                }
-            ).assert_ok();
-        self.blockchain_wrapper
-            .execute_query(
-                &self.salsa_wrapper, |sc| {
                     assert_eq!(
-                        sc.total_user_undelegations().get().len() <= 11,
+                        sc.ltotal_user_undelegations().len() <= 11,
                         true
                     );
                 }

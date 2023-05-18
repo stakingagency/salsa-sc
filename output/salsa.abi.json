@@ -220,7 +220,7 @@
             "outputs": []
         },
         {
-            "name": "getUserUndelegations",
+            "name": "getLUserUndelegations",
             "mutability": "readonly",
             "inputs": [
                 {
@@ -230,7 +230,8 @@
             ],
             "outputs": [
                 {
-                    "type": "List<Undelegation>"
+                    "type": "variadic<Undelegation>",
+                    "multi_result": true
                 }
             ]
         },
@@ -265,12 +266,13 @@
             ]
         },
         {
-            "name": "getTotalUserUndelegations",
+            "name": "getLTotalUserUndelegations",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
                 {
-                    "type": "List<Undelegation>"
+                    "type": "variadic<Undelegation>",
+                    "multi_result": true
                 }
             ]
         },
@@ -305,12 +307,13 @@
             ]
         },
         {
-            "name": "getReserveUndelegations",
+            "name": "getLReserveUndelegations",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
                 {
-                    "type": "List<Undelegation>"
+                    "type": "variadic<Undelegation>",
+                    "multi_result": true
                 }
             ]
         },
