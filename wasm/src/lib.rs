@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           36
+// Endpoints:                           37
 // Async Callback:                       1
-// Total number of exported functions:  38
+// Total number of exported functions:  39
 
 #![no_std]
 #![feature(lang_items)]
@@ -21,6 +21,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         delegate
         unDelegate
         withdraw
+        withdrawForUser
         addReserve
         removeReserve
         unDelegateNow

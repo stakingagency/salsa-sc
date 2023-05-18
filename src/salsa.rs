@@ -101,24 +101,32 @@ pub trait SalsaContract<ContractReader>:
 
     #[endpoint(withdraw)]
     fn withdraw(&self) {
+        let caller = self.blockchain().get_caller();
+        self.do_withdraw(caller);
+    }
+
+    #[endpoint(withdrawForUser)]
+    fn withdraw_for_user(&self, user: ManagedAddress) {
+        self.do_withdraw(user);
+    }
+
+    fn do_withdraw(&self, user: ManagedAddress) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         self.compute_withdrawn();
-
-        let caller = self.blockchain().get_caller();
         let current_epoch = self.blockchain().get_block_epoch();
         let mut total_user_withdrawn_egld = self.user_withdrawn_egld().get();
         let mut _dummy = 0u64;
 
         (total_user_withdrawn_egld, _dummy) = self.remove_undelegations(
-            total_user_withdrawn_egld, current_epoch, self.luser_undelegations(&caller), self.luser_undelegations(&caller)
+            total_user_withdrawn_egld, current_epoch, self.luser_undelegations(&user), self.luser_undelegations(&user)
         );
         let withdraw_amount = self.user_withdrawn_egld().get() - &total_user_withdrawn_egld;
         require!(withdraw_amount > 0, ERROR_NOTHING_TO_WITHDRAW);
 
         self.user_withdrawn_egld()
             .set(total_user_withdrawn_egld);
-        self.send().direct_egld(&caller, &withdraw_amount);
+        self.send().direct_egld(&user, &withdraw_amount);
     }
 
     // endpoints: reserves
@@ -503,7 +511,7 @@ pub trait SalsaContract<ContractReader>:
         let withdrawn = self.total_withdrawn_egld().get() - total_withdrawn_egld.clone();
         users_withdrawn_egld += withdrawn.clone();
 
-        self.user_withdrawn_egld().set(users_withdrawn_egld.clone());
+        self.user_withdrawn_egld().set(users_withdrawn_egld);
 
         // compute reserve undelegations eligible for withdraw
         (total_withdrawn_egld, _dummy) = self.remove_undelegations(

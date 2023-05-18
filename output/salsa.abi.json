@@ -51,6 +51,17 @@
             "outputs": []
         },
         {
+            "name": "withdrawForUser",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "user",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
             "name": "addReserve",
             "mutability": "mutable",
             "payableInTokens": [
