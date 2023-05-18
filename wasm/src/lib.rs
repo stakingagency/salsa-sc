@@ -38,15 +38,15 @@ multiversx_sc_wasm_adapter::endpoints! {
         getProviderAddress
         getUnbondPeriod
         setUnbondPeriod
-        getLUserUndelegations
+        getUserUndelegations
         getTotalEgldStaked
         getUserWithdrawnEgld
         getTotalWithdrawnEgld
-        getLTotalUserUndelegations
+        getTotalUserUndelegations
         getEgldReserve
         getReservePoints
         getAvailableEgldReserve
-        getLReserveUndelegations
+        getReserveUndelegations
         getUsersReservePoints
         setUndelegateNowFee
         getUndelegateNowFee

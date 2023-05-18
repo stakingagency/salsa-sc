@@ -220,7 +220,7 @@
             "outputs": []
         },
         {
-            "name": "getLUserUndelegations",
+            "name": "getUserUndelegations",
             "mutability": "readonly",
             "inputs": [
                 {
@@ -266,7 +266,7 @@
             ]
         },
         {
-            "name": "getLTotalUserUndelegations",
+            "name": "getTotalUserUndelegations",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
@@ -307,7 +307,7 @@
             ]
         },
         {
-            "name": "getLReserveUndelegations",
+            "name": "getReserveUndelegations",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
