@@ -108,6 +108,7 @@ fn reserves_test() {
     sc_setup.check_egld_to_undelegate(one.clone());
     sc_setup.undelegate_all_test(&caller);
     sc_setup.check_egld_to_undelegate(big_zero.clone());
+    sc_setup.check_reserve_undelegations_amount(one.clone());
 
     // withdraw all
     sc_setup.blockchain_wrapper.set_block_epoch(11u64);
@@ -159,6 +160,7 @@ fn reserve_to_user_undelegation_test() {
 
     // undelegate: 1, undelegate now 3
     sc_setup.undelegate_now_test(&delegator1, one.clone(), exp(98u64, 16));
+    sc_setup.undelegate_all_test(&caller);
     sc_setup.undelegate_now_test(&delegator2, one.clone() * 2u64, exp(196u64, 16));
     sc_setup.undelegate_test(&delegator2, one.clone());
     // stake = 1, reserve = 5.06, available reserve = 2.06
@@ -184,8 +186,12 @@ fn reserve_to_user_undelegation_test() {
     sc_setup.check_total_undelegations_order();
 
     // undelegate and withdraw
+    sc_setup.blockchain_wrapper.set_block_epoch(3u64);
     sc_setup.undelegate_all_test(&caller);
     sc_setup.blockchain_wrapper.set_block_epoch(12u64);
+    sc_setup.withdraw_all_test(&caller);
+    sc_setup.compute_withdrawn_test(&caller);
+    sc_setup.blockchain_wrapper.set_block_epoch(13u64);
     sc_setup.withdraw_all_test(&caller);
     sc_setup.compute_withdrawn_test(&caller);
     sc_setup.withdraw_test(&delegator2);
@@ -276,14 +282,26 @@ fn user_undelegations_order_test() {
     sc_setup.blockchain_wrapper.set_block_epoch(epoch);
     sc_setup.undelegate_test(&delegator, one.clone());
     sc_setup.undelegate_test(&delegator, one.clone());
+    epoch = 4u64;
+    sc_setup.blockchain_wrapper.set_block_epoch(epoch);
+    sc_setup.undelegate_test(&delegator, one.clone());
 
     // check undelegations orders and lengths
     sc_setup.check_user_undelegations_order(managed_address!(&delegator));
     sc_setup.check_total_undelegations_order();
-    sc_setup.check_user_undelegations_length(managed_address!(&delegator), 2);
-    sc_setup.check_total_users_undelegations_lengths(2);
+    sc_setup.check_user_undelegations_length(managed_address!(&delegator), 3);
+    sc_setup.check_total_users_undelegations_lengths(3);
 
-    // undelegate in epoch 30 and 15
+    // undelegate in epoch 1, 3, 5, 30 and 15
+    epoch = 1u64;
+    sc_setup.blockchain_wrapper.set_block_epoch(epoch);
+    sc_setup.undelegate_test(&delegator, one.clone());
+    epoch = 3u64;
+    sc_setup.blockchain_wrapper.set_block_epoch(epoch);
+    sc_setup.undelegate_test(&delegator, one.clone());
+    epoch = 5u64;
+    sc_setup.blockchain_wrapper.set_block_epoch(epoch);
+    sc_setup.undelegate_test(&delegator, one.clone());
     epoch = 30u64;
     sc_setup.blockchain_wrapper.set_block_epoch(epoch);
     sc_setup.undelegate_test(&delegator, one.clone()); // should merge the previous
@@ -296,8 +314,8 @@ fn user_undelegations_order_test() {
     sc_setup.check_total_undelegations_order();
     sc_setup.check_user_undelegations_length(managed_address!(&delegator), 3);
     sc_setup.check_total_users_undelegations_lengths(3);
-    sc_setup.check_user_undelegations_amount(managed_address!(&delegator), exp(5, 18));
-    sc_setup.check_total_users_undelegations_amount(exp(5, 18));
+    sc_setup.check_user_undelegations_amount(managed_address!(&delegator), exp(9, 18));
+    sc_setup.check_total_users_undelegations_amount(exp(9, 18));
 }
 
 #[test]
