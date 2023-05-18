@@ -9,6 +9,13 @@ pub enum State {
     Active,
 }
 
+#[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Eq, Copy, Clone, Debug)]
+pub enum UndelegationType {
+    UserList,
+    TotalUsersList,
+    ReservesList,
+}
+
 #[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
 pub struct Undelegation<M: ManagedTypeApi> {
     pub amount: BigUint<M>,

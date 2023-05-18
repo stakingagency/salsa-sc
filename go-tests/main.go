@@ -49,7 +49,7 @@ type accountKey struct {
 }
 
 const (
-	scAddress = "erd1qqqqqqqqqqqqqpgqpk3qzj86tme9kzxdq87f2rdf5nlwsgvjvcqs5hke3x"
+	scAddress = "erd1qqqqqqqqqqqqqpgq9g067l79gxj2jlmre4354wmeqtgasuq8vcqstdaaxy"
 	// proxyAddress = "http://localhost:8079"
 	proxyAddress = "http://95.216.220.113:8079"
 	walletFile   = "/home/mihai/walletKey.pem"
@@ -336,7 +336,7 @@ func scenario1() error {
 
 	// return setStateActive(-1)
 
-	// return configSC("TESTTEST", "TEST", 18, "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqx0llllsdx93z0", 2, int64(nonce))
+	// return configSC("TESTTEST", "TEST", 18, "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqx0llllsdx93z0", 2, 1, int64(nonce))
 
 	return nil
 }
@@ -344,17 +344,17 @@ func scenario1() error {
 func main() {
 	err := initialize()
 	if err != nil {
-		panic(err)
+		// panic(err)
 	}
 
 	err = initSC()
 	if err != nil {
-		panic(err)
+		// panic(err)
 	}
 
 	err = readSC()
 	if err != nil {
-		panic(err)
+		// panic(err)
 	}
 
 	fmt.Println("SC address: " + scAddress)
@@ -466,17 +466,17 @@ func main() {
 	// 	}
 
 	// STRESS TEST
-	for {
-		for i := 0; i < testN; i++ {
-			go func(i int) {
-				err = test(i)
-				if err != nil {
-					fmt.Println(err)
-				}
-			}(i)
-		}
-		time.Sleep(time.Minute * 20)
-	}
+	// for {
+	// 	for i := 0; i < testN; i++ {
+	// 		go func(i int) {
+	// 			err = test(i)
+	// 			if err != nil {
+	// 				fmt.Println(err)
+	// 			}
+	// 		}(i)
+	// 	}
+	// 	time.Sleep(time.Minute * 20)
+	// }
 }
 
 func queryVM(scAddress, funcName string, args []string) ([]byte, error) {
@@ -1018,7 +1018,7 @@ func removeReserve(amount *big.Int, gas uint64, nonce int64, privateKey []byte, 
 	return nil
 }
 
-func configSC(tokenName string, ticker string, decimals int64, provider string, undelegateNowFee float64, nonce int64) error {
+func configSC(tokenName string, ticker string, decimals int64, provider string, undelegateNowFee float64, unbond uint64, nonce int64) error {
 	if err := registerLiquidToken(tokenName, ticker, decimals, nonce); err != nil {
 		return err
 	}
@@ -1038,6 +1038,15 @@ func configSC(tokenName string, ticker string, decimals int64, provider string, 
 		nonce++
 	}
 	if err := setUndelegateNowFee(undelegateNowFee, nonce); err != nil {
+		return err
+	}
+
+	time.Sleep(time.Second * 6)
+
+	if nonce != -1 {
+		nonce++
+	}
+	if err := setUnbondPeriod(unbond, nonce); err != nil {
 		return err
 	}
 
@@ -1092,6 +1101,18 @@ func setUndelegateNowFee(undelegateNowFee float64, nonce int64) error {
 	}
 
 	fmt.Printf("setUndelegateNowFee %s\n", hash)
+
+	return nil
+}
+
+func setUnbondPeriod(unbond uint64, nonce int64) error {
+	dataField := fmt.Sprintf("setUnbondPeriod@%s", hex.EncodeToString(big.NewInt(int64(unbond)).Bytes()))
+	hash, err := sendTx(big.NewInt(0), 5000000, dataField, nonce, privateKey, walletAddress, "")
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("setUnbondPeriod %s\n", hash)
 
 	return nil
 }

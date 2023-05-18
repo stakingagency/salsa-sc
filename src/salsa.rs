@@ -122,7 +122,8 @@ pub trait SalsaContract<ContractReader>:
             total_user_withdrawn_egld,
             current_epoch,
             self.luser_undelegations(&user),
-            self.luser_undelegations(&user)
+            UndelegationType::UserList,
+            user.clone()
         );
         let withdraw_amount = self.user_withdrawn_egld().get() - &total_user_withdrawn_egld;
         require!(withdraw_amount > 0, ERROR_NOTHING_TO_WITHDRAW);
@@ -181,7 +182,7 @@ pub trait SalsaContract<ContractReader>:
         require!(old_reserve >= amount, ERROR_NOT_ENOUGH_FUNDS);
 
         self.compute_withdrawn();
-        
+
         let mut egld_to_remove = amount.clone();
         let mut points_to_remove = self.get_reserve_points_amount(&egld_to_remove);
         if &old_reserve - &amount < DUST_THRESHOLD {
@@ -201,7 +202,8 @@ pub trait SalsaContract<ContractReader>:
                 egld_to_move.clone(),
                 MAX_EPOCH,
                 self.lreserve_undelegations(),
-                self.lreserve_undelegations()
+                UndelegationType::ReservesList,
+                caller.clone()
             );
             require!(remaining_egld == 0, ERROR_NOT_ENOUGH_FUNDS);
 
@@ -340,8 +342,10 @@ pub trait SalsaContract<ContractReader>:
         amount: BigUint,
         ref_epoch: u64,
         list: LinkedListMapper<Undelegation<Self::Api>>,
-        mut clone_list: LinkedListMapper<Undelegation<Self::Api>>
+        list_type: UndelegationType,
+        user: ManagedAddress
     ) -> (BigUint, u64) { // left amount, last epoch
+        let mut clone_list = self.get_undelegations_list(list_type, &user);
         let mut total_amount = amount;
         let current_epoch = self.blockchain().get_block_epoch();
         let unbond_period = self.unbond_period().get();
@@ -363,6 +367,7 @@ pub trait SalsaContract<ContractReader>:
             }
             if undelegation.amount == 0 {
                 clone_list.remove_node_by_id(node_id.clone());
+                clone_list = self.get_undelegations_list(list_type, &user);
             }
             if modified {
                 clone_list.set_node_value_by_id(node_id, undelegation);
@@ -372,6 +377,19 @@ pub trait SalsaContract<ContractReader>:
         (total_amount, last_epoch)
     }
 
+    fn get_undelegations_list(
+        &self,
+        list_type: UndelegationType,
+        user: &ManagedAddress
+    ) -> LinkedListMapper<Undelegation<Self::Api>> {
+        if list_type == UndelegationType::UserList {
+            self.luser_undelegations(user)
+        } else if list_type == UndelegationType::TotalUsersList {
+            self.ltotal_user_undelegations()
+        } else {
+            self.lreserve_undelegations()
+        }
+    }
     // endpoints: service
 
     #[endpoint(unDelegateAll)]
@@ -511,13 +529,15 @@ pub trait SalsaContract<ContractReader>:
     fn compute_withdrawn(&self) {
         let current_epoch = self.blockchain().get_block_epoch();
         let total_withdrawn_egld = self.total_withdrawn_egld().get();
+        let caller = self.blockchain().get_caller();
 
         // compute user undelegations eligible for withdraw
         let (mut left_amount, mut _dummy) = self.remove_undelegations(
             total_withdrawn_egld.clone(),
             current_epoch,
             self.ltotal_user_undelegations(),
-            self.ltotal_user_undelegations()
+            UndelegationType::TotalUsersList,
+            caller.clone()
         );
         let withdrawn_for_users = &total_withdrawn_egld - &left_amount;
         self.user_withdrawn_egld()
@@ -528,7 +548,8 @@ pub trait SalsaContract<ContractReader>:
             left_amount,
             current_epoch,
             self.lreserve_undelegations(),
-            self.lreserve_undelegations()
+            UndelegationType::ReservesList,
+            caller
         );
         let withdrawn_for_reserves = &total_withdrawn_egld - &left_amount - &withdrawn_for_users;
         self.available_egld_reserve()
