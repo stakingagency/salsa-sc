@@ -49,7 +49,7 @@ type accountKey struct {
 }
 
 const (
-	scAddress = "erd1qqqqqqqqqqqqqpgq9g067l79gxj2jlmre4354wmeqtgasuq8vcqstdaaxy"
+	scAddress = "erd1qqqqqqqqqqqqqpgqpk3qzj86tme9kzxdq87f2rdf5nlwsgvjvcqs5hke3x"
 	// proxyAddress = "http://localhost:8079"
 	proxyAddress = "http://95.216.220.113:8079"
 	walletFile   = "/home/mihai/walletKey.pem"
@@ -466,17 +466,17 @@ func main() {
 	// 	}
 
 	// STRESS TEST
-	// for {
-	// 	for i := 0; i < testN; i++ {
-	// 		go func(i int) {
-	// 			err = test(i)
-	// 			if err != nil {
-	// 				fmt.Println(err)
-	// 			}
-	// 		}(i)
-	// 	}
-	// 	time.Sleep(time.Minute * 20)
-	// }
+	for {
+		for i := 0; i < testN; i++ {
+			go func(i int) {
+				err = test(i)
+				if err != nil {
+					fmt.Println(err)
+				}
+			}(i)
+		}
+		time.Sleep(time.Minute * 20)
+	}
 }
 
 func queryVM(scAddress, funcName string, args []string) ([]byte, error) {

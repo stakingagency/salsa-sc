@@ -116,9 +116,8 @@ pub trait SalsaContract<ContractReader>:
         self.compute_withdrawn();
         let current_epoch = self.blockchain().get_block_epoch();
         let mut total_user_withdrawn_egld = self.user_withdrawn_egld().get();
-        let mut _dummy = 0u64;
 
-        (total_user_withdrawn_egld, _dummy) = self.remove_undelegations(
+        (total_user_withdrawn_egld, _) = self.remove_undelegations(
             total_user_withdrawn_egld,
             current_epoch,
             self.luser_undelegations(&user),
@@ -184,7 +183,7 @@ pub trait SalsaContract<ContractReader>:
         self.compute_withdrawn();
 
         let mut egld_to_remove = amount.clone();
-        let mut points_to_remove = self.get_reserve_points_amount(&egld_to_remove);
+        let mut points_to_remove = self.get_reserve_points_amount(&egld_to_remove) + 1u64;
         if &old_reserve - &amount < DUST_THRESHOLD {
             // avoid rounding issues
             points_to_remove = old_reserve_points.clone();
@@ -192,15 +191,17 @@ pub trait SalsaContract<ContractReader>:
         } else {
             require!(&old_reserve - &amount >= MIN_EGLD, ERROR_DUST_REMAINING);
         }
+
         self.egld_reserve().update(|value| *value -= &egld_to_remove);
 
         let available_egld_reserve = self.available_egld_reserve().get();
         // if there is not enough available reserve, move the reserve to user undelegation
         if egld_to_remove > available_egld_reserve {
+            let unbond_period = self.unbond_period().get();
             let egld_to_move = &egld_to_remove - &available_egld_reserve;
             let (remaining_egld, unbond_epoch) = self.remove_undelegations(
                 egld_to_move.clone(),
-                MAX_EPOCH,
+                &current_epoch + &unbond_period,
                 self.lreserve_undelegations(),
                 UndelegationType::ReservesList,
                 caller.clone()
@@ -355,7 +356,7 @@ pub trait SalsaContract<ContractReader>:
             let node_id = node.get_node_id();
             let mut undelegation = node.clone().into_value();
             if undelegation.unbond_epoch <= ref_epoch && total_amount > 0 {
-                if total_amount >= undelegation.amount {
+                if total_amount > undelegation.amount {
                     total_amount -= undelegation.amount;
                     undelegation.amount = BigUint::zero();
                 } else {
@@ -532,7 +533,7 @@ pub trait SalsaContract<ContractReader>:
         let caller = self.blockchain().get_caller();
 
         // compute user undelegations eligible for withdraw
-        let (mut left_amount, mut _dummy) = self.remove_undelegations(
+        let (mut left_amount, _) = self.remove_undelegations(
             total_withdrawn_egld.clone(),
             current_epoch,
             self.ltotal_user_undelegations(),
@@ -544,7 +545,7 @@ pub trait SalsaContract<ContractReader>:
             .update(|value| *value += &withdrawn_for_users);
 
         // compute reserve undelegations eligible for withdraw
-        (left_amount, _dummy) = self.remove_undelegations(
+        (left_amount, _) = self.remove_undelegations(
             left_amount,
             current_epoch,
             self.lreserve_undelegations(),
