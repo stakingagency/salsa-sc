@@ -217,7 +217,7 @@ func test(idx int) error {
 
 	tNonce := tAccount.Nonce
 
-	for i := 0; i < 20; i++ {
+	for i := 0; i < 40; i++ {
 		op := rand.Intn(10)
 		switch op {
 		case 0:
@@ -306,6 +306,24 @@ func scenario1() error {
 	// nonce, err := getNonce()
 	// if err != nil {
 	// 	return err
+	// }
+
+	// conv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, logger.GetOrCreate("salsa"))
+	// for user := range user_undelegates {
+	// 	pubkey, err := conv.Decode(user)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+
+	// 	dataField := fmt.Sprintf("withdrawForUser@%s", hex.EncodeToString(pubkey))
+
+	// 	hash, err := sendTx(big.NewInt(0), 30000000, dataField, int64(nonce), privateKey, walletAddress, "")
+	// 	if err != nil {
+	// 		return err
+	// 	}
+
+	// 	fmt.Printf("withdrawForUser %s %s\n", user, hash)
+	// 	nonce++
 	// }
 
 	// removeReserve(big.NewInt(1000000000000000000), 10000000, -1, privateKey, walletAddress)
@@ -616,7 +634,7 @@ func readSC() error {
 	iLiquidTokenSupply := big.NewInt(0).SetBytes(bLiquidTokenSupply)
 	liquidSupply = big2float(iLiquidTokenSupply, 18)
 
-	searchKey := hex.EncodeToString([]byte("user_undelegations"))
+	searchKey := hex.EncodeToString([]byte("luser_undelegations"))
 	keys, err := getAccountKeys(scAddress, searchKey)
 	if err != nil {
 		return err
@@ -625,30 +643,32 @@ func readSC() error {
 	conv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, logger.GetOrCreate("salsa"))
 	user_undelegates = make(map[string][]float64)
 	for key, value := range keys {
+		if !strings.Contains(key, hex.EncodeToString([]byte(".node"))) {
+			continue
+		}
+
 		idx := 0
-		for {
-			key = strings.TrimPrefix(key, searchKey)
-			var iAmount *big.Int
-			var ok bool
-			iAmount, idx, ok = parseBigInt(value, idx)
-			allOk := ok
-			_, idx, ok = parseUint64(value, idx)
-			allOk = allOk && ok
-			if !allOk {
-				return errors.New("not all ok")
-			}
+		key = strings.TrimPrefix(key, searchKey)
+		var iAmount *big.Int
+		var ok bool
+		iAmount, idx, ok = parseBigInt(value, idx)
+		allOk := ok
+		_, idx, ok = parseUint64(value, idx)
+		allOk = allOk && ok
+		if !allOk {
+			return errors.New("not all ok")
+		}
 
-			pubKey, _ := hex.DecodeString(key)
-			address := conv.Encode(pubKey)
-			amount := big2float(iAmount, 18)
-			if user_undelegates[address] == nil {
-				user_undelegates[address] = make([]float64, 0)
-			}
-			user_undelegates[address] = append(user_undelegates[address], amount)
+		pubKey, _ := hex.DecodeString(key[:64])
+		address := conv.Encode(pubKey)
+		amount := big2float(iAmount, 18)
+		if user_undelegates[address] == nil {
+			user_undelegates[address] = make([]float64, 0)
+		}
+		user_undelegates[address] = append(user_undelegates[address], amount)
 
-			if idx >= len(value) {
-				break
-			}
+		if idx >= len(value) {
+			break
 		}
 	}
 
@@ -968,10 +988,15 @@ func addReserve(amount *big.Int, gas uint64, nonce int64, privateKey []byte, wal
 }
 
 func unDelegateNow(amount *big.Int, gas uint64, nonce int64, privateKey []byte, walletAddress string) error {
-	dataField := fmt.Sprintf("ESDTTransfer@%s@%s@%s",
+	min_amount_out := big.NewInt(0).Set(amount)
+	// min_amount_out.Mul(min_amount_out, price)
+	min_amount_out.Mul(min_amount_out, big.NewInt(100-int64(fee)))
+	min_amount_out.Quo(min_amount_out, big.NewInt(100))
+	dataField := fmt.Sprintf("ESDTTransfer@%s@%s@%s@%s",
 		hex.EncodeToString([]byte(token)),
 		hex.EncodeToString(amount.Bytes()),
-		hex.EncodeToString([]byte("unDelegateNow")))
+		hex.EncodeToString([]byte("unDelegateNow")),
+		hex.EncodeToString(min_amount_out.Bytes()))
 	hash, err := sendTx(big.NewInt(0), gas, dataField, nonce, privateKey, walletAddress, "")
 	if err != nil {
 		return err
