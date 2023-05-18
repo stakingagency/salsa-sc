@@ -179,6 +179,9 @@ fn reserve_to_user_undelegation_test() {
     sc_setup.check_total_egld_staked(one.clone());
     sc_setup.check_available_egld_reserve(big_zero.clone());
     sc_setup.check_egld_reserve(exp(202u64, 16));
+    sc_setup.check_user_undelegations_order(managed_address!(&reserver2));
+    sc_setup.check_user_undelegations_order(managed_address!(&delegator2));
+    sc_setup.check_total_undelegations_order();
 
     // undelegate and withdraw
     sc_setup.undelegate_all_test(&caller);
@@ -227,9 +230,12 @@ fn merge_undelegations_test() {
         sc_setup.blockchain_wrapper.set_block_epoch(epoch);
     }
 
-    // check undelegations lenghts
-    sc_setup.check_user_undelegations_length(managed_address!(&delegator));
-    sc_setup.check_total_undelegations_lengths();
+    // check undelegations lenghts and order
+    sc_setup.check_user_undelegations_order(managed_address!(&delegator));
+    sc_setup.check_total_undelegations_order();
+    sc_setup.check_user_undelegations_length(managed_address!(&delegator), 11);
+    sc_setup.check_total_users_undelegations_lengths(11);
+    sc_setup.check_reserve_undelegations_lengths(11);
 
     // undelegate all
     sc_setup.undelegate_all_test(&caller);
@@ -244,6 +250,100 @@ fn merge_undelegations_test() {
     sc_setup.blockchain_wrapper.check_esdt_balance(&delegator, TOKEN_ID, &(one.clone() * 10u64));
     sc_setup.check_available_egld_reserve(exp(1274, 17));
     sc_setup.check_total_egld_staked(exp(1, 19));
+}
+
+#[test]
+fn user_undelegations_order_test() {
+    let _ = DebugApi::dummy();
+
+    let mut sc_setup = SalsaContractSetup::new(salsa::contract_obj);
+    let one = exp(1, 18);
+    let mut epoch = 1u64;
+    let delegator = sc_setup.setup_new_user(1u64);
+
+    // set epoch and balances
+    sc_setup.blockchain_wrapper.set_block_epoch(epoch);
+    sc_setup.blockchain_wrapper.set_egld_balance(&delegator, &exp(100, 18));
+
+    // delegate
+    sc_setup.delegate_test(&delegator, exp(100, 18));
+
+    // undelegate in epochs 3 and 2 (3 times, 2 in the same epoch, so should be merged)
+    epoch = 3u64;
+    sc_setup.blockchain_wrapper.set_block_epoch(epoch);
+    sc_setup.undelegate_test(&delegator, one.clone());
+    epoch = 2u64;
+    sc_setup.blockchain_wrapper.set_block_epoch(epoch);
+    sc_setup.undelegate_test(&delegator, one.clone());
+    sc_setup.undelegate_test(&delegator, one.clone());
+
+    // check undelegations orders and lengths
+    sc_setup.check_user_undelegations_order(managed_address!(&delegator));
+    sc_setup.check_total_undelegations_order();
+    sc_setup.check_user_undelegations_length(managed_address!(&delegator), 2);
+    sc_setup.check_total_users_undelegations_lengths(2);
+
+    // undelegate in epoch 30 and 15
+    epoch = 30u64;
+    sc_setup.blockchain_wrapper.set_block_epoch(epoch);
+    sc_setup.undelegate_test(&delegator, one.clone()); // should merge the previous
+    epoch = 15u64;
+    sc_setup.blockchain_wrapper.set_block_epoch(epoch);
+    sc_setup.undelegate_test(&delegator, one.clone());
+
+    // check undelegations orders, lengths and amount
+    sc_setup.check_user_undelegations_order(managed_address!(&delegator));
+    sc_setup.check_total_undelegations_order();
+    sc_setup.check_user_undelegations_length(managed_address!(&delegator), 3);
+    sc_setup.check_total_users_undelegations_lengths(3);
+    sc_setup.check_user_undelegations_amount(managed_address!(&delegator), exp(5, 18));
+    sc_setup.check_total_users_undelegations_amount(exp(5, 18));
+}
+
+#[test]
+fn reserve_undelegations_order_test() {
+    let _ = DebugApi::dummy();
+
+    let mut sc_setup = SalsaContractSetup::new(salsa::contract_obj);
+    let one = exp(1, 18);
+    let one_with_fee = exp(98, 16);
+    let mut epoch = 1u64;
+    let reserver = sc_setup.setup_new_user(1u64);
+
+    // set epoch and balances
+    sc_setup.blockchain_wrapper.set_block_epoch(epoch);
+    sc_setup.blockchain_wrapper.set_egld_balance(&reserver, &exp(100, 18));
+
+    // delegate and add reserve
+    sc_setup.delegate_test(&reserver, exp(50, 18));
+    sc_setup.add_reserve_test(&reserver, exp(50, 18));
+
+    // undelegate now in epochs 3 and 2 (3 times, 2 in the same epoch, so should be merged)
+    epoch = 3u64;
+    sc_setup.blockchain_wrapper.set_block_epoch(epoch);
+    sc_setup.undelegate_now_test(&reserver, one.clone(), one_with_fee.clone());
+    epoch = 2u64;
+    sc_setup.blockchain_wrapper.set_block_epoch(epoch);
+    sc_setup.undelegate_now_test(&reserver, one.clone(), one_with_fee.clone());
+    sc_setup.undelegate_now_test(&reserver, one.clone(), one_with_fee.clone());
+
+    // check undelegations order, length and amount
+    sc_setup.check_total_undelegations_order();
+    sc_setup.check_reserve_undelegations_lengths(2);
+    sc_setup.check_reserve_undelegations_amount(exp(3, 18));
+
+    // undelegate in epoch 30 and 15
+    epoch = 30u64;
+    sc_setup.blockchain_wrapper.set_block_epoch(epoch);
+    sc_setup.undelegate_now_test(&reserver, one.clone(), one_with_fee.clone()); // should merge the previous
+    epoch = 15u64;
+    sc_setup.blockchain_wrapper.set_block_epoch(epoch);
+    sc_setup.undelegate_now_test(&reserver, one.clone(), one_with_fee.clone());
+
+    // check undelegations order, length and amount
+    sc_setup.check_total_undelegations_order();
+    sc_setup.check_reserve_undelegations_lengths(3);
+    sc_setup.check_reserve_undelegations_amount(exp(5, 18));
 }
 
 pub fn exp(value: u64, e: u32) -> num_bigint::BigUint {
