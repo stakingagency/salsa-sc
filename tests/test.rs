@@ -266,10 +266,12 @@ fn user_undelegations_order_test() {
     let one = exp(1, 18);
     let mut epoch = 1u64;
     let delegator = sc_setup.setup_new_user(1u64);
+    let caller = sc_setup.setup_new_user(2u64);
 
     // set epoch and balances
     sc_setup.blockchain_wrapper.set_block_epoch(epoch);
     sc_setup.blockchain_wrapper.set_egld_balance(&delegator, &exp(100, 18));
+    sc_setup.blockchain_wrapper.set_egld_balance(&caller, &one);
 
     // delegate
     sc_setup.delegate_test(&delegator, exp(100, 18));
@@ -316,6 +318,21 @@ fn user_undelegations_order_test() {
     sc_setup.check_total_users_undelegations_lengths(3);
     sc_setup.check_user_undelegations_amount(managed_address!(&delegator), exp(9, 18));
     sc_setup.check_total_users_undelegations_amount(exp(9, 18));
+
+    // undelegate all, withdraw and compute withdrawn
+    epoch = 30u64;
+    sc_setup.blockchain_wrapper.set_block_epoch(epoch);
+    sc_setup.undelegate_all_test(&caller);
+    epoch = 40u64;
+    sc_setup.blockchain_wrapper.set_block_epoch(epoch);
+    sc_setup.withdraw_all_test(&caller);
+    sc_setup.compute_withdrawn_test(&caller);
+    sc_setup.withdraw_test(&delegator);
+
+    // check undelegations lengths
+    sc_setup.check_user_undelegations_length(managed_address!(&delegator), 0);
+    sc_setup.check_reserve_undelegations_lengths(0);
+    sc_setup.check_total_users_undelegations_lengths(0);
 }
 
 #[test]
