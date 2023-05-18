@@ -51,8 +51,7 @@ type accountKey struct {
 const (
 	scAddress = "erd1qqqqqqqqqqqqqpgqpk3qzj86tme9kzxdq87f2rdf5nlwsgvjvcqs5hke3x"
 	// proxyAddress = "http://localhost:8079"
-	// proxyAddress = "http://193.70.44.72:8079"
-	proxyAddress = "https://devnet-gateway.multiversx.com"
+	proxyAddress = "http://95.216.220.113:8079"
 	walletFile   = "/home/mihai/walletKey.pem"
 	mnemonic     = "asdfghjkl"
 
@@ -217,7 +216,7 @@ func test(idx int) error {
 
 	tNonce := tAccount.Nonce
 
-	for i := 0; i < 40; i++ {
+	for i := 0; i < 20; i++ {
 		op := rand.Intn(10)
 		switch op {
 		case 0:
@@ -467,17 +466,17 @@ func main() {
 	// 	}
 
 	// STRESS TEST
-	// for {
-	// 	for i := 0; i < testN; i++ {
-	// 		go func(i int) {
-	// 			err = test(i)
-	// 			if err != nil {
-	// 				fmt.Println(err)
-	// 			}
-	// 		}(i)
-	// 	}
-	// 	time.Sleep(time.Minute * 20)
-	// }
+	for {
+		for i := 0; i < testN; i++ {
+			go func(i int) {
+				err = test(i)
+				if err != nil {
+					fmt.Println(err)
+				}
+			}(i)
+		}
+		time.Sleep(time.Minute * 20)
+	}
 }
 
 func queryVM(scAddress, funcName string, args []string) ([]byte, error) {

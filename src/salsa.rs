@@ -119,7 +119,10 @@ pub trait SalsaContract<ContractReader>:
         let mut _dummy = 0u64;
 
         (total_user_withdrawn_egld, _dummy) = self.remove_undelegations(
-            total_user_withdrawn_egld, current_epoch, self.luser_undelegations(&user), self.luser_undelegations(&user)
+            total_user_withdrawn_egld,
+            current_epoch,
+            self.luser_undelegations(&user),
+            self.luser_undelegations(&user)
         );
         let withdraw_amount = self.user_withdrawn_egld().get() - &total_user_withdrawn_egld;
         require!(withdraw_amount > 0, ERROR_NOTHING_TO_WITHDRAW);
@@ -194,18 +197,19 @@ pub trait SalsaContract<ContractReader>:
         // if there is not enough available reserve, move the reserve to user undelegation
         if egld_to_remove > available_egld_reserve {
             let egld_to_move = &egld_to_remove - &available_egld_reserve;
-            let mut remaining_egld = egld_to_move.clone();
-            let unbond_epoch: u64;
-
-            (remaining_egld, unbond_epoch) = self.remove_undelegations(
-                remaining_egld, MAX_EPOCH, self.lreserve_undelegations(), self.lreserve_undelegations()
+            let (remaining_egld, unbond_epoch) = self.remove_undelegations(
+                egld_to_move.clone(),
+                MAX_EPOCH,
+                self.lreserve_undelegations(),
+                self.lreserve_undelegations()
             );
             require!(remaining_egld == 0, ERROR_NOT_ENOUGH_FUNDS);
 
-            self.add_user_undelegation(egld_to_move.clone(), unbond_epoch);
-            egld_to_remove = available_egld_reserve.clone();
+            self.add_user_undelegation(egld_to_move, unbond_epoch);
+            egld_to_remove = available_egld_reserve;
         }
-        self.available_egld_reserve().update(|value| *value -= &egld_to_remove);
+        self.available_egld_reserve()
+            .update(|value| *value -= &egld_to_remove);
         self.users_reserve_points(&caller)
             .update(|value| *value -= &points_to_remove);
         self.reserve_points()
@@ -259,9 +263,11 @@ pub trait SalsaContract<ContractReader>:
         // update storage
         self.egld_to_undelegate()
             .update(|value| *value += &egld_to_undelegate);
-        self.available_egld_reserve().update(|value| *value -= &egld_to_undelegate_with_fee);
+        self.available_egld_reserve()
+            .update(|value| *value -= &egld_to_undelegate_with_fee);
         let total_rewards = &egld_to_undelegate - &egld_to_undelegate_with_fee;
-        self.egld_reserve().update(|value| *value += &total_rewards);
+        self.egld_reserve()
+            .update(|value| *value += &total_rewards);
 
         self.send().direct_egld(&caller, &egld_to_undelegate_with_fee);
     }
@@ -339,6 +345,7 @@ pub trait SalsaContract<ContractReader>:
         let mut total_amount = amount;
         let mut last_epoch = 0u64;
         for node in list.iter() {
+            let mut modified = false;
             let node_id = node.get_node_id();
             let mut undelegation = node.clone().into_value();
             if undelegation.unbond_epoch <= ref_epoch && total_amount > 0 {
@@ -349,11 +356,13 @@ pub trait SalsaContract<ContractReader>:
                     undelegation.amount -= total_amount;
                     total_amount = BigUint::zero();
                     last_epoch = undelegation.unbond_epoch;
+                    modified = true;
                 }
             }
             if undelegation.amount == 0 {
                 clone_list.remove_node_by_id(node_id.clone());
-            } else {
+            }
+            if modified {
                 clone_list.set_node_value_by_id(node_id, undelegation);
             }
         }
@@ -499,30 +508,32 @@ pub trait SalsaContract<ContractReader>:
     #[endpoint(computeWithdrawn)]
     fn compute_withdrawn(&self) {
         let current_epoch = self.blockchain().get_block_epoch();
-        let mut total_withdrawn_egld = self.total_withdrawn_egld().get();
-        let mut users_withdrawn_egld = self.user_withdrawn_egld().get();
-        let mut available_egld_reserve = self.available_egld_reserve().get();
+        let total_withdrawn_egld = self.total_withdrawn_egld().get();
 
         // compute user undelegations eligible for withdraw
-        let mut _dummy: u64;
-        (total_withdrawn_egld, _dummy) = self.remove_undelegations(
-            total_withdrawn_egld, current_epoch, self.ltotal_user_undelegations(), self.ltotal_user_undelegations()
+        let (mut left_amount, mut _dummy) = self.remove_undelegations(
+            total_withdrawn_egld.clone(),
+            current_epoch,
+            self.ltotal_user_undelegations(),
+            self.ltotal_user_undelegations()
         );
-        let withdrawn = self.total_withdrawn_egld().get() - total_withdrawn_egld.clone();
-        users_withdrawn_egld += withdrawn.clone();
-
-        self.user_withdrawn_egld().set(users_withdrawn_egld);
+        let withdrawn_for_users = &total_withdrawn_egld - &left_amount;
+        self.user_withdrawn_egld()
+            .update(|value| *value += &withdrawn_for_users);
 
         // compute reserve undelegations eligible for withdraw
-        (total_withdrawn_egld, _dummy) = self.remove_undelegations(
-            total_withdrawn_egld, current_epoch, self.lreserve_undelegations(), self.lreserve_undelegations()
+        (left_amount, _dummy) = self.remove_undelegations(
+            left_amount,
+            current_epoch,
+            self.lreserve_undelegations(),
+            self.lreserve_undelegations()
         );
-        available_egld_reserve += self.total_withdrawn_egld().get() - total_withdrawn_egld.clone() - withdrawn;
-
-        self.available_egld_reserve().set(available_egld_reserve);
+        let withdrawn_for_reserves = &total_withdrawn_egld - &left_amount - &withdrawn_for_users;
+        self.available_egld_reserve()
+            .update(|value| *value += withdrawn_for_reserves);
         
         self.total_withdrawn_egld()
-            .set(&total_withdrawn_egld);
+            .set(&left_amount);
     }
 
     // helpers
