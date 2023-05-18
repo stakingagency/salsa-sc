@@ -20,7 +20,7 @@ pub trait SalsaContract<ContractReader>:
 {
     #[init]
     fn init(&self) {
-        self.state().set(State::Inactive);
+        // self.state().set(State::Inactive);
     }
 
     // endpoints: liquid delegation
@@ -30,11 +30,23 @@ pub trait SalsaContract<ContractReader>:
     fn delegate(&self) -> EsdtTokenPayment<Self::Api> {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
-        let delegate_amount = self.call_value().egld_value();
+        let egld_value = self.call_value().egld_value();
+        let mut delegate_amount = egld_value.clone_value();
         require!(
-            delegate_amount.clone_value() >= MIN_EGLD,
+            delegate_amount >= MIN_EGLD,
             ERROR_INSUFFICIENT_AMOUNT
         );
+
+        // arbitrage
+        let salsa_amount_out = self.add_liquidity(&delegate_amount, false);
+        let sold_amount = self.do_arbitrage_on_onedex(
+            &TokenIdentifier::from(WEGLD_ID), &delegate_amount, &salsa_amount_out
+        );
+        delegate_amount -= &sold_amount;
+        if delegate_amount == 0 {
+            let liquid_token_id = self.liquid_token_id().get_token_id();
+            return EsdtTokenPayment::new(liquid_token_id, 0, salsa_amount_out)
+        }
 
         let ls_amount = self.add_liquidity(&delegate_amount, true);
 
@@ -45,10 +57,10 @@ pub trait SalsaContract<ContractReader>:
             .contract(delegation_contract)
             .delegate()
             .with_gas_limit(gas_for_async_call)
-            .with_egld_transfer(delegate_amount.clone_value())
+            .with_egld_transfer(delegate_amount.clone())
             .async_call()
             .with_callback(
-                SalsaContract::callbacks(self).delegate_callback(caller, delegate_amount.clone_value(), ls_amount),
+                SalsaContract::callbacks(self).delegate_callback(caller, delegate_amount, ls_amount),
             )
             .call_and_exit()
     }
@@ -86,7 +98,7 @@ pub trait SalsaContract<ContractReader>:
     fn undelegate(&self) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
-        let payment = self.call_value().single_esdt();
+        let mut payment = self.call_value().single_esdt();
         let liquid_token_id = self.liquid_token_id().get_token_id();
         require!(
             payment.token_identifier == liquid_token_id,
@@ -94,6 +106,17 @@ pub trait SalsaContract<ContractReader>:
         );
         require!(payment.amount > 0u64, ERROR_BAD_PAYMENT_AMOUNT);
 
+        // arbitrage
+        let salsa_amount_out = self.remove_liquidity(&payment.amount, false);
+        let sold_amount = self.do_arbitrage_on_onedex(
+            &liquid_token_id, &payment.amount, &salsa_amount_out
+        );
+        payment.amount -= sold_amount;
+        if payment.amount == 0 {
+            return
+        }
+
+        // normal undelegate
         let egld_to_undelegate = self.remove_liquidity(&payment.amount, true);
         self.burn_liquid_token(&payment.amount);
         self.egld_to_undelegate()
@@ -226,7 +249,7 @@ pub trait SalsaContract<ContractReader>:
     fn undelegate_now(&self, min_amount_out: BigUint) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
-        let payment = self.call_value().single_esdt();
+        let mut payment = self.call_value().single_esdt();
         let liquid_token_id = self.liquid_token_id().get_token_id();
         require!(
             payment.token_identifier == liquid_token_id,
@@ -238,6 +261,17 @@ pub trait SalsaContract<ContractReader>:
         let caller = self.blockchain().get_caller();
         let total_egld_staked = self.total_egld_staked().get();
 
+        // arbitrage
+        let salsa_amount_out = self.remove_liquidity(&payment.amount, false);
+        let sold_amount = self.do_arbitrage_on_onedex(
+            &liquid_token_id, &payment.amount, &salsa_amount_out
+        );
+        payment.amount -= sold_amount;
+        if payment.amount == 0 {
+            return
+        };
+
+        // normal unDelegateNow
         let egld_to_undelegate = self.remove_liquidity(&payment.amount, true);
         self.burn_liquid_token(&payment.amount);
         require!(
@@ -294,7 +328,7 @@ pub trait SalsaContract<ContractReader>:
             self.egld_reserve()
                 .update(|value| *value += &egld_profit);
             self.available_egld_reserve()
-                .update(|value| *value += &egld_profit);    
+                .update(|value| *value += &egld_profit);
             self.egld_profit().clear();
         }
 
@@ -312,7 +346,7 @@ pub trait SalsaContract<ContractReader>:
     fn set_arbitrage_active(&self) {
         require!(!self.provider_address().is_empty(), ERROR_PROVIDER_NOT_SET);
         require!(!self.liquid_token_id().is_empty(), ERROR_TOKEN_NOT_SET);
-        
+
         let pair_id = self.onedex_pair_id().get();
         require!(pair_id > 0, ERROR_ONEDEX_PAIR_ID);
 
