@@ -466,17 +466,17 @@ func main() {
 	// 	}
 
 	// STRESS TEST
-	for {
-		for i := 0; i < testN; i++ {
-			go func(i int) {
-				err = test(i)
-				if err != nil {
-					fmt.Println(err)
-				}
-			}(i)
-		}
-		time.Sleep(time.Minute * 20)
-	}
+	// for {
+	// 	for i := 0; i < testN; i++ {
+	// 		go func(i int) {
+	// 			err = test(i)
+	// 			if err != nil {
+	// 				fmt.Println(err)
+	// 			}
+	// 		}(i)
+	// 	}
+	// 	time.Sleep(time.Minute * 20)
+	// }
 }
 
 func queryVM(scAddress, funcName string, args []string) ([]byte, error) {
