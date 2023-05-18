@@ -187,7 +187,7 @@ where
                     for node in undelegations.iter() {
                         let undelegation = node.into_value();
                         assert_eq!(
-                            last_epoch <= undelegation.unbond_epoch,
+                            last_epoch < undelegation.unbond_epoch,
                             true
                         );
                         last_epoch = undelegation.unbond_epoch;
@@ -256,7 +256,7 @@ where
                     for node in undelegations.iter() {
                         let undelegation = node.into_value();
                         assert_eq!(
-                            last_epoch <= undelegation.unbond_epoch,
+                            last_epoch < undelegation.unbond_epoch,
                             true
                         );
                         last_epoch = undelegation.unbond_epoch;
@@ -266,7 +266,7 @@ where
                     for node in undelegations.iter() {
                         let undelegation = node.into_value();
                         assert_eq!(
-                            last_epoch <= undelegation.unbond_epoch,
+                            last_epoch < undelegation.unbond_epoch,
                             true
                         );
                         last_epoch = undelegation.unbond_epoch;
