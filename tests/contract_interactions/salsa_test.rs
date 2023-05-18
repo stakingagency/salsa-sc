@@ -83,10 +83,11 @@ where
         &mut self,
         sender: &Address,
         amount: num_bigint::BigUint,
+        min_amount: num_bigint::BigUint,
     ) {
         self.blockchain_wrapper
             .execute_esdt_transfer(sender, &self.salsa_wrapper, TOKEN_ID, 0, &amount, |sc| {
-                sc.undelegate_now()
+                sc.undelegate_now(to_managed_biguint(min_amount))
             })
             .assert_ok();
     }
@@ -126,4 +127,16 @@ where
             })
             .assert_ok();
     }
+
+    // pub fn compound_test(
+    //     &mut self,
+    //     sender: &Address,
+    // ) {
+    //     let big_zero = rust_biguint!(0);
+    //     self.blockchain_wrapper
+    //         .execute_tx(sender, &self.salsa_wrapper, &big_zero, |sc| {
+    //             sc.compound()
+    //         })
+    //         .assert_ok();
+    // }
 }

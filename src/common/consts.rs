@@ -4,9 +4,10 @@ pub const MIN_EGLD: u64 = 1_000_000_000_000_000_000;
 pub const MIN_GAS_FOR_ASYNC_CALL: u64 = 12_000_000;
 pub const MIN_GAS_FOR_CALLBACK: u64 = 12_000_000;
 pub const MAX_PERCENT: u64 = 10_000;
-pub const ARBITRAGE_RATIO: u64 = 9_000;
 pub const MAX_UNBOND_PERIOD: u64 = 20;
+pub const MAX_EPOCH: u64 = 18446744073709551615;
 pub const DUST_THRESHOLD: u64 = 1_000;
+pub const ARBITRAGE_RATIO: u64 = 9_000;
 
 // devnet consts
 pub const WEGLD_ID: &[u8] = b"WEGLD-d7c6bb";

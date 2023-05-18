@@ -30,28 +30,14 @@ pub trait ConfigModule:
     ) {
         require!(!self.is_state_active(), ERROR_ACTIVE);
         require!(self.liquid_token_id().is_empty(), ERROR_TOKEN_ALREADY_SET);
-
         let payment_amount = self.call_value().egld_value();
         self.liquid_token_id().issue_and_set_all_roles(
             payment_amount.clone_value(),
             token_display_name,
             token_ticker,
             num_decimals,
-            Some(ConfigModule::callbacks(self).issue_callback()),
+            None,
         );
-    }
-
-    #[callback]
-    fn issue_callback(&self, #[call_result] result: ManagedAsyncCallResult<TokenIdentifier>) {
-        match result {
-            ManagedAsyncCallResult::Ok(token_id) => {
-                let liquid_token_id = self.liquid_token_id();
-                if liquid_token_id.is_empty() {
-                    self.liquid_token_id().set_token_id(token_id);
-                }
-            }
-            ManagedAsyncCallResult::Err(_) => {}
-        }
     }
 
     #[view(getLiquidTokenId)]
@@ -125,11 +111,11 @@ pub trait ConfigModule:
     // delegation
 
     #[view(getUserUndelegations)]
-    #[storage_mapper("user_undelegations")]
-    fn user_undelegations(
+    #[storage_mapper("luser_undelegations")]
+    fn luser_undelegations(
         &self,
         user: &ManagedAddress,
-    ) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
+    ) -> LinkedListMapper<Undelegation<Self::Api>>;
 
     #[view(getTotalEgldStaked)]
     #[storage_mapper("total_egld_staked")]
@@ -150,8 +136,8 @@ pub trait ConfigModule:
     fn total_withdrawn_egld(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getTotalUserUndelegations)] // total user undelegations per epoch
-    #[storage_mapper("total_user_undelegations")]
-    fn total_user_undelegations(&self) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
+    #[storage_mapper("ltotal_user_undelegations")]
+    fn ltotal_user_undelegations(&self) -> LinkedListMapper<Undelegation<Self::Api>>;
 
     #[storage_mapper("egld_to_undelegate")]
     fn egld_to_undelegate(&self) -> SingleValueMapper<BigUint>;
@@ -171,8 +157,8 @@ pub trait ConfigModule:
     fn available_egld_reserve(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getReserveUndelegations)]
-    #[storage_mapper("reserve_undelegations")]
-    fn reserve_undelegations(&self) -> SingleValueMapper<ManagedVec<Undelegation<Self::Api>>>;
+    #[storage_mapper("lreserve_undelegations")]
+    fn lreserve_undelegations(&self) -> LinkedListMapper<Undelegation<Self::Api>>;
 
     #[view(getUsersReservePoints)]
     #[storage_mapper("users_reserve_points")]

@@ -1,12 +1,12 @@
 multiversx_sc::imports!();
 
 use crate::{common::consts::*, common::errors::*};
-use crate::common::config::Undelegation;
 use crate::proxies::delegation_proxy;
 
 #[multiversx_sc::module]
 pub trait ServiceModule:
     crate::common::config::ConfigModule
+    + crate::helpers::HelpersModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     // endpoints: service
@@ -15,11 +15,13 @@ pub trait ServiceModule:
     fn undelegate_all(&self) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
-        let egld_to_undelegate = self.egld_to_undelegate().take();
+        let egld_to_undelegate = self.egld_to_undelegate().get();
         require!(
             egld_to_undelegate >= MIN_EGLD,
             ERROR_INSUFFICIENT_AMOUNT
         );
+
+        self.egld_to_undelegate().clear();
 
         let delegation_contract = self.provider_address().get();
         let gas_for_async_call = self.get_gas_for_async_call();
@@ -145,62 +147,32 @@ pub trait ServiceModule:
     #[endpoint(computeWithdrawn)]
     fn compute_withdrawn(&self) {
         let current_epoch = self.blockchain().get_block_epoch();
-        let mut total_withdrawn_egld = self.total_withdrawn_egld().get();
-        let mut users_withdrawn_egld = self.user_withdrawn_egld().get();
-        let mut available_egld_reserve = self.available_egld_reserve().get();
+        let total_withdrawn_egld = self.total_withdrawn_egld().get();
 
         // compute user undelegations eligible for withdraw
-        let user_undelegations = self.total_user_undelegations().get();
-        let mut remaining_users_undelegations: ManagedVec<
-            Self::Api,
-            Undelegation<Self::Api>,
-        > = ManagedVec::new();
-        for mut user_undelegation in user_undelegations.into_iter() {
-            if user_undelegation.unbond_epoch <= current_epoch {
-                let mut egld_to_unbond = user_undelegation.amount.clone();
-                if egld_to_unbond > total_withdrawn_egld {
-                    egld_to_unbond = total_withdrawn_egld.clone();
-                }
-                total_withdrawn_egld -= &egld_to_unbond;
-                users_withdrawn_egld += &egld_to_unbond;
-                user_undelegation.amount -= &egld_to_unbond;
-            }
-            if user_undelegation.amount > 0 {
-                remaining_users_undelegations.push(user_undelegation);
-            }
-        }
-
-        self.user_withdrawn_egld().set(users_withdrawn_egld);
-        self.total_user_undelegations()
-            .set(remaining_users_undelegations);
+        let (mut left_amount, mut _dummy) = self.remove_undelegations(
+            total_withdrawn_egld.clone(),
+            current_epoch,
+            self.ltotal_user_undelegations(),
+            self.ltotal_user_undelegations()
+        );
+        let withdrawn_for_users = &total_withdrawn_egld - &left_amount;
+        self.user_withdrawn_egld()
+            .update(|value| *value += &withdrawn_for_users);
 
         // compute reserve undelegations eligible for withdraw
-        let reserve_undelegations = self.reserve_undelegations().get();
-        let mut remaining_reserve_undelegations: ManagedVec<
-            Self::Api,
-            Undelegation<Self::Api>,
-        > = ManagedVec::new();
-        for mut reserve_undelegation in reserve_undelegations.into_iter() {
-            if reserve_undelegation.unbond_epoch <= current_epoch {
-                let mut egld_to_unbond = reserve_undelegation.amount.clone();
-                if egld_to_unbond > total_withdrawn_egld {
-                    egld_to_unbond = total_withdrawn_egld.clone();
-                }
-                total_withdrawn_egld -= &egld_to_unbond;
-                available_egld_reserve += &egld_to_unbond;
-                reserve_undelegation.amount -= &egld_to_unbond;
-            }
-            if reserve_undelegation.amount > 0 {
-                remaining_reserve_undelegations.push(reserve_undelegation);
-            }
-        }
-
-        self.available_egld_reserve().set(available_egld_reserve);
-        self.reserve_undelegations()
-            .set(remaining_reserve_undelegations);
+        (left_amount, _dummy) = self.remove_undelegations(
+            left_amount,
+            current_epoch,
+            self.lreserve_undelegations(),
+            self.lreserve_undelegations()
+        );
+        let withdrawn_for_reserves = &total_withdrawn_egld - &left_amount - &withdrawn_for_users;
+        self.available_egld_reserve()
+            .update(|value| *value += withdrawn_for_reserves);
         
         self.total_withdrawn_egld()
-            .set(&total_withdrawn_egld);
+            .set(&left_amount);
     }
 
      // helpers
