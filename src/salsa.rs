@@ -20,7 +20,7 @@ pub trait SalsaContract<ContractReader>:
 {
     #[init]
     fn init(&self) {
-        // self.state().set(State::Inactive);
+        self.state().set(State::Inactive);
     }
 
     // endpoints: liquid delegation
