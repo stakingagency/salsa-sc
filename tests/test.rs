@@ -327,10 +327,12 @@ fn reserve_undelegations_order_test() {
     let one_with_fee = exp(98, 16);
     let mut epoch = 1u64;
     let reserver = sc_setup.setup_new_user(1u64);
+    let caller = sc_setup.setup_new_user(2u64);
 
     // set epoch and balances
     sc_setup.blockchain_wrapper.set_block_epoch(epoch);
     sc_setup.blockchain_wrapper.set_egld_balance(&reserver, &exp(100, 18));
+    sc_setup.blockchain_wrapper.set_egld_balance(&caller, &one);
 
     // delegate and add reserve
     sc_setup.delegate_test(&reserver, exp(50, 18));
@@ -362,6 +364,19 @@ fn reserve_undelegations_order_test() {
     sc_setup.check_total_undelegations_order();
     sc_setup.check_reserve_undelegations_lengths(3);
     sc_setup.check_reserve_undelegations_amount(exp(5, 18));
+
+    // undelegate all, withdraw and compute withdrawn
+    epoch = 30u64;
+    sc_setup.blockchain_wrapper.set_block_epoch(epoch);
+    sc_setup.undelegate_all_test(&caller);
+    epoch = 40u64;
+    sc_setup.blockchain_wrapper.set_block_epoch(epoch);
+    sc_setup.withdraw_all_test(&caller);
+    sc_setup.compute_withdrawn_test(&caller);
+
+    // check undelegations lengths
+    sc_setup.check_reserve_undelegations_lengths(0);
+    sc_setup.check_total_users_undelegations_lengths(0);
 }
 
 pub fn exp(value: u64, e: u32) -> num_bigint::BigUint {
