@@ -181,10 +181,10 @@ pub trait ConfigModule:
     fn get_reserve_points_amount(&self, egld_amount: &BigUint) -> BigUint {
         let egld_reserve = self.egld_reserve().get();
         let reserve_points = self.reserve_points().get();
-        let mut user_reserve_points = egld_amount.clone() * POINTS_PER_EGLD;
+        let mut user_reserve_points = egld_amount.clone();
         if egld_reserve > 0 {
             if reserve_points == 0 {
-                user_reserve_points += egld_reserve * POINTS_PER_EGLD
+                user_reserve_points += egld_reserve
             } else {
                 user_reserve_points = egld_amount * &reserve_points / &egld_reserve
             }
@@ -197,7 +197,7 @@ pub trait ConfigModule:
     fn get_reserve_egld_amount(&self, points_amount: &BigUint) -> BigUint {
         let egld_reserve = self.egld_reserve().get();
         let reserve_points = self.reserve_points().get();
-        let mut user_egld_amount = points_amount.clone() / POINTS_PER_EGLD;
+        let mut user_egld_amount = points_amount.clone();
         if reserve_points > 0 {
             user_egld_amount = points_amount * &egld_reserve / &reserve_points
         }

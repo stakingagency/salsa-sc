@@ -4,4 +4,3 @@ pub const MIN_GAS_FOR_CALLBACK: u64 = 12_000_000;
 pub const MAX_PERCENT: u64 = 10_000;
 pub const MAX_UNBOND_PERIOD: u64 = 20;
 pub const DUST_THRESHOLD: u64 = 1_000;
-pub const POINTS_PER_EGLD: u64 = 1_000;
