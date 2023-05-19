@@ -274,4 +274,44 @@ where
                 }
             ).assert_ok();
     }
+
+    pub fn check_user_undelegations_non_zero(&mut self, user: ManagedAddress<DebugApi>) {
+        self.blockchain_wrapper
+            .execute_query(
+                &self.salsa_wrapper, |sc| {
+                    let undelegations = sc.luser_undelegations(&user);
+                    for node in undelegations.iter() {
+                        let undelegation = node.into_value();
+                        assert_eq!(
+                            undelegation.amount > 0,
+                            true
+                        );
+                    }
+                }
+            ).assert_ok();
+    }
+
+    pub fn check_total_undelegations_non_zero(&mut self) {
+        self.blockchain_wrapper
+            .execute_query(
+                &self.salsa_wrapper, |sc| {
+                    let undelegations = sc.ltotal_user_undelegations();
+                    for node in undelegations.iter() {
+                        let undelegation = node.into_value();
+                        assert_eq!(
+                            undelegation.amount > 0,
+                            true
+                        );
+                    }
+                    let undelegations = sc.lreserve_undelegations();
+                    for node in undelegations.iter() {
+                        let undelegation = node.into_value();
+                        assert_eq!(
+                            undelegation.amount > 0,
+                            true
+                        );
+                    }
+                }
+            ).assert_ok();
+    }
 }

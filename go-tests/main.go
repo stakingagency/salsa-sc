@@ -55,7 +55,7 @@ const (
 	walletFile   = "/home/mihai/walletKey.pem"
 	mnemonic     = "asdfghjkl"
 
-	testN = 100
+	testN = 1000
 )
 
 var (
@@ -220,11 +220,11 @@ func test(idx int) error {
 		op := rand.Intn(10)
 		switch op {
 		case 0:
-			if err = delegate(big.NewInt(2000000000000000000), 50000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = delegate(big.NewInt(1000000000000000000), 50000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 1:
-			if err = addReserve(big.NewInt(2000000000000000000), 20000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
+			if err = addReserve(big.NewInt(1000000000000000000), 20000000, int64(tNonce), tPrivateKey, tWalletAddress); err != nil {
 				return err
 			}
 		case 2:
