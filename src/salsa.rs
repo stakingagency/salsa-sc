@@ -32,7 +32,7 @@ pub trait SalsaContract<ContractReader>:
             ERROR_INSUFFICIENT_AMOUNT
         );
 
-        let ls_amount = self.add_liquidity(&delegate_amount, true);
+        let ls_amount = self.add_liquidity(&delegate_amount);
 
         let caller = self.blockchain().get_caller();
         let delegation_contract = self.provider_address().get();
@@ -90,7 +90,7 @@ pub trait SalsaContract<ContractReader>:
         );
         require!(payment.amount > 0u64, ERROR_BAD_PAYMENT_AMOUNT);
 
-        let egld_to_undelegate = self.remove_liquidity(&payment.amount, true);
+        let egld_to_undelegate = self.remove_liquidity(&payment.amount);
         self.burn_liquid_token(&payment.amount);
         self.egld_to_undelegate()
             .update(|value| *value += &egld_to_undelegate);
@@ -228,7 +228,7 @@ pub trait SalsaContract<ContractReader>:
         let caller = self.blockchain().get_caller();
         let total_egld_staked = self.total_egld_staked().get();
 
-        let egld_to_undelegate = self.remove_liquidity(&payment.amount, true);
+        let egld_to_undelegate = self.remove_liquidity(&payment.amount);
         self.burn_liquid_token(&payment.amount);
         require!(
             egld_to_undelegate >= MIN_EGLD,
@@ -561,7 +561,7 @@ pub trait SalsaContract<ContractReader>:
         gas_left - MIN_GAS_FOR_CALLBACK
     }
 
-    fn add_liquidity(&self, new_stake_amount: &BigUint, update_storage: bool) -> BigUint {
+    fn add_liquidity(&self, new_stake_amount: &BigUint) -> BigUint {
         let total_egld_staked = self.total_egld_staked().get();
         let liquid_token_supply = self.liquid_token_supply().get();
         let ls_amount = if total_egld_staked > 0 {
@@ -576,17 +576,15 @@ pub trait SalsaContract<ContractReader>:
 
         require!(ls_amount > 0, ERROR_NOT_ENOUGH_LIQUID_SUPPLY);
 
-        if update_storage {
-            self.total_egld_staked()
-                .update(|value| *value += new_stake_amount);
-            self.liquid_token_supply()
-               .update(|value| *value += &ls_amount);
-        }
+        self.total_egld_staked()
+            .update(|value| *value += new_stake_amount);
+        self.liquid_token_supply()
+            .update(|value| *value += &ls_amount);
 
         ls_amount
     }
 
-    fn remove_liquidity(&self, ls_amount: &BigUint, update_storage: bool) -> BigUint {
+    fn remove_liquidity(&self, ls_amount: &BigUint) -> BigUint {
         let total_egld_staked = self.total_egld_staked().get();
         let liquid_token_supply = self.liquid_token_supply().get();
         require!(
@@ -598,12 +596,10 @@ pub trait SalsaContract<ContractReader>:
         let egld_amount = ls_amount * &total_egld_staked / &liquid_token_supply;
         require!(egld_amount > 0u64, ERROR_BAD_PAYMENT_AMOUNT);
 
-        if update_storage {
-            self.total_egld_staked()
-                .update(|value| *value -= &egld_amount);
-            self.liquid_token_supply()
-                .update(|value| *value -= ls_amount);
-        }
+        self.total_egld_staked()
+            .update(|value| *value -= &egld_amount);
+        self.liquid_token_supply()
+            .update(|value| *value -= ls_amount);
 
         egld_amount
     }
