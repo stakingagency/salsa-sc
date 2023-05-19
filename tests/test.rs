@@ -328,6 +328,8 @@ fn user_undelegations_order_test() {
     sc_setup.withdraw_all_test(&caller);
     sc_setup.compute_withdrawn_test(&caller);
     sc_setup.withdraw_test(&delegator);
+    sc_setup.check_total_undelegations_non_zero();
+    sc_setup.check_user_undelegations_non_zero(managed_address!(&delegator));
 
     // check undelegations lengths
     sc_setup.check_user_undelegations_length(managed_address!(&delegator), 0);
@@ -390,10 +392,49 @@ fn reserve_undelegations_order_test() {
     sc_setup.blockchain_wrapper.set_block_epoch(epoch);
     sc_setup.withdraw_all_test(&caller);
     sc_setup.compute_withdrawn_test(&caller);
+    sc_setup.check_total_undelegations_non_zero();
 
     // check undelegations lengths
     sc_setup.check_reserve_undelegations_lengths(0);
     sc_setup.check_total_users_undelegations_lengths(0);
+}
+
+#[test]
+fn check_non_zero_undelegations() {
+    let _ = DebugApi::dummy();
+
+    let mut sc_setup = SalsaContractSetup::new(salsa::contract_obj);
+    let zero = rust_biguint!(0);
+    let one = exp(1, 18);
+    let mut epoch = 1u64;
+    let delegator = sc_setup.setup_new_user(1u64);
+
+    // set epoch and balance
+    sc_setup.blockchain_wrapper.set_block_epoch(epoch);
+    sc_setup.blockchain_wrapper.set_egld_balance(&delegator, &exp(10, 18));
+
+    // delegate, then undelegate
+    sc_setup.delegate_test(&delegator, one.clone());
+    sc_setup.undelegate_test(&delegator, one.clone());
+    sc_setup.undelegate_all_test(&delegator);
+
+    // check
+    sc_setup.check_user_undelegations_amount(managed_address!(&delegator), one.clone());
+    sc_setup.check_total_users_undelegations_amount(one.clone());
+
+    // withdraw_all then check again
+    epoch = 11u64;
+    sc_setup.blockchain_wrapper.set_block_epoch(epoch);
+    sc_setup.withdraw_all_test(&delegator);
+    sc_setup.compute_withdrawn_test(&delegator);
+    sc_setup.check_user_undelegations_amount(managed_address!(&delegator), one.clone());
+    sc_setup.check_total_users_undelegations_amount(zero.clone());
+
+    // withdraw then final check
+    sc_setup.withdraw_test(&delegator);
+    sc_setup.check_user_undelegations_amount(managed_address!(&delegator), zero);
+    sc_setup.check_total_undelegations_non_zero();
+    sc_setup.check_user_undelegations_non_zero(managed_address!(&delegator));
 }
 
 pub fn exp(value: u64, e: u32) -> num_bigint::BigUint {
