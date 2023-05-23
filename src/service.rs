@@ -2,6 +2,7 @@ multiversx_sc::imports!();
 
 use crate::{common::consts::*, common::errors::*};
 use crate::proxies::delegation_proxy;
+use crate::common::config::{UndelegationType};
 
 #[multiversx_sc::module]
 pub trait ServiceModule:
@@ -148,24 +149,27 @@ pub trait ServiceModule:
     fn compute_withdrawn(&self) {
         let current_epoch = self.blockchain().get_block_epoch();
         let total_withdrawn_egld = self.total_withdrawn_egld().get();
+        let caller = self.blockchain().get_caller();
 
         // compute user undelegations eligible for withdraw
-        let (mut left_amount, mut _dummy) = self.remove_undelegations(
+        let (mut left_amount, _) = self.remove_undelegations(
             total_withdrawn_egld.clone(),
             current_epoch,
             self.ltotal_user_undelegations(),
-            self.ltotal_user_undelegations()
+            UndelegationType::TotalUsersList,
+            caller.clone()
         );
         let withdrawn_for_users = &total_withdrawn_egld - &left_amount;
         self.user_withdrawn_egld()
             .update(|value| *value += &withdrawn_for_users);
 
         // compute reserve undelegations eligible for withdraw
-        (left_amount, _dummy) = self.remove_undelegations(
+        (left_amount, _) = self.remove_undelegations(
             left_amount,
             current_epoch,
             self.lreserve_undelegations(),
-            self.lreserve_undelegations()
+            UndelegationType::ReservesList,
+            caller
         );
         let withdrawn_for_reserves = &total_withdrawn_egld - &left_amount - &withdrawn_for_users;
         self.available_egld_reserve()

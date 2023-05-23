@@ -1,6 +1,6 @@
 multiversx_sc::imports!();
 
-use crate::common::config::Undelegation;
+use crate::common::config::{Undelegation, UndelegationType};
 use crate::{common::errors::*};
 
 #[multiversx_sc::module]
@@ -70,34 +70,51 @@ pub trait HelpersModule:
         amount: BigUint,
         ref_epoch: u64,
         list: LinkedListMapper<Undelegation<Self::Api>>,
-        mut clone_list: LinkedListMapper<Undelegation<Self::Api>>
+        list_type: UndelegationType,
+        user: ManagedAddress
     ) -> (BigUint, u64) { // left amount, last epoch
+        let mut clone_list = self.get_undelegations_list(list_type, &user);
         let mut total_amount = amount;
-        let mut last_epoch = 0u64;
+        let current_epoch = self.blockchain().get_block_epoch();
+        let unbond_period = self.unbond_period().get();
+        let mut last_epoch = &current_epoch + &unbond_period;
         for node in list.iter() {
             let mut modified = false;
             let node_id = node.get_node_id();
             let mut undelegation = node.clone().into_value();
             if undelegation.unbond_epoch <= ref_epoch && total_amount > 0 {
-                if total_amount >= undelegation.amount {
+                last_epoch = undelegation.unbond_epoch;
+                if total_amount > undelegation.amount {
                     total_amount -= undelegation.amount;
                     undelegation.amount = BigUint::zero();
                 } else {
                     undelegation.amount -= total_amount;
                     total_amount = BigUint::zero();
-                    last_epoch = undelegation.unbond_epoch;
                     modified = true;
                 }
             }
             if undelegation.amount == 0 {
                 clone_list.remove_node_by_id(node_id.clone());
-            }
-            if modified {
+            } else if modified {
                 clone_list.set_node_value_by_id(node_id, undelegation);
             }
         }
 
         (total_amount, last_epoch)
+    }
+
+    fn get_undelegations_list(
+        &self,
+        list_type: UndelegationType,
+        user: &ManagedAddress
+    ) -> LinkedListMapper<Undelegation<Self::Api>> {
+        if list_type == UndelegationType::UserList {
+            self.luser_undelegations(user)
+        } else if list_type == UndelegationType::TotalUsersList {
+            self.ltotal_user_undelegations()
+        } else {
+            self.lreserve_undelegations()
+        }
     }
 
     fn add_liquidity(&self, new_stake_amount: &BigUint, update_storage: bool) -> BigUint {

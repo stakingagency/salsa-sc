@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           44
+// Endpoints:                           43
 // Async Callback:                       1
-// Total number of exported functions:  46
+// Total number of exported functions:  45
 
 #![no_std]
 #![feature(lang_items)]
@@ -21,7 +21,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         delegate
         unDelegate
         withdraw
-        withdrawForUser
         addReserve
         removeReserve
         unDelegateNow
@@ -52,11 +51,11 @@ multiversx_sc_wasm_adapter::endpoints! {
         getReservePointsAmount
         getReserveEgldAmount
         getUserReserve
+        getTokenPrice
         setArbitrageInactive
         getArbitrageState
         getLiquidProfit
         getEgldProfit
-        getTokenPrice
         unDelegateAll
         compound
         withdrawAll

@@ -9,6 +9,13 @@ pub enum State {
     Active,
 }
 
+#[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Eq, Copy, Clone, Debug)]
+pub enum UndelegationType {
+    UserList,
+    TotalUsersList,
+    ReservesList,
+}
+
 #[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
 pub struct Undelegation<M: ManagedTypeApi> {
     pub amount: BigUint<M>,
@@ -215,6 +222,21 @@ pub trait ConfigModule:
     #[storage_mapper("add_reserve_epoch")]
     fn add_reserve_epoch(&self, user: &ManagedAddress) -> SingleValueMapper<u64>;
 
+    // misc
+
+    #[view(getTokenPrice)]
+    fn token_price(&self) -> BigUint {
+        let staked_egld = self.total_egld_staked().get();
+        let token_supply = self.liquid_token_supply().get();
+
+        let one = BigUint::from(1_000_000_000_000_000_000u64);
+        if (token_supply == 0) || (staked_egld == 0) {
+            one
+        } else {
+            one * staked_egld / token_supply
+        }
+    }
+
     // arbitrage
 
     #[only_owner]
@@ -240,19 +262,4 @@ pub trait ConfigModule:
     #[view(getEgldProfit)]
     #[storage_mapper("egld_profit")]
     fn egld_profit(&self) -> SingleValueMapper<BigUint>;
-
-    // misc
-
-    #[view(getTokenPrice)]
-    fn token_price(&self) -> BigUint {
-        let staked_egld = self.total_egld_staked().get();
-        let token_supply = self.liquid_token_supply().get();
-
-        let one = BigUint::from(1_000_000_000_000_000_000u64);
-        if (token_supply == 0) || (staked_egld == 0) {
-            one
-        } else {
-            one * staked_egld / token_supply
-        }
-    }
 }

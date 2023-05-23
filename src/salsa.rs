@@ -30,8 +30,8 @@ pub trait SalsaContract<ContractReader>:
     fn delegate(&self) -> EsdtTokenPayment<Self::Api> {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
-        let egld_value = self.call_value().egld_value();
-        let mut delegate_amount = egld_value.clone_value();
+        let amount = self.call_value().egld_value();
+        let mut delegate_amount = amount.clone_value();
         require!(
             delegate_amount >= MIN_EGLD,
             ERROR_INSUFFICIENT_AMOUNT
@@ -60,7 +60,7 @@ pub trait SalsaContract<ContractReader>:
             .with_egld_transfer(delegate_amount.clone())
             .async_call()
             .with_callback(
-                SalsaContract::callbacks(self).delegate_callback(caller, delegate_amount, ls_amount),
+                SalsaContract::callbacks(self).delegate_callback(caller, delegate_amount.clone(), ls_amount),
             )
             .call_and_exit()
     }
@@ -128,28 +128,19 @@ pub trait SalsaContract<ContractReader>:
 
     #[endpoint(withdraw)]
     fn withdraw(&self) {
-        let caller = self.blockchain().get_caller();
-        self.do_withdraw(caller);
-    }
-
-    #[endpoint(withdrawForUser)]
-    fn withdraw_for_user(&self, user: ManagedAddress) {
-        self.do_withdraw(user);
-    }
-
-    fn do_withdraw(&self, user: ManagedAddress) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
+        let user = self.blockchain().get_caller();
         self.compute_withdrawn();
         let current_epoch = self.blockchain().get_block_epoch();
         let mut total_user_withdrawn_egld = self.user_withdrawn_egld().get();
-        let mut _dummy = 0u64;
 
-        (total_user_withdrawn_egld, _dummy) = self.remove_undelegations(
+        (total_user_withdrawn_egld, _) = self.remove_undelegations(
             total_user_withdrawn_egld,
             current_epoch,
             self.luser_undelegations(&user),
-            self.luser_undelegations(&user)
+            UndelegationType::UserList,
+            user.clone()
         );
         let withdraw_amount = self.user_withdrawn_egld().get() - &total_user_withdrawn_egld;
         require!(withdraw_amount > 0, ERROR_NOTHING_TO_WITHDRAW);
@@ -208,9 +199,9 @@ pub trait SalsaContract<ContractReader>:
         require!(old_reserve >= amount, ERROR_NOT_ENOUGH_FUNDS);
 
         self.compute_withdrawn();
-        
+
         let mut egld_to_remove = amount.clone();
-        let mut points_to_remove = self.get_reserve_points_amount(&egld_to_remove);
+        let mut points_to_remove = self.get_reserve_points_amount(&egld_to_remove) + 1u64;
         if &old_reserve - &amount < DUST_THRESHOLD {
             // avoid rounding issues
             points_to_remove = old_reserve_points.clone();
@@ -218,17 +209,20 @@ pub trait SalsaContract<ContractReader>:
         } else {
             require!(&old_reserve - &amount >= MIN_EGLD, ERROR_DUST_REMAINING);
         }
+
         self.egld_reserve().update(|value| *value -= &egld_to_remove);
 
         let available_egld_reserve = self.available_egld_reserve().get();
         // if there is not enough available reserve, move the reserve to user undelegation
         if egld_to_remove > available_egld_reserve {
+            let unbond_period = self.unbond_period().get();
             let egld_to_move = &egld_to_remove - &available_egld_reserve;
             let (remaining_egld, unbond_epoch) = self.remove_undelegations(
                 egld_to_move.clone(),
-                MAX_EPOCH,
+                &current_epoch + &unbond_period,
                 self.lreserve_undelegations(),
-                self.lreserve_undelegations()
+                UndelegationType::ReservesList,
+                caller.clone()
             );
             require!(remaining_egld == 0, ERROR_NOT_ENOUGH_FUNDS);
 
