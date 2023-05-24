@@ -74,74 +74,46 @@ pub trait OnedexModule:
             .execute_on_dest_context()
     }
 
-    fn get_onedex_buy_quantity(&self, uegld_amount: BigUint, uls_amount: BigUint) -> BigUint {
-        require!(uls_amount > 0, ERROR_INSUFFICIENT_AMOUNT);
+    fn get_onedex_buy_quantity(&self, egld_amount: BigUint, ls_amount: BigUint) -> BigUint {
+        require!(ls_amount > 0, ERROR_INSUFFICIENT_AMOUNT);
 
         let fee = self.onedex_fee().get();
         require!(fee > 0, ERROR_FEE_ZERO);
 
         let pair_id = self.onedex_pair_id().get();
-        let (uls_reserve, uegld_reserve) = self.get_onedex_reserves(pair_id);
+        let (ls_reserve, egld_reserve) = self.get_onedex_reserves(pair_id);
 
-        let ls_amount = BigInt::from_biguint(Sign::Plus, uls_amount);
-        let egld_amount = BigInt::from_biguint(Sign::Plus, uegld_amount.clone());
-        let ls_reserve = BigInt::from_biguint(Sign::Plus, uls_reserve);
-        let egld_reserve = BigInt::from_biguint(Sign::Plus, uegld_reserve);
-        let imax = BigInt::from_biguint(Sign::Plus, BigUint::from(MAX_PERCENT));
-        let ifee = BigInt::from_biguint(Sign::Plus, BigUint::from(MAX_PERCENT - fee));
-
-        let mut b = ifee.clone() * ls_reserve * egld_amount / ls_amount / imax.clone();
-        b = egld_reserve - b;
-        let mut x = BigInt::from_biguint(Sign::Plus, b.magnitude()) - b;
-        if x < 0 {
+        let mut x = &ls_reserve * &egld_amount  / &ls_amount;
+        let y = &egld_reserve * MAX_PERCENT / fee;
+        if x <= y {
             return BigUint::zero()
         }
-        x = x * imax / ifee;
 
-        let opt_x = x.into_big_uint();
-        let mut ux = match opt_x.into_option() {
-            Some(value) => value,
-            None => BigUint::zero(),
-        };
-        ux /= 2_u64;
-        if ux > uegld_amount {
-            uegld_amount
+        x = x - y;
+        if x > egld_amount {
+            egld_amount
         } else {
-            ux * ARBITRAGE_RATIO / MAX_PERCENT
+            x * ARBITRAGE_RATIO / MAX_PERCENT
         }
     }
 
-    fn get_onedex_sell_quantity(&self, uls_amount: BigUint, uegld_amount: BigUint, ) -> BigUint {
-        require!(uegld_amount > 0, ERROR_INSUFFICIENT_AMOUNT);
+    fn get_onedex_sell_quantity(&self, ls_amount: BigUint, egld_amount: BigUint, ) -> BigUint {
+        require!(egld_amount > 0, ERROR_INSUFFICIENT_AMOUNT);
 
         let fee = self.onedex_fee().get();
         let pair_id = self.onedex_pair_id().get();
-        let (uls_reserve, uegld_reserve) = self.get_onedex_reserves(pair_id);
+        let (ls_reserve, egld_reserve) = self.get_onedex_reserves(pair_id);
 
-        let ls_amount = BigInt::from_biguint(Sign::Plus, uls_amount.clone());
-        let egld_amount = BigInt::from_biguint(Sign::Plus, uegld_amount);
-        let ls_reserve = BigInt::from_biguint(Sign::Plus, uls_reserve);
-        let egld_reserve = BigInt::from_biguint(Sign::Plus, uegld_reserve);
-        let imax = BigInt::from_biguint(Sign::Plus, BigUint::from(MAX_PERCENT));
-        let ifee = BigInt::from_biguint(Sign::Plus, BigUint::from(MAX_PERCENT - fee));
-
-        let mut b = ifee * egld_reserve * ls_amount / egld_amount / imax;
-        b = ls_reserve - b;
-        let x = BigInt::from_biguint(Sign::Plus, b.magnitude()) - b;
-        if x < 0 {
-            return BigUint::zero()
+        let mut x = &egld_reserve * &ls_amount * fee / &egld_amount / MAX_PERCENT;
+        if x < ls_reserve {
+            return BigUint::zero();
         }
-        
-        let opt_x = x.into_big_uint();
-        let mut ux = match opt_x.into_option() {
-            Some(value) => value,
-            None => BigUint::zero(),
-        };
-        ux /= 2_u64;
-        if ux > uls_amount {
-            uls_amount
+
+        x = x - ls_reserve;
+        if x > ls_amount {
+            ls_amount
         } else {
-            ux * ARBITRAGE_RATIO / MAX_PERCENT
+            x * ARBITRAGE_RATIO / MAX_PERCENT
         }
     }
 
