@@ -51,23 +51,23 @@ fn delegation_test() {
     sc_setup.check_egld_to_undelegate(amount.clone());
 
     // undelegate all
-    // sc_setup.undelegate_all_test(&caller);
-    // sc_setup.check_egld_to_undelegate(big_zero.clone());
+    sc_setup.undelegate_all_test(&caller);
+    sc_setup.check_egld_to_undelegate(big_zero.clone());
 
     // withdraw all
-    // sc_setup.blockchain_wrapper.set_block_epoch(11u64);
-    // sc_setup.withdraw_all_test(&caller);
-    // sc_setup.check_total_withdrawn_egld(amount.clone());
+    sc_setup.blockchain_wrapper.set_block_epoch(11u64);
+    sc_setup.withdraw_all_test(&caller);
+    sc_setup.check_total_withdrawn_egld(amount.clone());
 
     // compute withdrawn
-    // sc_setup.compute_withdrawn_test(&caller);
-    // sc_setup.check_total_withdrawn_egld(big_zero.clone());
-    // sc_setup.check_user_withdrawn_egld(amount.clone());
+    sc_setup.compute_withdrawn_test(&caller);
+    sc_setup.check_total_withdrawn_egld(big_zero.clone());
+    sc_setup.check_user_withdrawn_egld(amount.clone());
 
     // withdraw
-    // sc_setup.withdraw_test(&caller);
-    // sc_setup.check_user_withdrawn_egld(big_zero.clone());
-    // sc_setup.blockchain_wrapper.check_egld_balance(&caller, &amount);
+    sc_setup.withdraw_test(&caller);
+    sc_setup.check_user_withdrawn_egld(big_zero.clone());
+    sc_setup.blockchain_wrapper.check_egld_balance(&caller, &amount);
 }
 
 #[test]
@@ -329,11 +329,10 @@ fn reserve_undelegations_order_test() {
     let one = exp(1, 18);
     let one_with_fee = exp(98, 16);
     let mut epoch = 1u64;
-    let reserver = sc_setup.setup_new_user(1u64);
+    let reserver = sc_setup.setup_new_user(100u64);
 
-    // set epoch and balances
+    // set epoch
     sc_setup.blockchain_wrapper.set_block_epoch(epoch);
-    sc_setup.blockchain_wrapper.set_egld_balance(&reserver, &exp(100, 18));
 
     // delegate and add reserve
     sc_setup.delegate_test(&reserver, exp(50, 18), false);
@@ -365,6 +364,73 @@ fn reserve_undelegations_order_test() {
     sc_setup.check_total_undelegations_order();
     sc_setup.check_reserve_undelegations_lengths(3);
     sc_setup.check_reserve_undelegations_amount(exp(5, 18));
+}
+
+#[test]
+fn knight_test() {
+    let _ = DebugApi::dummy();
+
+    let mut sc_setup = SalsaContractSetup::new(salsa::contract_obj);
+    let delegator = sc_setup.setup_new_user(10u64);
+    let knight1 = sc_setup.setup_new_user(0u64);
+    let knight2 = sc_setup.setup_new_user(0u64);
+
+    sc_setup.delegate_test(&delegator, exp(1, 18), true); // true = custodial
+
+    sc_setup.set_knight_test(&delegator, &knight1);
+    sc_setup.cancel_knight_test(&delegator);
+    sc_setup.set_knight_test(&delegator, &knight2);
+    sc_setup.confirm_knight_test(&knight2, &delegator);
+    sc_setup.remove_knight_test(&knight2, &delegator);
+    sc_setup.set_knight_test(&delegator, &knight1);
+    sc_setup.confirm_knight_test(&knight1, &delegator);
+    sc_setup.activate_knight_test(&delegator);
+    sc_setup.deactivate_knight_test(&knight1, &delegator);
+
+    sc_setup.undelegate_test(&delegator, rust_biguint!(0), exp(1, 18));
+}
+
+#[test]
+fn active_knigth_test() {
+    let _ = DebugApi::dummy();
+
+    let mut sc_setup = SalsaContractSetup::new(salsa::contract_obj);
+    let one = exp(1, 18);
+    let one_with_fee = exp(98, 16);
+    let delegator = sc_setup.setup_new_user(10u64);
+    let knight = sc_setup.setup_new_user(0u64);
+    let mut epoch = 1u64;
+
+    // set epoch
+    sc_setup.blockchain_wrapper.set_block_epoch(epoch);
+
+    // delegate and add reserve
+    sc_setup.delegate_test(&delegator, exp(2, 18), true); // true = custodial
+    sc_setup.add_reserve_test(&delegator, one.clone());
+
+    // set knight, confirm and activate
+    sc_setup.set_knight_test(&delegator, &knight);
+    sc_setup.confirm_knight_test(&knight, &delegator);
+    sc_setup.activate_knight_test(&delegator);
+
+    // undelegate knight, undelegate now knight and remove reserve knight
+    sc_setup.undelegate_knight_test(&knight, &delegator, one.clone());
+    sc_setup.undelegate_now_knight_test(&knight, &delegator, one_with_fee, one.clone());
+    sc_setup.undelegate_all_test(&delegator);
+    epoch += 1;
+    sc_setup.blockchain_wrapper.set_block_epoch(epoch);
+    sc_setup.remove_reserve_knight_test(&knight, &delegator, exp(102, 16));
+
+    // withdraw
+    epoch += 9;
+    sc_setup.blockchain_wrapper.set_block_epoch(epoch);
+    sc_setup.withdraw_all_test(&delegator);
+    sc_setup.compute_withdrawn_test(&delegator);
+    sc_setup.withdraw_knight_test(&knight, &delegator);
+
+    // checks
+    sc_setup.blockchain_wrapper.check_egld_balance(&delegator, &exp(7, 18));
+    sc_setup.blockchain_wrapper.check_egld_balance(&knight, &exp(3, 18));
 }
 
 pub fn exp(value: u64, e: u32) -> num_bigint::BigUint {
