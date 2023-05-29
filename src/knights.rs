@@ -31,6 +31,7 @@ pub trait KnightsModule:
     fn cancel_knight(&self) {
         let caller = self.blockchain().get_caller();
         self.check_is_delegator();
+        self.check_user_has_knight(caller.clone());
         self.check_is_knight_pending(caller.clone());
 
         self.user_knight(caller).clear();
@@ -38,13 +39,9 @@ pub trait KnightsModule:
 
     #[endpoint(activateKnight)]
     fn activate_knight(&self) {
-        self.check_is_delegator();
-
         let caller = self.blockchain().get_caller();
-        require!(
-            !self.user_knight(caller.clone()).is_empty(),
-            ERROR_KNIGHT_NOT_SET,
-        );
+        self.check_is_delegator();
+        self.check_user_has_knight(caller.clone());
         require!(
             self.user_knight(caller.clone()).get().state == KnightState::Inactive,
             ERROR_KNIGHT_NOT_CONFIRMED,
@@ -58,6 +55,7 @@ pub trait KnightsModule:
 
     #[endpoint(deactivateKnight)]
     fn deactivate_knight(&self, user: ManagedAddress) {
+        self.check_user_has_knight(user.clone());
         self.check_is_knight_for_user(user.clone());
         self.check_is_knight_active(user.clone());
 
@@ -67,6 +65,7 @@ pub trait KnightsModule:
 
     #[endpoint(confirmKnight)]
     fn confirm_knight(&self, user: ManagedAddress) {
+        self.check_user_has_knight(user.clone());
         self.check_is_knight_for_user(user.clone());
         self.check_is_knight_pending(user.clone());
 
@@ -76,6 +75,7 @@ pub trait KnightsModule:
 
     #[endpoint(removeKnight)]
     fn remove_knight(&self, user: ManagedAddress) {
+        self.check_user_has_knight(user.clone());
         self.check_is_knight_for_user(user.clone());
 
         self.user_knight(user).clear();
@@ -91,10 +91,17 @@ pub trait KnightsModule:
         );
     }
 
+    fn check_user_has_knight(&self, user: ManagedAddress) {
+        require!(
+            !self.user_knight(user.clone()).is_empty(),
+            ERROR_KNIGHT_NOT_SET,
+        );
+    }
+
     fn check_is_knight_for_user(&self, user: ManagedAddress) {
         let caller = self.blockchain().get_caller();
         require!(
-            caller == self.user_knight(user.clone()).get().address,
+            caller == self.user_knight(user).get().address,
             ERROR_NOT_KNIGHT_OF_USER,
         );
     }
