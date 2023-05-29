@@ -9,7 +9,7 @@
         },
         "contractCrate": {
             "name": "salsa",
-            "version": "0.0.1"
+            "version": "0.0.2"
         },
         "framework": {
             "name": "multiversx-sc",
@@ -28,7 +28,12 @@
             "payableInTokens": [
                 "EGLD"
             ],
-            "inputs": [],
+            "inputs": [
+                {
+                    "name": "custodial",
+                    "type": "bool"
+                }
+            ],
             "outputs": [
                 {
                     "type": "EsdtTokenPayment"
@@ -41,7 +46,12 @@
             "payableInTokens": [
                 "*"
             ],
-            "inputs": [],
+            "inputs": [
+                {
+                    "name": "undelegate_amount",
+                    "type": "BigUint"
+                }
+            ],
             "outputs": []
         },
         {
@@ -80,6 +90,10 @@
                 {
                     "name": "min_amount_out",
                     "type": "BigUint"
+                },
+                {
+                    "name": "undelegate_amount",
+                    "type": "BigUint"
                 }
             ],
             "outputs": []
@@ -96,6 +110,66 @@
             "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "unDelegateKnight",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "user",
+                    "type": "Address"
+                },
+                {
+                    "name": "undelegate_amount",
+                    "type": "BigUint"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "unDelegateNowKnight",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "user",
+                    "type": "Address"
+                },
+                {
+                    "name": "min_amount_out",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "undelegate_amount",
+                    "type": "BigUint"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "withdrawKnight",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "user",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "removeReserveKnight",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "user",
+                    "type": "Address"
+                },
+                {
+                    "name": "amount",
+                    "type": "BigUint"
+                }
+            ],
             "outputs": []
         },
         {
@@ -437,6 +511,36 @@
             ]
         },
         {
+            "name": "getUserDelegation",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "user",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "name": "getUserKnight",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "user",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "Knight"
+                }
+            ]
+        },
+        {
             "name": "unDelegateAll",
             "mutability": "mutable",
             "inputs": [],
@@ -471,6 +575,62 @@
                 }
             ],
             "outputs": []
+        },
+        {
+            "name": "setKnight",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "knight",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "cancelKnight",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "activateKnight",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "deactivateKnight",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "user",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "confirmKnight",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "user",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "removeKnight",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "user",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
         }
     ],
     "events": [],
@@ -490,6 +650,36 @@
                 {
                     "name": "amount",
                     "type": "BigUint"
+                }
+            ]
+        },
+        "Knight": {
+            "type": "struct",
+            "fields": [
+                {
+                    "name": "address",
+                    "type": "Address"
+                },
+                {
+                    "name": "state",
+                    "type": "KnightState"
+                }
+            ]
+        },
+        "KnightState": {
+            "type": "enum",
+            "variants": [
+                {
+                    "name": "Inactive",
+                    "discriminant": 0
+                },
+                {
+                    "name": "PendingConfirmation",
+                    "discriminant": 1
+                },
+                {
+                    "name": "Active",
+                    "discriminant": 2
                 }
             ]
         },

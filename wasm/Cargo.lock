@@ -227,7 +227,7 @@ dependencies = [
 
 [[package]]
 name = "salsa"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "delegation-mock",
  "hex-literal",
@@ -237,7 +237,7 @@ dependencies = [
 
 [[package]]
 name = "salsa-wasm"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "multiversx-sc-wasm-adapter",
  "salsa",

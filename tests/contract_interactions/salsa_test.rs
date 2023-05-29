@@ -22,10 +22,11 @@ where
         &mut self,
         sender: &Address,
         amount: num_bigint::BigUint,
+        custodial: bool,
     ) {
         self.blockchain_wrapper
             .execute_tx(sender, &self.salsa_wrapper, &amount, |sc| {
-                sc.delegate();
+                sc.delegate(custodial);
             })
             .assert_ok();
     }
@@ -34,10 +35,11 @@ where
         &mut self,
         sender: &Address,
         amount: num_bigint::BigUint,
+        undelegate_amount: num_bigint::BigUint, // custodial
     ) {
         self.blockchain_wrapper
             .execute_esdt_transfer(sender, &self.salsa_wrapper, TOKEN_ID, 0, &amount, |sc| {
-                sc.undelegate()
+                sc.undelegate(to_managed_biguint(undelegate_amount))
             })
             .assert_ok();
     }
@@ -84,10 +86,11 @@ where
         sender: &Address,
         amount: num_bigint::BigUint,
         min_amount: num_bigint::BigUint,
+        undelegate_amount: num_bigint::BigUint, // custodial
     ) {
         self.blockchain_wrapper
             .execute_esdt_transfer(sender, &self.salsa_wrapper, TOKEN_ID, 0, &amount, |sc| {
-                sc.undelegate_now(to_managed_biguint(min_amount))
+                sc.undelegate_now(to_managed_biguint(min_amount), to_managed_biguint(undelegate_amount))
             })
             .assert_ok();
     }
