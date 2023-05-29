@@ -1,0 +1,115 @@
+multiversx_sc::imports!();
+
+use crate::{common::errors::*};
+use crate::common::config::{Knight, KnightState};
+
+#[multiversx_sc::module]
+pub trait KnightsModule:
+    crate::common::config::ConfigModule
+    + crate::helpers::HelpersModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+{
+    #[endpoint(setKnight)]
+    fn set_knight(&self, knight: ManagedAddress) {
+        self.check_is_delegator();
+
+        let caller = self.blockchain().get_caller();
+        require!(
+            self.user_knight(caller.clone()).is_empty(),
+            ERROR_KNIGHT_ALREADY_SET,
+        );
+        require!(caller != knight, ERROR_KNIGHT_YOURSELF);
+
+        let new_knight = Knight{
+            address: knight,
+            state: KnightState::PendingConfirmation,
+        };
+        self.user_knight(caller).set(new_knight);
+    }
+
+    #[endpoint(cancelKnight)]
+    fn cancel_knight(&self) {
+        let caller = self.blockchain().get_caller();
+        self.check_is_delegator();
+        self.check_is_knight_pending(caller.clone());
+
+        self.user_knight(caller).clear();
+    }
+
+    #[endpoint(activateKnight)]
+    fn activate_knight(&self) {
+        self.check_is_delegator();
+
+        let caller = self.blockchain().get_caller();
+        require!(
+            !self.user_knight(caller.clone()).is_empty(),
+            ERROR_KNIGHT_NOT_SET,
+        );
+        require!(
+            self.user_knight(caller.clone()).get().state == KnightState::Inactive,
+            ERROR_KNIGHT_NOT_CONFIRMED,
+        );
+
+        self.user_knight(caller)
+            .update(|knight| knight.state = KnightState::Active);
+    }
+
+    // knight actions
+
+    #[endpoint(deactivateKnight)]
+    fn deactivate_knight(&self, user: ManagedAddress) {
+        self.check_is_knight_for_user(user.clone());
+        self.check_is_knight_active(user.clone());
+
+        self.user_knight(user)
+            .update(|knight| knight.state = KnightState::Inactive);
+    }
+
+    #[endpoint(confirmKnight)]
+    fn confirm_knight(&self, user: ManagedAddress) {
+        self.check_is_knight_for_user(user.clone());
+        self.check_is_knight_pending(user.clone());
+
+        self.user_knight(user)
+            .update(|knight| knight.state = KnightState::Inactive);
+    }
+
+    #[endpoint(removeKnight)]
+    fn remove_knight(&self, user: ManagedAddress) {
+        self.check_is_knight_for_user(user.clone());
+
+        self.user_knight(user).clear();
+    }
+
+    // helpers
+
+    fn check_is_delegator(&self) {
+        let caller = self.blockchain().get_caller();
+        require!(
+            self.user_delegation(caller.clone()).get() > 0,
+            ERROR_USER_NOT_DELEGATOR,
+        );
+    }
+
+    fn check_is_knight_for_user(&self, user: ManagedAddress) {
+        let caller = self.blockchain().get_caller();
+        require!(
+            caller == self.user_knight(user.clone()).get().address,
+            ERROR_NOT_KNIGHT_OF_USER,
+        );
+    }
+
+    fn check_is_knight_active(&self, user: ManagedAddress) {
+        require!(
+            self.user_knight(user).get().state == KnightState::Active,
+            ERROR_KNIGHT_NOT_ACTIVE,
+        );
+    }
+
+    fn check_is_knight_pending(&self, user: ManagedAddress) {
+        require!(
+            self.user_knight(user).get().state == KnightState::PendingConfirmation,
+            ERROR_KNIGHT_NOT_PENDING,
+        );
+    }
+}

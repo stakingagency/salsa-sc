@@ -7,6 +7,7 @@ pub mod proxies;
 mod helpers;
 pub mod service;
 pub mod onedex;
+pub mod knights;
 
 use crate::{common::config::*, common::consts::*, common::errors::*};
 
@@ -16,6 +17,7 @@ pub trait SalsaContract<ContractReader>:
     + helpers::HelpersModule
     + service::ServiceModule
     + onedex::OnedexModule
+    + knights::KnightsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[init]
@@ -27,7 +29,10 @@ pub trait SalsaContract<ContractReader>:
 
     #[payable("EGLD")]
     #[endpoint(delegate)]
-    fn delegate(&self) -> EsdtTokenPayment<Self::Api> {
+    fn delegate(
+        &self,
+        custodial: bool,
+    ) -> EsdtTokenPayment<Self::Api> {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         let amount = self.call_value().egld_value();
@@ -39,18 +44,33 @@ pub trait SalsaContract<ContractReader>:
 
         // arbitrage
         let salsa_amount_out = self.add_liquidity(&delegate_amount, false);
-        let sold_amount = self.do_arbitrage_on_onedex(
+        let (sold_amount, bought_amount) = self.do_arbitrage_on_onedex(
             &TokenIdentifier::from(WEGLD_ID), &delegate_amount, &salsa_amount_out
         );
+
+        let caller = self.blockchain().get_caller();
+        let liquid_token_id = self.liquid_token_id().get_token_id();
+        if bought_amount > 0 {
+            if custodial {
+                self.user_delegation(caller.clone())
+                    .update(|value| *value += bought_amount);
+            } else {
+                self.send().direct_esdt(
+                    &caller,
+                    &liquid_token_id,
+                    0,
+                    &bought_amount,
+                );
+            }
+        }
+
         delegate_amount -= &sold_amount;
         if delegate_amount == 0 {
-            let liquid_token_id = self.liquid_token_id().get_token_id();
             return EsdtTokenPayment::new(liquid_token_id, 0, salsa_amount_out)
         }
 
         let ls_amount = self.add_liquidity(&delegate_amount, true);
 
-        let caller = self.blockchain().get_caller();
         let delegation_contract = self.provider_address().get();
         let gas_for_async_call = self.get_gas_for_async_call();
         self.delegation_proxy_obj()
@@ -60,7 +80,7 @@ pub trait SalsaContract<ContractReader>:
             .with_egld_transfer(delegate_amount.clone())
             .async_call()
             .with_callback(
-                SalsaContract::callbacks(self).delegate_callback(caller, delegate_amount.clone(), ls_amount),
+                SalsaContract::callbacks(self).delegate_callback(caller, custodial, delegate_amount, ls_amount),
             )
             .call_and_exit()
     }
@@ -69,6 +89,7 @@ pub trait SalsaContract<ContractReader>:
     fn delegate_callback(
         &self,
         caller: ManagedAddress,
+        custodial: bool,
         staked_tokens: BigUint,
         liquid_tokens: BigUint,
         #[call_result] result: ManagedAsyncCallResult<()>,
@@ -76,12 +97,17 @@ pub trait SalsaContract<ContractReader>:
         match result {
             ManagedAsyncCallResult::Ok(()) => {
                 let user_payment = self.mint_liquid_token(liquid_tokens);
-                self.send().direct_esdt(
-                    &caller,
-                    &user_payment.token_identifier,
-                    user_payment.token_nonce,
-                    &user_payment.amount,
-                );
+                if custodial {
+                    self.user_delegation(caller)
+                        .update(|value| *value += user_payment.amount);
+                } else {
+                    self.send().direct_esdt(
+                        &caller,
+                        &user_payment.token_identifier,
+                        0,
+                        &user_payment.amount,
+                    );
+                }
             }
             ManagedAsyncCallResult::Err(_) => {
                 self.total_egld_staked()
@@ -95,22 +121,58 @@ pub trait SalsaContract<ContractReader>:
 
     #[payable("*")]
     #[endpoint(unDelegate)]
-    fn undelegate(&self) {
+    fn undelegate(
+        &self,
+        undelegate_amount: BigUint,
+    ) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
+        let caller = self.blockchain().get_caller();
+        require!(
+            self.user_knight(caller.clone()).get().state != KnightState::Active,
+            ERROR_KNIGHT_ACTIVE,
+        );
+
+        self.do_undelegate(caller, undelegate_amount);
+    }
+
+    fn do_undelegate(
+        &self,
+        caller: ManagedAddress,
+        undelegate_amount: BigUint,
+    ) {
+        if undelegate_amount > 0 {
+            let delegated_funds = self.user_delegation(caller.clone()).get();
+            require!(
+                delegated_funds >= undelegate_amount,
+                ERROR_INSUFFICIENT_FUNDS,
+            );
+
+            self.user_delegation(caller.clone()).set(&delegated_funds - &undelegate_amount);
+        }
         let mut payment = self.call_value().single_esdt();
         let liquid_token_id = self.liquid_token_id().get_token_id();
+        if payment.amount > 0 {
+            require!(
+                payment.token_identifier == liquid_token_id,
+                ERROR_BAD_PAYMENT_TOKEN
+            );
+        }
         require!(
-            payment.token_identifier == liquid_token_id,
-            ERROR_BAD_PAYMENT_TOKEN
+            &payment.amount + &undelegate_amount > 0u64,
+            ERROR_BAD_PAYMENT_AMOUNT,
         );
-        require!(payment.amount > 0u64, ERROR_BAD_PAYMENT_AMOUNT);
 
         // arbitrage
         let salsa_amount_out = self.remove_liquidity(&payment.amount, false);
-        let sold_amount = self.do_arbitrage_on_onedex(
+        let (sold_amount, bought_amount) = self.do_arbitrage_on_onedex(
             &liquid_token_id, &payment.amount, &salsa_amount_out
         );
+        if bought_amount > 0 {
+            self.send().direct_egld(&caller, &bought_amount);
+        }
+
+        payment.amount += undelegate_amount;
         payment.amount -= sold_amount;
         if payment.amount == 0 {
             return
@@ -131,6 +193,19 @@ pub trait SalsaContract<ContractReader>:
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         let user = self.blockchain().get_caller();
+        require!(
+            self.user_knight(user.clone()).get().state != KnightState::Active,
+            ERROR_KNIGHT_ACTIVE,
+        );
+
+        self.do_withdraw(user.clone(), user);
+    }
+
+    fn do_withdraw(
+        &self,
+        user: ManagedAddress,
+        receiver: ManagedAddress,
+    ) {
         self.compute_withdrawn();
         let current_epoch = self.blockchain().get_block_epoch();
         let mut total_user_withdrawn_egld = self.user_withdrawn_egld().get();
@@ -145,9 +220,13 @@ pub trait SalsaContract<ContractReader>:
         let withdraw_amount = self.user_withdrawn_egld().get() - &total_user_withdrawn_egld;
         require!(withdraw_amount > 0, ERROR_NOTHING_TO_WITHDRAW);
 
+        if self.user_delegation(user.clone()).get() == 0 {
+            self.user_knight(user.clone()).clear();
+        }
+
         self.user_withdrawn_egld()
             .set(total_user_withdrawn_egld);
-        self.send().direct_egld(&user, &withdraw_amount);
+        self.send().direct_egld(&receiver, &withdraw_amount);
     }
 
     // endpoints: reserves
@@ -183,6 +262,20 @@ pub trait SalsaContract<ContractReader>:
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         let caller = self.blockchain().get_caller();
+        require!(
+            self.user_knight(caller.clone()).get().state != KnightState::Active,
+            ERROR_KNIGHT_ACTIVE,
+        );
+
+        self.do_remove_reserve(caller.clone(), caller, amount);
+    }
+
+    fn do_remove_reserve(
+        &self,
+        caller: ManagedAddress,
+        receiver: ManagedAddress,
+        amount: BigUint,
+    ) {
         let current_epoch = self.blockchain().get_block_epoch();
         let add_reserve_epoch = self.add_reserve_epoch(&caller).get();
         require!(
@@ -235,21 +328,56 @@ pub trait SalsaContract<ContractReader>:
             .update(|value| *value -= &points_to_remove);
         self.reserve_points()
             .update(|value| *value -= &points_to_remove);
-        self.send().direct_egld(&caller, &egld_to_remove);
+        self.send().direct_egld(&receiver, &egld_to_remove);
     }
 
     #[payable("*")]
     #[endpoint(unDelegateNow)]
-    fn undelegate_now(&self, min_amount_out: BigUint) {
+    fn undelegate_now(
+        &self,
+        min_amount_out: BigUint,
+        undelegate_amount: BigUint,
+    ) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
+
+        let caller = self.blockchain().get_caller();
+        require!(
+            self.user_knight(caller.clone()).get().state != KnightState::Active,
+            ERROR_KNIGHT_ACTIVE,
+        );
+
+        self.do_undelegate_now(caller.clone(), caller, min_amount_out, undelegate_amount);
+    }
+
+    fn do_undelegate_now(
+        &self,
+        caller: ManagedAddress,
+        receiver: ManagedAddress,
+        min_amount_out: BigUint,
+        undelegate_amount: BigUint,
+    ) {
+        if undelegate_amount > 0 {
+            let delegated_funds = self.user_delegation(caller.clone()).get();
+            require!(
+                delegated_funds >= undelegate_amount,
+                ERROR_INSUFFICIENT_FUNDS,
+            );
+
+            self.user_delegation(caller.clone()).set(&delegated_funds - &undelegate_amount);
+        }
 
         let mut payment = self.call_value().single_esdt();
         let liquid_token_id = self.liquid_token_id().get_token_id();
+        if payment.amount > 0 {
+            require!(
+                payment.token_identifier == liquid_token_id,
+                ERROR_BAD_PAYMENT_TOKEN
+            );
+        }
         require!(
-            payment.token_identifier == liquid_token_id,
-            ERROR_BAD_PAYMENT_TOKEN
+            &payment.amount + &undelegate_amount > 0u64,
+            ERROR_BAD_PAYMENT_AMOUNT,
         );
-        require!(payment.amount > 0u64, ERROR_BAD_PAYMENT_AMOUNT);
 
         let fee = self.undelegate_now_fee().get();
         let caller = self.blockchain().get_caller();
@@ -257,9 +385,14 @@ pub trait SalsaContract<ContractReader>:
 
         // arbitrage
         let salsa_amount_out = self.remove_liquidity(&payment.amount, false);
-        let sold_amount = self.do_arbitrage_on_onedex(
+        let (sold_amount, bought_amount) = self.do_arbitrage_on_onedex(
             &liquid_token_id, &payment.amount, &salsa_amount_out
         );
+        if bought_amount > 0 {
+            self.send().direct_egld(&caller, &bought_amount);
+        }
+
+        payment.amount += undelegate_amount;
         payment.amount -= sold_amount;
         if payment.amount == 0 {
             return
@@ -301,7 +434,7 @@ pub trait SalsaContract<ContractReader>:
         self.egld_reserve()
             .update(|value| *value += &total_rewards);
 
-        self.send().direct_egld(&caller, &egld_to_undelegate_with_fee);
+        self.send().direct_egld(&receiver, &egld_to_undelegate_with_fee);
     }
 
     fn add_user_undelegation(&self, amount: BigUint, unbond_epoch: u64) {
@@ -347,6 +480,65 @@ pub trait SalsaContract<ContractReader>:
         let fee = self.get_onedex_fee();
         self.onedex_fee().set(fee);
         self.arbitrage().set(State::Active);
+    }
+
+    // endpoints: knights
+
+    #[endpoint(unDelegateKnight)]
+    fn undelegate_knight(
+        &self,
+        user: ManagedAddress,
+        undelegate_amount: BigUint,
+    ) {
+        require!(self.is_state_active(), ERROR_NOT_ACTIVE);
+
+        self.check_knight(user.clone());
+
+        self.do_undelegate(user, undelegate_amount);
+    }
+
+    #[endpoint(unDelegateNowKnight)]
+    fn undelegate_now_knight(
+        &self,
+        user: ManagedAddress,
+        min_amount_out: BigUint,
+        undelegate_amount: BigUint,
+    ) {
+        require!(self.is_state_active(), ERROR_NOT_ACTIVE);
+
+        self.check_knight(user.clone());
+
+        let knight = self.blockchain().get_caller();
+        self.do_undelegate_now(user, knight, min_amount_out, undelegate_amount);
+    }
+
+    #[endpoint(withdrawKnight)]
+    fn withdraw_knight(&self, user: ManagedAddress) {
+        require!(self.is_state_active(), ERROR_NOT_ACTIVE);
+
+        self.check_knight(user.clone());
+
+        let knight = self.blockchain().get_caller();
+        self.do_withdraw(user, knight);
+    }
+
+    #[endpoint(removeReserveKnight)]
+    fn remove_reserve_knight(
+        &self,
+        user: ManagedAddress,
+        amount: BigUint,
+    ) {
+        require!(self.is_state_active(), ERROR_NOT_ACTIVE);
+
+        self.check_knight(user.clone());
+
+        let knight = self.blockchain().get_caller();
+        self.do_remove_reserve(user, knight, amount);
+    }
+
+    fn check_knight(&self, user: ManagedAddress) {
+        self.check_is_knight_for_user(user.clone());
+        self.check_is_knight_active(user);
     }
 
     // proxy

@@ -119,12 +119,11 @@ pub trait OnedexModule:
 
     fn do_arbitrage_on_onedex(
         &self, in_token: &TokenIdentifier, in_amount: &BigUint, out_amount: &BigUint
-    ) -> BigUint {
+    ) -> (BigUint, BigUint) {
         if !self.is_arbitrage_active() {
-            return BigUint::zero()
+            return (BigUint::zero(), BigUint::zero())
         }
 
-        let caller = self.blockchain().get_caller();
         let mut is_buy = false;
         if in_token == &TokenIdentifier::from(WEGLD_ID) {
             is_buy = true;
@@ -135,7 +134,7 @@ pub trait OnedexModule:
             self.get_onedex_sell_quantity(in_amount.clone(), out_amount.clone())
         };
         if amount_to_send_to_onedex < MIN_EGLD {
-            return BigUint::zero()
+            return (BigUint::zero(), BigUint::zero())
         }
 
         let rest = in_amount - &amount_to_send_to_onedex;
@@ -149,22 +148,11 @@ pub trait OnedexModule:
             self.remove_liquidity(&amount_to_send_to_onedex, false)
         };
         if amount_from_onedex < amount_from_salsa {
-            return BigUint::zero()
+            return (BigUint::zero(), BigUint::zero())
         }
         self.swap_on_onedex(in_token, &amount_to_send_to_onedex, &amount_from_salsa);
-        if is_buy {
-            let liquid_token_id = self.liquid_token_id().get_token_id();
-            self.send().direct_esdt(
-                &caller,
-                &liquid_token_id,
-                0,
-                &amount_from_salsa,
-            );
-        } else {
-            self.send().direct_egld(&caller, &amount_from_salsa);
-        }
 
-        amount_to_send_to_onedex
+        (amount_to_send_to_onedex, amount_from_salsa)
     }
 
     fn swap_on_onedex(&self, in_token: &TokenIdentifier, in_amount: &BigUint, out_amount: &BigUint) {

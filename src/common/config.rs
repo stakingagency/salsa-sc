@@ -16,10 +16,23 @@ pub enum UndelegationType {
     ReservesList,
 }
 
-#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
 pub struct Undelegation<M: ManagedTypeApi> {
     pub amount: BigUint<M>,
     pub unbond_epoch: u64,
+}
+
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
+pub enum KnightState {
+    Inactive,
+    PendingConfirmation,
+    Active,
+}
+
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
+pub struct Knight<M: ManagedTypeApi> {
+    pub address: ManagedAddress<M>,
+    pub state: KnightState,
 }
 
 #[multiversx_sc::module]
@@ -262,4 +275,14 @@ pub trait ConfigModule:
     #[view(getEgldProfit)]
     #[storage_mapper("egld_profit")]
     fn egld_profit(&self) -> SingleValueMapper<BigUint>;
+
+    // custodial liquid staking
+
+    #[view(getUserDelegation)]
+    #[storage_mapper("user_delegation")]
+    fn user_delegation(&self, user: ManagedAddress) -> SingleValueMapper<BigUint>;
+
+    #[view(getUserKnight)]
+    #[storage_mapper("user_knight")]
+    fn user_knight(&self, user: ManagedAddress) -> SingleValueMapper<Knight<Self::Api>>;
 }

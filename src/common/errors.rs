@@ -18,7 +18,18 @@ pub static ERROR_INCORRECT_FEE: &[u8] = b"Fee must be less than 100%";
 pub static ERROR_DUST_REMAINING: &[u8] = b"Can't leave dust";
 pub static ERROR_REMOVE_RESERVE_TOO_SOON: &[u8] = b"You can remove reserve only 1 epoch after add";
 pub static ERROR_FEE_CHANGED: &[u8] = b"Fee changed and you would receive less";
+pub static ERROR_INSUFFICIENT_FUNDS: &[u8] = b"Insufficient funds";
 
 pub static ERROR_ARBITRAGE_ISSUE: &[u8] = b"Arbitrage issue";
 pub static ERROR_ONEDEX_PAIR_ID: &[u8] = b"OneDex pair ID not set";
 pub static ERROR_FEE_ZERO: &[u8] = b"Fee can't be zero";
+
+pub static ERROR_KNIGHT_ALREADY_SET: &[u8] = b"Knight already set";
+pub static ERROR_KNIGHT_NOT_SET: &[u8] = b"Knight not set";
+pub static ERROR_KNIGHT_NOT_CONFIRMED: &[u8] = b"Knight not confirmed";
+pub static ERROR_USER_NOT_DELEGATOR: &[u8] = b"You are not a custodial delegator";
+pub static ERROR_KNIGHT_ACTIVE: &[u8] = b"Knight is active";
+pub static ERROR_KNIGHT_NOT_ACTIVE: &[u8] = b"Knight not active";
+pub static ERROR_NOT_KNIGHT_OF_USER: &[u8] = b"You are not a knight of this user";
+pub static ERROR_KNIGHT_YOURSELF: &[u8] = b"You can't be your own knight";
+pub static ERROR_KNIGHT_NOT_PENDING: &[u8] = b"Knight can only be canceled or confirmed while pending confirmation";
