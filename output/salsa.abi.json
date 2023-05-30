@@ -173,6 +173,66 @@
             "outputs": []
         },
         {
+            "name": "unDelegateHeir",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "user",
+                    "type": "Address"
+                },
+                {
+                    "name": "undelegate_amount",
+                    "type": "BigUint"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "unDelegateNowHeir",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "user",
+                    "type": "Address"
+                },
+                {
+                    "name": "min_amount_out",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "undelegate_amount",
+                    "type": "BigUint"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "withdrawHeir",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "user",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "removeReserveHeir",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "user",
+                    "type": "Address"
+                },
+                {
+                    "name": "amount",
+                    "type": "BigUint"
+                }
+            ],
+            "outputs": []
+        },
+        {
             "name": "registerLiquidToken",
             "onlyOwner": true,
             "mutability": "mutable",
@@ -541,6 +601,21 @@
             ]
         },
         {
+            "name": "getUserHeir",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "user",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "Heir"
+                }
+            ]
+        },
+        {
             "name": "unDelegateAll",
             "mutability": "mutable",
             "inputs": [],
@@ -631,6 +706,27 @@
                 }
             ],
             "outputs": []
+        },
+        {
+            "name": "setHeir",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "heir",
+                    "type": "Address"
+                },
+                {
+                    "name": "inheritance_epochs",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "removeHeir",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
         }
     ],
     "events": [],
@@ -650,6 +746,23 @@
                 {
                     "name": "amount",
                     "type": "BigUint"
+                }
+            ]
+        },
+        "Heir": {
+            "type": "struct",
+            "fields": [
+                {
+                    "name": "address",
+                    "type": "Address"
+                },
+                {
+                    "name": "inheritance_epochs",
+                    "type": "u64"
+                },
+                {
+                    "name": "last_accessed_epoch",
+                    "type": "u64"
                 }
             ]
         },

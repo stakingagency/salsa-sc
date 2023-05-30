@@ -35,6 +35,13 @@ pub struct Knight<M: ManagedTypeApi> {
     pub state: KnightState,
 }
 
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
+pub struct Heir<M: ManagedTypeApi> {
+    pub address: ManagedAddress<M>,
+    pub inheritance_epochs: u64,
+    pub last_accessed_epoch: u64,
+}
+
 #[multiversx_sc::module]
 pub trait ConfigModule:
   multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
@@ -285,4 +292,8 @@ pub trait ConfigModule:
     #[view(getUserKnight)]
     #[storage_mapper("user_knight")]
     fn user_knight(&self, user: ManagedAddress) -> SingleValueMapper<Knight<Self::Api>>;
+
+    #[view(getUserHeir)]
+    #[storage_mapper("user_heir")]
+    fn user_heir(&self, user: ManagedAddress) -> SingleValueMapper<Heir<Self::Api>>;
 }
