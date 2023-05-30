@@ -21,11 +21,20 @@ pub trait OnedexModule:
 
     // onedex
 
+    #[storage_mapper("onedex_sc")]
+    fn onedex_sc(&self) -> SingleValueMapper<ManagedAddress>;
+
     #[storage_mapper("onedex_fee")]
     fn onedex_fee(&self) -> SingleValueMapper<u64>;
 
     #[storage_mapper("onedex_pair_id")]
     fn onedex_pair_id(&self) -> SingleValueMapper<usize>;
+
+    #[only_owner]
+    #[endpoint(setOnedexSC)]
+    fn set_onedex_sc(&self, address: ManagedAddress) {
+        self.onedex_sc().set(address);
+    }
 
     #[only_owner]
     #[endpoint(setOnedexPairId)]
@@ -34,7 +43,7 @@ pub trait OnedexModule:
     }
 
     fn get_onedex_fee(&self) -> u64 {
-        let onedex_sc_address = ManagedAddress::from(ONEDEX_SC);
+        let onedex_sc_address = self.onedex_sc().get();
         self.onedex_proxy_obj()
             .contract(onedex_sc_address.clone())
             .total_fee_percent()
@@ -42,7 +51,7 @@ pub trait OnedexModule:
     }
 
     fn get_onedex_reserves(&self, pair_id: usize) -> (BigUint, BigUint) {
-        let onedex_sc_address = ManagedAddress::from(ONEDEX_SC);
+        let onedex_sc_address = self.onedex_sc().get();
         let ls_reserve: BigUint = self.onedex_proxy_obj()
             .contract(onedex_sc_address.clone())
             .pair_first_token_reserve(pair_id)
@@ -60,8 +69,8 @@ pub trait OnedexModule:
             return BigUint::zero();
         }
 
-        let onedex_sc_address = ManagedAddress::from(ONEDEX_SC);
-        let wegld_token_id = TokenIdentifier::from(WEGLD_ID);
+        let onedex_sc_address = self.onedex_sc().get();
+        let wegld_token_id = self.wegld_id().get();
         let liquid_token_id = self.liquid_token_id().get_token_id();
         let (first_token, second_token) = if in_token == &wegld_token_id {
             (wegld_token_id, liquid_token_id)
@@ -125,7 +134,7 @@ pub trait OnedexModule:
         }
 
         let mut is_buy = false;
-        if in_token == &TokenIdentifier::from(WEGLD_ID) {
+        if in_token == &self.wegld_id().get() {
             is_buy = true;
         }
         let mut amount_to_send_to_onedex = if is_buy {
@@ -156,8 +165,8 @@ pub trait OnedexModule:
     }
 
     fn swap_on_onedex(&self, in_token: &TokenIdentifier, in_amount: &BigUint, out_amount: &BigUint) {
-        let onedex_sc_address = ManagedAddress::from(ONEDEX_SC);
-        let wegld_token_id = TokenIdentifier::from(WEGLD_ID);
+        let onedex_sc_address = self.onedex_sc().get();
+        let wegld_token_id = self.wegld_id().get();
         let liquid_token_id = self.liquid_token_id().get_token_id();
         let mut path: MultiValueEncoded<TokenIdentifier> = MultiValueEncoded::new();
         let (old_egld_balance, old_ls_balance) = self.get_sc_balances();

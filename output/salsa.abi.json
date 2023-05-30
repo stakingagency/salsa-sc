@@ -571,6 +571,18 @@
             ]
         },
         {
+            "name": "setWegldId",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "wegld_id",
+                    "type": "TokenIdentifier"
+                }
+            ],
+            "outputs": []
+        },
+        {
             "name": "getUserDelegation",
             "mutability": "readonly",
             "inputs": [
@@ -637,6 +649,18 @@
             "name": "computeWithdrawn",
             "mutability": "mutable",
             "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "setOnedexSC",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "address",
+                    "type": "Address"
+                }
+            ],
             "outputs": []
         },
         {

@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           62
+// Endpoints:                           64
 // Async Callback:                       1
-// Total number of exported functions:  64
+// Total number of exported functions:  66
 
 #![no_std]
 #![feature(lang_items)]
@@ -64,6 +64,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         getArbitrageState
         getLiquidProfit
         getEgldProfit
+        setWegldId
         getUserDelegation
         getUserKnight
         getUserHeir
@@ -71,6 +72,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         compound
         withdrawAll
         computeWithdrawn
+        setOnedexSC
         setOnedexPairId
         setKnight
         cancelKnight
