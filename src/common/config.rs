@@ -283,6 +283,23 @@ pub trait ConfigModule:
     #[storage_mapper("egld_profit")]
     fn egld_profit(&self) -> SingleValueMapper<BigUint>;
 
+    #[storage_mapper("wegld_id")]
+    fn wegld_id(&self) -> SingleValueMapper<TokenIdentifier>;
+
+    #[only_owner]
+    #[endpoint(setWegldId)]
+    fn set_wegld_id(
+        &self,
+        wegld_id: TokenIdentifier,
+    ) {
+        require!(
+            self.wegld_id().is_empty(),
+            ERROR_WEGLD_ID_ALREADY_SET,
+        );
+
+        self.wegld_id().set(wegld_id);
+    }
+
     // custodial liquid staking
 
     #[view(getUserDelegation)]

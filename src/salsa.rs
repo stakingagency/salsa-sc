@@ -24,7 +24,7 @@ pub trait SalsaContract<ContractReader>:
 {
     #[init]
     fn init(&self) {
-        // self.state().set(State::Inactive);
+        self.state().set(State::Inactive);
     }
 
     // endpoints: liquid delegation
@@ -48,7 +48,7 @@ pub trait SalsaContract<ContractReader>:
         // arbitrage
         let salsa_amount_out = self.add_liquidity(&delegate_amount, false);
         let (sold_amount, bought_amount) = self.do_arbitrage_on_onedex(
-            &TokenIdentifier::from(WEGLD_ID), &delegate_amount, &salsa_amount_out
+            &self.wegld_id().get(), &delegate_amount, &salsa_amount_out
         );
 
         let caller = self.blockchain().get_caller();
@@ -470,9 +470,18 @@ pub trait SalsaContract<ContractReader>:
     fn set_arbitrage_active(&self) {
         require!(!self.provider_address().is_empty(), ERROR_PROVIDER_NOT_SET);
         require!(!self.liquid_token_id().is_empty(), ERROR_TOKEN_NOT_SET);
-
-        let pair_id = self.onedex_pair_id().get();
-        require!(pair_id > 0, ERROR_ONEDEX_PAIR_ID);
+        require!(
+            !self.wegld_id().is_empty(),
+            ERROR_WEGLD_ID,
+        );
+        require!(
+            !self.onedex_pair_id().is_empty(),
+            ERROR_ONEDEX_PAIR_ID,
+        );
+        require!(
+            !self.onedex_sc().is_empty(),
+            ERROR_ONEDEX_SC,
+        );
 
         let fee = self.get_onedex_fee();
         self.onedex_fee().set(fee);
