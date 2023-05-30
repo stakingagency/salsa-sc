@@ -433,6 +433,52 @@ fn active_knigth_test() {
     sc_setup.blockchain_wrapper.check_egld_balance(&knight, &exp(3, 18));
 }
 
+#[test]
+fn entitled_heir_test() {
+    let _ = DebugApi::dummy();
+
+    let mut sc_setup = SalsaContractSetup::new(salsa::contract_obj);
+    let one = exp(1, 18);
+    let one_with_fee = exp(98, 16);
+    let delegator = sc_setup.setup_new_user(10u64);
+    let heir = sc_setup.setup_new_user(0u64);
+    let heir2 = sc_setup.setup_new_user(0u64);
+    let mut epoch = 1u64;
+
+    // set epoch
+    sc_setup.blockchain_wrapper.set_block_epoch(epoch);
+
+    // delegate and add reserve
+    sc_setup.delegate_test(&delegator, exp(2, 18), true); // true = custodial
+    sc_setup.add_reserve_test(&delegator, one.clone());
+
+    // set heir
+    sc_setup.set_heir_test(&delegator, &heir2, 365u64);
+    sc_setup.remove_heir_test(&delegator);
+    sc_setup.set_heir_test(&delegator, &heir, 365u64);
+
+    // undelegate heir, undelegate now heir and remove reserve heir
+    epoch += 365;
+    sc_setup.blockchain_wrapper.set_block_epoch(epoch);
+    sc_setup.undelegate_heir_test(&heir, &delegator, one.clone());
+    sc_setup.undelegate_now_heir_test(&heir, &delegator, one_with_fee, one.clone());
+    sc_setup.undelegate_all_test(&delegator);
+    epoch += 1;
+    sc_setup.blockchain_wrapper.set_block_epoch(epoch);
+    sc_setup.remove_reserve_heir_test(&heir, &delegator, exp(102, 16));
+
+    // withdraw
+    epoch += 9;
+    sc_setup.blockchain_wrapper.set_block_epoch(epoch);
+    sc_setup.withdraw_all_test(&delegator);
+    sc_setup.compute_withdrawn_test(&delegator);
+    sc_setup.withdraw_heir_test(&heir, &delegator);
+
+    // checks
+    sc_setup.blockchain_wrapper.check_egld_balance(&delegator, &exp(7, 18));
+    sc_setup.blockchain_wrapper.check_egld_balance(&heir, &exp(3, 18));
+}
+
 pub fn exp(value: u64, e: u32) -> num_bigint::BigUint {
     value.mul(rust_biguint!(10).pow(e))
 }
