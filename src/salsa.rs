@@ -8,6 +8,7 @@ mod helpers;
 pub mod service;
 pub mod onedex;
 pub mod knights;
+pub mod heirs;
 
 use crate::{common::config::*, common::consts::*, common::errors::*};
 
@@ -18,6 +19,7 @@ pub trait SalsaContract<ContractReader>:
     + service::ServiceModule
     + onedex::OnedexModule
     + knights::KnightsModule
+    + heirs::HeirsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[init]
@@ -33,6 +35,7 @@ pub trait SalsaContract<ContractReader>:
         &self,
         custodial: bool,
     ) -> EsdtTokenPayment<Self::Api> {
+        self.update_last_accessed();
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         let amount = self.call_value().egld_value();
@@ -125,6 +128,7 @@ pub trait SalsaContract<ContractReader>:
         &self,
         undelegate_amount: BigUint,
     ) {
+        self.update_last_accessed();
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         let caller = self.blockchain().get_caller();
@@ -186,6 +190,7 @@ pub trait SalsaContract<ContractReader>:
 
     #[endpoint(withdraw)]
     fn withdraw(&self) {
+        self.update_last_accessed();
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         let user = self.blockchain().get_caller();
@@ -214,6 +219,7 @@ pub trait SalsaContract<ContractReader>:
 
         if self.user_delegation(user.clone()).get() == 0 {
             self.user_knight(user.clone()).clear();
+            self.user_heir(user.clone()).clear();
         }
 
         self.user_withdrawn_egld()
@@ -226,6 +232,7 @@ pub trait SalsaContract<ContractReader>:
     #[payable("EGLD")]
     #[endpoint(addReserve)]
     fn add_reserve(&self) {
+        self.update_last_accessed();
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         let caller = self.blockchain().get_caller();
@@ -251,6 +258,7 @@ pub trait SalsaContract<ContractReader>:
 
     #[endpoint(removeReserve)]
     fn remove_reserve(&self, amount: BigUint) {
+        self.update_last_accessed();
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         let caller = self.blockchain().get_caller();
@@ -326,6 +334,7 @@ pub trait SalsaContract<ContractReader>:
         min_amount_out: BigUint,
         undelegate_amount: BigUint,
     ) {
+        self.update_last_accessed();
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         let caller = self.blockchain().get_caller();
@@ -539,6 +548,60 @@ pub trait SalsaContract<ContractReader>:
                 ERROR_KNIGHT_ACTIVE,
             );
         }
+    }
+
+    // endpoints: heirs
+
+    #[endpoint(unDelegateHeir)]
+    fn undelegate_heir(
+        &self,
+        user: ManagedAddress,
+        undelegate_amount: BigUint,
+    ) {
+        require!(self.is_state_active(), ERROR_NOT_ACTIVE);
+
+        self.check_is_heir_entitled(user.clone());
+
+        self.do_undelegate(user, undelegate_amount);
+    }
+
+    #[endpoint(unDelegateNowHeir)]
+    fn undelegate_now_heir(
+        &self,
+        user: ManagedAddress,
+        min_amount_out: BigUint,
+        undelegate_amount: BigUint,
+    ) {
+        require!(self.is_state_active(), ERROR_NOT_ACTIVE);
+
+        self.check_is_heir_entitled(user.clone());
+
+        let heir = self.blockchain().get_caller();
+        self.do_undelegate_now(user, heir, min_amount_out, undelegate_amount);
+    }
+
+    #[endpoint(withdrawHeir)]
+    fn withdraw_heir(&self, user: ManagedAddress) {
+        require!(self.is_state_active(), ERROR_NOT_ACTIVE);
+
+        self.check_is_heir_entitled(user.clone());
+
+        let heir = self.blockchain().get_caller();
+        self.do_withdraw(user, heir);
+    }
+
+    #[endpoint(removeReserveHeir)]
+    fn remove_reserve_heir(
+        &self,
+        user: ManagedAddress,
+        amount: BigUint,
+    ) {
+        require!(self.is_state_active(), ERROR_NOT_ACTIVE);
+
+        self.check_is_heir_entitled(user.clone());
+
+        let heir = self.blockchain().get_caller();
+        self.do_remove_reserve(user, heir, amount);
     }
 
     // proxy
