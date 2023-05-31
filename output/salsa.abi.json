@@ -628,6 +628,21 @@
             ]
         },
         {
+            "name": "getUserInfo",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "user",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "UserInfo"
+                }
+            ]
+        },
+        {
             "name": "unDelegateAll",
             "mutability": "mutable",
             "inputs": [],
@@ -843,6 +858,31 @@
                 {
                     "name": "unbond_epoch",
                     "type": "u64"
+                }
+            ]
+        },
+        "UserInfo": {
+            "type": "struct",
+            "fields": [
+                {
+                    "name": "undelegations",
+                    "type": "List<Undelegation>"
+                },
+                {
+                    "name": "reserve",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "delegation",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "knight",
+                    "type": "Address"
+                },
+                {
+                    "name": "heir",
+                    "type": "Address"
                 }
             ]
         }

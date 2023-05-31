@@ -16,7 +16,7 @@ pub enum UndelegationType {
     ReservesList,
 }
 
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
 pub struct Undelegation<M: ManagedTypeApi> {
     pub amount: BigUint<M>,
     pub unbond_epoch: u64,
@@ -40,6 +40,15 @@ pub struct Heir<M: ManagedTypeApi> {
     pub address: ManagedAddress<M>,
     pub inheritance_epochs: u64,
     pub last_accessed_epoch: u64,
+}
+
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
+pub struct UserInfo<M: ManagedTypeApi + multiversx_sc::api::StorageMapperApi> {
+    pub undelegations: ManagedVec<M, Undelegation<M>>,
+    pub reserve: BigUint<M>,
+    pub delegation: BigUint<M>,
+    pub knight: ManagedAddress<M>,
+    pub heir: ManagedAddress<M>,
 }
 
 #[multiversx_sc::module]
@@ -313,4 +322,38 @@ pub trait ConfigModule:
     #[view(getUserHeir)]
     #[storage_mapper("user_heir")]
     fn user_heir(&self, user: ManagedAddress) -> SingleValueMapper<Heir<Self::Api>>;
+
+    #[view(getUserInfo)]
+    fn get_user_info(&self, user: ManagedAddress) -> UserInfo<Self::Api> {
+        let user_knight = self.user_knight(user.clone());
+        let knight = if user_knight.is_empty() {
+            ManagedAddress::from(&[0u8; 32])
+        } else {
+            user_knight.get().address
+        };
+
+        let user_heir = self.user_heir(user.clone());
+        let heir = if user_heir.is_empty() {
+            ManagedAddress::from(&[0u8; 32])
+        } else {
+            user_heir.get().address
+        };
+
+        let mut undelegations: ManagedVec<Self::Api, Undelegation<Self::Api>> =
+            ManagedVec::new();
+        for node in self.luser_undelegations(&user).iter() {
+            let undelegation = node.into_value();
+            undelegations.push(undelegation);
+        }
+
+        let user_info = UserInfo{
+            undelegations,
+            reserve: self.get_user_reserve(&user),
+            delegation: self.user_delegation(user).get(),
+            knight,
+            heir,
+        };
+
+        user_info
+    }
 }
