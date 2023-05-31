@@ -86,7 +86,7 @@ pub trait OnedexModule:
     fn get_onedex_buy_quantity(&self, egld_amount: BigUint, ls_amount: BigUint) -> BigUint {
         require!(ls_amount > 0, ERROR_INSUFFICIENT_AMOUNT);
 
-        let fee = self.onedex_fee().get();
+        let fee = MAX_PERCENT - self.onedex_fee().get();
         require!(fee > 0, ERROR_FEE_ZERO);
 
         let pair_id = self.onedex_pair_id().get();
@@ -109,7 +109,7 @@ pub trait OnedexModule:
     fn get_onedex_sell_quantity(&self, ls_amount: BigUint, egld_amount: BigUint, ) -> BigUint {
         require!(egld_amount > 0, ERROR_INSUFFICIENT_AMOUNT);
 
-        let fee = self.onedex_fee().get();
+        let fee = MAX_PERCENT - self.onedex_fee().get();
         let pair_id = self.onedex_pair_id().get();
         let (ls_reserve, egld_reserve) = self.get_onedex_reserves(pair_id);
 
@@ -133,10 +133,7 @@ pub trait OnedexModule:
             return (BigUint::zero(), BigUint::zero())
         }
 
-        let mut is_buy = false;
-        if in_token == &self.wegld_id().get() {
-            is_buy = true;
-        }
+        let is_buy = in_token == &self.wegld_id().get();
         let mut amount_to_send_to_onedex = if is_buy {
             self.get_onedex_buy_quantity(in_amount.clone(), out_amount.clone())
         } else {
@@ -170,8 +167,8 @@ pub trait OnedexModule:
         let liquid_token_id = self.liquid_token_id().get_token_id();
         let mut path: MultiValueEncoded<TokenIdentifier> = MultiValueEncoded::new();
         let (old_egld_balance, old_ls_balance) = self.get_sc_balances();
-        let mut is_buy = true;
-        if in_token == &wegld_token_id {
+        let is_buy = in_token == &wegld_token_id;
+        if is_buy {
             path.push(wegld_token_id);
             path.push(liquid_token_id);
             self.onedex_proxy_obj()
@@ -180,7 +177,6 @@ pub trait OnedexModule:
                 .with_egld_transfer(in_amount.clone())
                 .execute_on_dest_context::<()>();
         } else {
-            is_buy = false;
             path.push(liquid_token_id.clone());
             path.push(wegld_token_id);
             let payment = EsdtTokenPayment::new(liquid_token_id, 0, in_amount.clone());
