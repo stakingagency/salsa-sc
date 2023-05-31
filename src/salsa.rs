@@ -33,7 +33,7 @@ pub trait SalsaContract<ContractReader>:
     #[endpoint(delegate)]
     fn delegate(
         &self,
-        custodial: bool,
+        with_custody: OptionalValue<bool>,
     ) -> EsdtTokenPayment<Self::Api> {
         self.update_last_accessed();
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
@@ -53,6 +53,10 @@ pub trait SalsaContract<ContractReader>:
 
         let caller = self.blockchain().get_caller();
         let liquid_token_id = self.liquid_token_id().get_token_id();
+        let custodial = match with_custody {
+            OptionalValue::Some(value) => value,
+            OptionalValue::None => false
+        };
         if bought_amount > 0 {
             if custodial {
                 self.user_delegation(caller.clone())
@@ -126,14 +130,18 @@ pub trait SalsaContract<ContractReader>:
     #[endpoint(unDelegate)]
     fn undelegate(
         &self,
-        undelegate_amount: BigUint,
+        undelegate_amount: OptionalValue<BigUint>,
     ) {
         self.update_last_accessed();
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
+        let amount = match undelegate_amount {
+            OptionalValue::Some(value) => value,
+            OptionalValue::None => BigUint::zero()
+        };
         let caller = self.blockchain().get_caller();
         self.check_knight_activated();
-        self.do_undelegate(caller, undelegate_amount);
+        self.do_undelegate(caller, amount);
     }
 
     fn do_undelegate(
@@ -332,14 +340,18 @@ pub trait SalsaContract<ContractReader>:
     fn undelegate_now(
         &self,
         min_amount_out: BigUint,
-        undelegate_amount: BigUint,
+        undelegate_amount: OptionalValue<BigUint>,
     ) {
         self.update_last_accessed();
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
+        let amount = match undelegate_amount {
+            OptionalValue::Some(value) => value,
+            OptionalValue::None => BigUint::zero()
+        };
         let caller = self.blockchain().get_caller();
         self.check_knight_activated();
-        self.do_undelegate_now(caller.clone(), caller, min_amount_out, undelegate_amount);
+        self.do_undelegate_now(caller.clone(), caller, min_amount_out, amount);
     }
 
     fn do_undelegate_now(

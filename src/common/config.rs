@@ -346,14 +346,12 @@ pub trait ConfigModule:
             undelegations.push(undelegation);
         }
 
-        let user_info = UserInfo{
+        UserInfo{
             undelegations,
             reserve: self.get_user_reserve(&user),
             delegation: self.user_delegation(user).get(),
             knight,
             heir,
-        };
-
-        user_info
+        }
     }
 }
