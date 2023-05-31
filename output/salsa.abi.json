@@ -30,8 +30,9 @@
             ],
             "inputs": [
                 {
-                    "name": "custodial",
-                    "type": "bool"
+                    "name": "with_custody",
+                    "type": "optional<bool>",
+                    "multi_arg": true
                 }
             ],
             "outputs": [
@@ -49,7 +50,8 @@
             "inputs": [
                 {
                     "name": "undelegate_amount",
-                    "type": "BigUint"
+                    "type": "optional<BigUint>",
+                    "multi_arg": true
                 }
             ],
             "outputs": []
@@ -93,7 +95,8 @@
                 },
                 {
                     "name": "undelegate_amount",
-                    "type": "BigUint"
+                    "type": "optional<BigUint>",
+                    "multi_arg": true
                 }
             ],
             "outputs": []
