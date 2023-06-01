@@ -10,7 +10,12 @@ use multiversx_sc_scenario::{
 
 use multiversx_sc::{
     types::{
-        Address,
+        Address
+    },
+    codec::{
+        multi_types:: {
+            OptionalValue
+        }
     },
 };
 
@@ -26,7 +31,7 @@ where
     ) {
         self.blockchain_wrapper
             .execute_tx(sender, &self.salsa_wrapper, &amount, |sc| {
-                sc.delegate(custodial);
+                sc.delegate(OptionalValue::Some(custodial));
             })
             .assert_ok();
     }
@@ -39,7 +44,7 @@ where
     ) {
         self.blockchain_wrapper
             .execute_esdt_transfer(sender, &self.salsa_wrapper, TOKEN_ID, 0, &amount, |sc| {
-                sc.undelegate(to_managed_biguint(undelegate_amount))
+                sc.undelegate(OptionalValue::Some(to_managed_biguint(undelegate_amount)))
             })
             .assert_ok();
     }
@@ -90,7 +95,7 @@ where
     ) {
         self.blockchain_wrapper
             .execute_esdt_transfer(sender, &self.salsa_wrapper, TOKEN_ID, 0, &amount, |sc| {
-                sc.undelegate_now(to_managed_biguint(min_amount), to_managed_biguint(undelegate_amount))
+                sc.undelegate_now(to_managed_biguint(min_amount), OptionalValue::Some(to_managed_biguint(undelegate_amount)))
             })
             .assert_ok();
     }

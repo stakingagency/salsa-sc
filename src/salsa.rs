@@ -173,17 +173,19 @@ pub trait SalsaContract<ContractReader>:
         );
 
         // arbitrage
-        let salsa_amount_out = self.remove_liquidity(&payment_amount, false);
-        let (sold_amount, bought_amount) = self.do_arbitrage_on_onedex(
-            &liquid_token_id, &payment_amount, &salsa_amount_out
-        );
-        if bought_amount > 0 {
-            self.send().direct_egld(&caller, &bought_amount);
-        }
+        if self.user_knight(caller.clone()).is_empty() {
+            let salsa_amount_out = self.remove_liquidity(&payment_amount, false);
+            let (sold_amount, bought_amount) = self.do_arbitrage_on_onedex(
+                &liquid_token_id, &payment_amount, &salsa_amount_out
+            );
+            if bought_amount > 0 {
+                self.send().direct_egld(&caller, &bought_amount);
+            }
 
-        payment_amount -= sold_amount;
-        if payment_amount == 0 {
-            return
+            payment_amount -= sold_amount;
+            if payment_amount == 0 {
+                return
+            }
         }
 
         // normal undelegate
@@ -350,7 +352,7 @@ pub trait SalsaContract<ContractReader>:
             OptionalValue::None => BigUint::zero()
         };
         let caller = self.blockchain().get_caller();
-        self.check_knight_activated();
+        self.check_knight_set();
         self.do_undelegate_now(caller.clone(), caller, min_amount_out, amount);
     }
 
@@ -569,6 +571,12 @@ pub trait SalsaContract<ContractReader>:
                 ERROR_KNIGHT_ACTIVE,
             );
         }
+    }
+
+    fn check_knight_set(&self) {
+        let caller = self.blockchain().get_caller();
+        let knight = self.user_knight(caller);
+        require!(knight.is_empty(), ERROR_KNIGHT_SET);
     }
 
     // endpoints: heirs

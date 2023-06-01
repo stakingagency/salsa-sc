@@ -29,6 +29,7 @@ pub static ERROR_ONEDEX_PAIR_ID: &[u8] = b"OneDex pair ID not set";
 pub static ERROR_FEE_ZERO: &[u8] = b"Fee can't be zero";
 
 pub static ERROR_KNIGHT_ALREADY_SET: &[u8] = b"Knight already set";
+pub static ERROR_KNIGHT_SET: &[u8] = b"When you set a knight, unDelegateNow is disabled";
 pub static ERROR_KNIGHT_NOT_SET: &[u8] = b"Knight not set";
 pub static ERROR_KNIGHT_NOT_CONFIRMED: &[u8] = b"Knight not confirmed";
 pub static ERROR_KNIGHT_ACTIVE: &[u8] = b"Knight is active";
