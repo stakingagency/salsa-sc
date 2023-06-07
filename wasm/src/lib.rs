@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           65
+// Endpoints:                           72
 // Async Callback:                       1
-// Total number of exported functions:  67
+// Total number of exported functions:  74
 
 #![no_std]
 #![feature(lang_items)]
@@ -25,7 +25,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         removeReserve
         unDelegateNow
         distributeProfit
-        setArbitrageActive
         unDelegateKnight
         unDelegateNowKnight
         withdrawKnight
@@ -60,8 +59,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         getReserveEgldAmount
         getUserReserve
         getTokenPrice
-        setArbitrageInactive
-        getArbitrageState
         getLiquidProfit
         getEgldProfit
         setWegldId
@@ -73,8 +70,18 @@ multiversx_sc_wasm_adapter::endpoints! {
         compound
         withdrawAll
         computeWithdrawn
+        setArbitrageActive
+        setArbitrageInactive
+        getArbitrageState
+        setOnedexArbitrageActive
+        setOnedexArbitrageInactive
+        getOnedexArbitrageState
         setOnedexSC
         setOnedexPairId
+        setXexchangeArbitrageActive
+        setXexchangeArbitrageInactive
+        getXexchangeArbitrageState
+        setXexchangeSC
         setKnight
         cancelKnight
         activateKnight

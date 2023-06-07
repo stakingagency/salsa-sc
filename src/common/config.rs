@@ -268,22 +268,6 @@ pub trait ConfigModule:
 
     // arbitrage
 
-    #[only_owner]
-    #[endpoint(setArbitrageInactive)]
-    fn set_arbitrage_inactive(&self) {
-        self.arbitrage().set(State::Inactive);
-    }
-
-    #[inline]
-    fn is_arbitrage_active(&self) -> bool {
-        let arbitrage = self.arbitrage().get();
-        arbitrage == State::Active
-    }
-
-    #[view(getArbitrageState)]
-    #[storage_mapper("arbitrage")]
-    fn arbitrage(&self) -> SingleValueMapper<State>;
-
     #[view(getLiquidProfit)]
     #[storage_mapper("liquid_profit")]
     fn liquid_profit(&self) -> SingleValueMapper<BigUint>;

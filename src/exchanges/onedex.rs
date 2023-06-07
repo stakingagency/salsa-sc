@@ -1,5 +1,6 @@
 multiversx_sc::imports!();
 
+use crate::common::config::State;
 use crate::{common::consts::*, common::errors::*};
 use crate::proxies::onedex_proxy;
 
@@ -9,17 +10,36 @@ pub trait OnedexModule:
     + crate::helpers::HelpersModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
-    fn get_sc_balances(&self) -> (BigUint, BigUint) {
-        let liquid_token_id = self.liquid_token_id().get_token_id();
-        let ls_balance = self.blockchain()
-            .get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(liquid_token_id.clone()), 0);
-        let balance = self.blockchain()
-            .get_sc_balance(&EgldOrEsdtTokenIdentifier::egld(), 0);
+    #[only_owner]
+    #[endpoint(setOnedexArbitrageActive)]
+    fn set_onedex_arbitrage_active(&self) {
+        require!(
+            !self.onedex_pair_id().is_empty(),
+            ERROR_ONEDEX_PAIR_ID,
+        );
+        require!(
+            !self.onedex_sc().is_empty(),
+            ERROR_ONEDEX_SC,
+        );
 
-        (balance, ls_balance)
+        self.onedex_arbitrage().set(State::Active);
     }
 
-    // onedex
+    #[only_owner]
+    #[endpoint(setOnedexArbitrageInactive)]
+    fn set_onedex_arbitrage_inactive(&self) {
+        self.onedex_arbitrage().set(State::Inactive);
+    }
+
+    #[inline]
+    fn is_onedex_arbitrage_active(&self) -> bool {
+        let arbitrage = self.onedex_arbitrage().get();
+        arbitrage == State::Active
+    }
+
+    #[view(getOnedexArbitrageState)]
+    #[storage_mapper("onedex_arbitrage")]
+    fn onedex_arbitrage(&self) -> SingleValueMapper<State>;
 
     #[storage_mapper("onedex_sc")]
     fn onedex_sc(&self) -> SingleValueMapper<ManagedAddress>;
@@ -54,7 +74,7 @@ pub trait OnedexModule:
     }
 
     fn get_onedex_amount_out(&self, in_token: &TokenIdentifier, in_amount: &BigUint) -> BigUint {
-        if !self.is_arbitrage_active() {
+        if !self.is_onedex_arbitrage_active() {
             return BigUint::zero();
         }
 
@@ -73,52 +93,23 @@ pub trait OnedexModule:
     }
 
     fn get_onedex_buy_quantity(&self, egld_amount: BigUint, ls_amount: BigUint) -> BigUint {
-        require!(ls_amount > 0, ERROR_INSUFFICIENT_AMOUNT);
-
         let pair_id = self.onedex_pair_id().get();
         let (ls_reserve, egld_reserve) = self.get_onedex_reserves(pair_id);
 
-        let mut x = &ls_reserve * &egld_reserve * &egld_amount  / &ls_amount;
-        x = x.sqrt();
-        if x > egld_reserve {
-            return BigUint::zero()
-        }
-
-        x -= egld_reserve;
-        if x > egld_amount {
-            egld_amount
-        } else {
-            x
-        }
+        self.get_buy_quantity(egld_amount, ls_amount, egld_reserve, ls_reserve)
     }
 
     fn get_onedex_sell_quantity(&self, ls_amount: BigUint, egld_amount: BigUint, ) -> BigUint {
-        require!(egld_amount > 0, ERROR_INSUFFICIENT_AMOUNT);
-        require!(ls_amount > 0, ERROR_INSUFFICIENT_AMOUNT);
-
         let pair_id = self.onedex_pair_id().get();
         let (ls_reserve, egld_reserve) = self.get_onedex_reserves(pair_id);
 
-        let mut x = &egld_reserve * &ls_reserve * &egld_amount / &ls_amount;
-        x = x.sqrt();
-        let y = &ls_reserve * &egld_amount / &ls_amount;
-        if x < y {
-            return BigUint::zero()
-        }
-
-        x -= y;
-        x = x * &ls_amount / &egld_amount;
-        if x > ls_amount {
-            ls_amount
-        } else {
-            x
-        }
+        self.get_sell_quantity(ls_amount, egld_amount, ls_reserve, egld_reserve)
     }
 
     fn do_arbitrage_on_onedex(
         &self, in_token: &TokenIdentifier, in_amount: &BigUint, out_amount: &BigUint
     ) -> (BigUint, BigUint) {
-        if !self.is_arbitrage_active() {
+        if !self.is_onedex_arbitrage_active() {
             return (BigUint::zero(), BigUint::zero())
         }
 

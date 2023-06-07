@@ -109,13 +109,6 @@
             "outputs": []
         },
         {
-            "name": "setArbitrageActive",
-            "onlyOwner": true,
-            "mutability": "mutable",
-            "inputs": [],
-            "outputs": []
-        },
-        {
             "name": "unDelegateKnight",
             "mutability": "mutable",
             "inputs": [
@@ -537,23 +530,6 @@
             ]
         },
         {
-            "name": "setArbitrageInactive",
-            "onlyOwner": true,
-            "mutability": "mutable",
-            "inputs": [],
-            "outputs": []
-        },
-        {
-            "name": "getArbitrageState",
-            "mutability": "readonly",
-            "inputs": [],
-            "outputs": [
-                {
-                    "type": "State"
-                }
-            ]
-        },
-        {
             "name": "getLiquidProfit",
             "mutability": "readonly",
             "inputs": [],
@@ -670,6 +646,54 @@
             "outputs": []
         },
         {
+            "name": "setArbitrageActive",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "setArbitrageInactive",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "getArbitrageState",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "State"
+                }
+            ]
+        },
+        {
+            "name": "setOnedexArbitrageActive",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "setOnedexArbitrageInactive",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "getOnedexArbitrageState",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "State"
+                }
+            ]
+        },
+        {
             "name": "setOnedexSC",
             "onlyOwner": true,
             "mutability": "mutable",
@@ -689,6 +713,42 @@
                 {
                     "name": "id",
                     "type": "u32"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "setXexchangeArbitrageActive",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "setXexchangeArbitrageInactive",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "getXexchangeArbitrageState",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "State"
+                }
+            ]
+        },
+        {
+            "name": "setXexchangeSC",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "address",
+                    "type": "Address"
                 }
             ],
             "outputs": []

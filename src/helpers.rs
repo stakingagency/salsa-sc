@@ -8,6 +8,53 @@ pub trait HelpersModule:
     crate::common::config::ConfigModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
+    fn get_sc_balances(&self) -> (BigUint, BigUint) {
+        let liquid_token_id = self.liquid_token_id().get_token_id();
+        let ls_balance = self.blockchain()
+            .get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(liquid_token_id.clone()), 0);
+        let balance = self.blockchain()
+            .get_sc_balance(&EgldOrEsdtTokenIdentifier::egld(), 0);
+
+        (balance, ls_balance)
+    }
+
+    fn get_buy_quantity(&self, egld_amount: BigUint, ls_amount: BigUint, egld_reserve: BigUint, ls_reserve: BigUint) -> BigUint {
+        require!(ls_amount > 0, ERROR_INSUFFICIENT_AMOUNT);
+
+        let mut x = &ls_reserve * &egld_reserve * &egld_amount  / &ls_amount;
+        x = x.sqrt();
+        if x > egld_reserve {
+            return BigUint::zero()
+        }
+
+        x -= egld_reserve;
+        if x > egld_amount {
+            egld_amount
+        } else {
+            x
+        }
+    }
+
+    fn get_sell_quantity(&self, ls_amount: BigUint, egld_amount: BigUint, ls_reserve: BigUint, egld_reserve: BigUint) -> BigUint {
+        require!(egld_amount > 0, ERROR_INSUFFICIENT_AMOUNT);
+        require!(ls_amount > 0, ERROR_INSUFFICIENT_AMOUNT);
+
+        let mut x = &egld_reserve * &ls_reserve * &egld_amount / &ls_amount;
+        x = x.sqrt();
+        let y = &ls_reserve * &egld_amount / &ls_amount;
+        if x < y {
+            return BigUint::zero()
+        }
+
+        x -= y;
+        x = x * &ls_amount / &egld_amount;
+        if x > ls_amount {
+            ls_amount
+        } else {
+            x
+        }
+    }
+
     fn add_undelegation(
         &self,
         amount: BigUint,

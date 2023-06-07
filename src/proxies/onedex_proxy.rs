@@ -26,8 +26,4 @@ pub trait OneDexProxy {
     #[view(getPairSecondTokenReserve)]
     #[storage_mapper("pair_second_token_reserve")]
     fn pair_second_token_reserve(&self, pair_id: usize) -> SingleValueMapper<BigUint>;
-
-    #[view(getTotalFeePercent)]
-    #[storage_mapper("total_fee_percent")]
-    fn total_fee_percent(&self) -> SingleValueMapper<u64>;
 }
