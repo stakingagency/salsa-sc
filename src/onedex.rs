@@ -24,9 +24,6 @@ pub trait OnedexModule:
     #[storage_mapper("onedex_sc")]
     fn onedex_sc(&self) -> SingleValueMapper<ManagedAddress>;
 
-    #[storage_mapper("onedex_fee")]
-    fn onedex_fee(&self) -> SingleValueMapper<u64>;
-
     #[storage_mapper("onedex_pair_id")]
     fn onedex_pair_id(&self) -> SingleValueMapper<usize>;
 
@@ -40,14 +37,6 @@ pub trait OnedexModule:
     #[endpoint(setOnedexPairId)]
     fn set_onedex_pair_id(&self, id: usize) {
         self.onedex_pair_id().set(id);
-    }
-
-    fn get_onedex_fee(&self) -> u64 {
-        let onedex_sc_address = self.onedex_sc().get();
-        self.onedex_proxy_obj()
-            .contract(onedex_sc_address.clone())
-            .total_fee_percent()
-            .execute_on_dest_context()
     }
 
     fn get_onedex_reserves(&self, pair_id: usize) -> (BigUint, BigUint) {
@@ -86,43 +75,43 @@ pub trait OnedexModule:
     fn get_onedex_buy_quantity(&self, egld_amount: BigUint, ls_amount: BigUint) -> BigUint {
         require!(ls_amount > 0, ERROR_INSUFFICIENT_AMOUNT);
 
-        let fee = MAX_PERCENT - self.onedex_fee().get();
-        require!(fee > 0, ERROR_FEE_ZERO);
-
         let pair_id = self.onedex_pair_id().get();
         let (ls_reserve, egld_reserve) = self.get_onedex_reserves(pair_id);
 
-        let mut x = &ls_reserve * &egld_amount  / &ls_amount;
-        let y = &egld_reserve * MAX_PERCENT / fee;
-        if x <= y {
+        let mut x = &ls_reserve * &egld_reserve * &egld_amount  / &ls_amount;
+        x = x.sqrt();
+        if x > egld_reserve {
             return BigUint::zero()
         }
 
-        x = x - y;
+        x -= egld_reserve;
         if x > egld_amount {
             egld_amount
         } else {
-            x * ARBITRAGE_RATIO / MAX_PERCENT
+            x
         }
     }
 
     fn get_onedex_sell_quantity(&self, ls_amount: BigUint, egld_amount: BigUint, ) -> BigUint {
         require!(egld_amount > 0, ERROR_INSUFFICIENT_AMOUNT);
+        require!(ls_amount > 0, ERROR_INSUFFICIENT_AMOUNT);
 
-        let fee = MAX_PERCENT - self.onedex_fee().get();
         let pair_id = self.onedex_pair_id().get();
         let (ls_reserve, egld_reserve) = self.get_onedex_reserves(pair_id);
 
-        let mut x = &egld_reserve * &ls_amount * fee / &egld_amount / MAX_PERCENT;
-        if x < ls_reserve {
-            return BigUint::zero();
+        let mut x = &egld_reserve * &ls_reserve * &egld_amount / &ls_amount;
+        x = x.sqrt();
+        let y = &ls_reserve * &egld_amount / &ls_amount;
+        if x < y {
+            return BigUint::zero()
         }
 
-        x = x - ls_reserve;
+        x -= y;
+        x = x * &ls_amount / &egld_amount;
         if x > ls_amount {
             ls_amount
         } else {
-            x * ARBITRAGE_RATIO / MAX_PERCENT
+            x
         }
     }
 

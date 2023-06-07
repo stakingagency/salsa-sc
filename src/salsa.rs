@@ -497,8 +497,6 @@ pub trait SalsaContract<ContractReader>:
             ERROR_ONEDEX_SC,
         );
 
-        let fee = self.get_onedex_fee();
-        self.onedex_fee().set(fee);
         self.arbitrage().set(State::Active);
     }
 
