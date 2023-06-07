@@ -4,9 +4,9 @@ multiversx_sc::imports!();
 
 pub mod common;
 pub mod proxies;
-mod helpers;
+pub mod helpers;
 pub mod service;
-pub mod onedex;
+pub mod exchanges;
 pub mod knights;
 pub mod heirs;
 
@@ -17,14 +17,16 @@ pub trait SalsaContract<ContractReader>:
     common::config::ConfigModule
     + helpers::HelpersModule
     + service::ServiceModule
-    + onedex::OnedexModule
+    + exchanges::arbitrage::ArbitrageModule
+    + exchanges::onedex::OnedexModule
+    + exchanges::xexchange::XexchangeModule
     + knights::KnightsModule
     + heirs::HeirsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[init]
     fn init(&self) {
-        // self.state().set(State::Inactive);
+        self.state().set(State::Inactive);
     }
 
     // endpoints: liquid delegation
@@ -46,9 +48,8 @@ pub trait SalsaContract<ContractReader>:
         );
 
         // arbitrage
-        let salsa_amount_out = self.add_liquidity(&delegate_amount, false);
-        let (sold_amount, bought_amount) = self.do_arbitrage_on_onedex(
-            &self.wegld_id().get(), &delegate_amount, &salsa_amount_out
+        let (sold_amount, bought_amount) = self.do_arbitrage(
+            &self.wegld_id().get(), &delegate_amount
         );
 
         let caller = self.blockchain().get_caller();
@@ -73,7 +74,7 @@ pub trait SalsaContract<ContractReader>:
 
         delegate_amount -= &sold_amount;
         if delegate_amount == 0 {
-            return EsdtTokenPayment::new(liquid_token_id, 0, salsa_amount_out)
+            return EsdtTokenPayment::new(liquid_token_id, 0, sold_amount)
         }
 
         let ls_amount = self.add_liquidity(&delegate_amount, true);
@@ -174,9 +175,8 @@ pub trait SalsaContract<ContractReader>:
 
         // arbitrage
         if self.user_knight(caller.clone()).is_empty() {
-            let salsa_amount_out = self.remove_liquidity(&payment_amount, false);
-            let (sold_amount, bought_amount) = self.do_arbitrage_on_onedex(
-                &liquid_token_id, &payment_amount, &salsa_amount_out
+            let (sold_amount, bought_amount) = self.do_arbitrage(
+                &liquid_token_id, &payment_amount
             );
             if bought_amount > 0 {
                 self.send().direct_egld(&caller, &bought_amount);
@@ -392,9 +392,8 @@ pub trait SalsaContract<ContractReader>:
         let total_egld_staked = self.total_egld_staked().get();
 
         // arbitrage
-        let salsa_amount_out = self.remove_liquidity(&payment_amount, false);
-        let (sold_amount, bought_amount) = self.do_arbitrage_on_onedex(
-            &liquid_token_id, &payment_amount, &salsa_amount_out
+        let (sold_amount, bought_amount) = self.do_arbitrage(
+            &liquid_token_id, &payment_amount
         );
         if bought_amount > 0 {
             self.send().direct_egld(&caller, &bought_amount);
@@ -477,27 +476,6 @@ pub trait SalsaContract<ContractReader>:
             self.burn_liquid_token(&ls_profit);
             self.liquid_profit().clear();
         }
-    }
-
-    #[only_owner]
-    #[endpoint(setArbitrageActive)]
-    fn set_arbitrage_active(&self) {
-        require!(!self.provider_address().is_empty(), ERROR_PROVIDER_NOT_SET);
-        require!(!self.liquid_token_id().is_empty(), ERROR_TOKEN_NOT_SET);
-        require!(
-            !self.wegld_id().is_empty(),
-            ERROR_WEGLD_ID,
-        );
-        require!(
-            !self.onedex_pair_id().is_empty(),
-            ERROR_ONEDEX_PAIR_ID,
-        );
-        require!(
-            !self.onedex_sc().is_empty(),
-            ERROR_ONEDEX_SC,
-        );
-
-        self.arbitrage().set(State::Active);
     }
 
     // endpoints: knights
