@@ -64,7 +64,7 @@ pub trait ArbitrageModule:
                     self.remove_liquidity(&new_in_amount, false)
                 };
             }
-            if self.is_xexchange_arbitrage_active() {
+            if self.is_xexchange_arbitrage_active() && new_in_amount > 0 {
                 let (sold, bought) =
                     self.do_arbitrage_on_xexchange(in_token, &new_in_amount, &out_amount);
                 sold_amount += sold;

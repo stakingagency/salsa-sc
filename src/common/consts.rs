@@ -4,5 +4,4 @@ pub const MIN_GAS_FOR_CALLBACK: u64 = 12_000_000;
 pub const MAX_PERCENT: u64 = 10_000;
 pub const MAX_UNBOND_PERIOD: u64 = 20;
 pub const DUST_THRESHOLD: u64 = 1_000;
-pub const ARBITRAGE_RATIO: u64 = 9_000;
 pub const MIN_INHERITANCE_EPOCHS: u64 = 365;
