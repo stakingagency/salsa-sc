@@ -35,6 +35,11 @@ pub trait SalsaContract<ContractReader>:
         let ls_amount = self.add_liquidity(&delegate_amount);
 
         let caller = self.blockchain().get_caller();
+        // check if caller is non-payable SC
+        if self.blockchain().is_smart_contract(&caller) {
+            self.send().direct_egld(&caller, &BigUint::zero());
+        }
+
         let delegation_contract = self.provider_address().get();
         let gas_for_async_call = self.get_gas_for_async_call();
         self.delegation_proxy_obj()
