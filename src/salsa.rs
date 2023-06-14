@@ -47,17 +47,23 @@ pub trait SalsaContract<ContractReader>:
             ERROR_INSUFFICIENT_AMOUNT
         );
 
+        let custodial = match with_custody {
+            OptionalValue::Some(value) => value,
+            OptionalValue::None => false
+        };
+
+        // check if caller is non-payable sc
+        let caller = self.blockchain().get_caller();
+        if self.blockchain().is_smart_contract(&caller) && !custodial {
+            self.send().direct_egld(&caller, &BigUint::zero());
+        }
+
         // arbitrage
         let (sold_amount, bought_amount) = self.do_arbitrage(
             &self.wegld_id().get(), &delegate_amount
         );
 
-        let caller = self.blockchain().get_caller();
         let liquid_token_id = self.liquid_token_id().get_token_id();
-        let custodial = match with_custody {
-            OptionalValue::Some(value) => value,
-            OptionalValue::None => false
-        };
         if bought_amount > 0 {
             if custodial {
                 self.user_delegation(caller.clone())

@@ -378,15 +378,20 @@ fn knight_test() {
     sc_setup.delegate_test(&delegator, exp(1, 18), true); // true = custodial
 
     sc_setup.set_knight_test(&delegator, &knight1);
+    sc_setup.set_knight_fail_test(&delegator, &knight1, "Knight already set");
     sc_setup.cancel_knight_test(&delegator);
+
     sc_setup.set_knight_test(&delegator, &knight2);
     sc_setup.confirm_knight_test(&knight2, &delegator);
+    sc_setup.cancel_knight_fail_test(&delegator, "Knight can only be canceled or confirmed while pending confirmation");
     sc_setup.remove_knight_test(&knight2, &delegator);
+
     sc_setup.set_knight_test(&delegator, &knight1);
     sc_setup.confirm_knight_test(&knight1, &delegator);
     sc_setup.activate_knight_test(&delegator);
-    sc_setup.deactivate_knight_test(&knight1, &delegator);
+    sc_setup.undelegate_fail_test(&delegator, rust_biguint!(0), exp(1, 18), "Knight is active");
 
+    sc_setup.deactivate_knight_test(&knight1, &delegator);
     sc_setup.undelegate_test(&delegator, rust_biguint!(0), exp(1, 18));
 }
 
