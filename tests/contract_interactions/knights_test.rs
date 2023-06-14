@@ -30,6 +30,20 @@ where
             .assert_ok();
     }
 
+    pub fn set_knight_fail_test(
+        &mut self,
+        sender: &Address,
+        knight: &Address,
+        error: &str,
+    ) {
+        let big_zero = rust_biguint!(0);
+        self.blockchain_wrapper
+            .execute_tx(sender, &self.salsa_wrapper, &big_zero, |sc| {
+                sc.set_knight(managed_address!(knight))
+            })
+            .assert_user_error(error);
+    }
+
     pub fn cancel_knight_test(
         &mut self,
         sender: &Address,
@@ -40,6 +54,19 @@ where
                 sc.cancel_knight()
             })
             .assert_ok();
+    }
+
+    pub fn cancel_knight_fail_test(
+        &mut self,
+        sender: &Address,
+        error: &str,
+    ) {
+        let big_zero = rust_biguint!(0);
+        self.blockchain_wrapper
+            .execute_tx(sender, &self.salsa_wrapper, &big_zero, |sc| {
+                sc.cancel_knight()
+            })
+            .assert_user_error(error);
     }
 
     pub fn activate_knight_test(
