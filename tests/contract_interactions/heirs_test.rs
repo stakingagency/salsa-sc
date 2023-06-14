@@ -57,6 +57,21 @@ where
             .assert_ok();
     }
 
+    pub fn undelegate_heir_fail_test(
+        &mut self,
+        heir: &Address,
+        user: &Address,
+        amount: num_bigint::BigUint,
+        error: &str,
+    ) {
+        let big_zero = rust_biguint!(0);
+        self.blockchain_wrapper
+            .execute_tx(heir, &self.salsa_wrapper, &big_zero, |sc| {
+                sc.undelegate_heir(managed_address!(user), to_managed_biguint(amount))
+            })
+            .assert_user_error(error);
+    }
+
     pub fn undelegate_now_heir_test(
         &mut self,
         heir: &Address,
