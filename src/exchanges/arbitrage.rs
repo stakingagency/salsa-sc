@@ -42,34 +42,39 @@ pub trait ArbitrageModule:
     fn do_arbitrage(
         &self, in_token: &TokenIdentifier, in_amount: &BigUint
     ) -> (BigUint, BigUint) {
-        let mut sold_amount = BigUint::zero();
-        let mut bought_amount = BigUint::zero();
-        if self.is_arbitrage_active() {
-            let is_buy = in_token == &self.wegld_id().get();
-            let mut out_amount = if is_buy {
-                self.add_liquidity(&in_amount, false)
-            } else {
-                self.remove_liquidity(&in_amount, false)
-            };
-            let mut new_in_amount = in_amount.clone();
-            if self.is_onedex_arbitrage_active() {
-                let (sold, bought) =
-                    self.do_arbitrage_on_onedex(in_token, in_amount, &out_amount);
-                sold_amount += &sold;
-                bought_amount += &bought;
-                new_in_amount -= sold;
-                out_amount = if is_buy {
+        if !self.is_arbitrage_active() {
+            return (BigUint::zero(), BigUint::zero())
+        }
+
+        let (mut sold_amount, mut bought_amount) = (BigUint::zero(), BigUint::zero());
+        let is_buy = in_token == &self.wegld_id().get();
+        let mut out_amount = if is_buy {
+            self.add_liquidity(&in_amount, false)
+        } else {
+            self.remove_liquidity(&in_amount, false)
+        };
+        let mut new_in_amount = in_amount.clone();
+        if self.is_onedex_arbitrage_active() {
+            let (sold, bought) =
+                self.do_arbitrage_on_onedex(in_token, in_amount, &out_amount);
+            sold_amount += &sold;
+            bought_amount += &bought;
+            new_in_amount -= sold;
+            out_amount = if new_in_amount > 0 {
+                if is_buy {
                     self.add_liquidity(&new_in_amount, false)
                 } else {
                     self.remove_liquidity(&new_in_amount, false)
-                };
-            }
-            if self.is_xexchange_arbitrage_active() && new_in_amount > 0 {
-                let (sold, bought) =
-                    self.do_arbitrage_on_xexchange(in_token, &new_in_amount, &out_amount);
-                sold_amount += sold;
-                bought_amount += bought;
-            }
+                }
+            } else {
+                BigUint::zero()
+            };
+        }
+        if self.is_xexchange_arbitrage_active() && new_in_amount > 0 {
+            let (sold, bought) =
+                self.do_arbitrage_on_xexchange(in_token, &new_in_amount, &out_amount);
+            sold_amount += sold;
+            bought_amount += bought;
         }
 
         (sold_amount, bought_amount)

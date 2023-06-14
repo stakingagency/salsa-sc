@@ -4,7 +4,6 @@ pub type SwapTokensFixedInputResultType<BigUint> = EsdtTokenPayment<BigUint>;
 
 #[multiversx_sc::proxy]
 pub trait XexchangeProxy {
-
     #[payable("*")]
     #[endpoint(swapTokensFixedInput)]
     fn swap_tokens_fixed_input(
