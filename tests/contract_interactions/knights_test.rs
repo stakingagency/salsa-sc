@@ -134,6 +134,21 @@ where
             .assert_ok();
     }
 
+    pub fn undelegate_knight_fail_test(
+        &mut self,
+        knight: &Address,
+        user: &Address,
+        amount: num_bigint::BigUint,
+        error: &str,
+    ) {
+        let big_zero = rust_biguint!(0);
+        self.blockchain_wrapper
+            .execute_tx(knight, &self.salsa_wrapper, &big_zero, |sc| {
+                sc.undelegate_knight(managed_address!(user), to_managed_biguint(amount))
+            })
+            .assert_user_error(error);
+    }
+
     pub fn undelegate_now_knight_test(
         &mut self,
         knight: &Address,

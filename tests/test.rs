@@ -416,6 +416,7 @@ fn active_knigth_test() {
     // set knight, confirm and activate
     sc_setup.set_knight_test(&delegator, &knight);
     sc_setup.confirm_knight_test(&knight, &delegator);
+    sc_setup.undelegate_knight_fail_test(&knight, &delegator, one.clone(), "Knight not active");
     sc_setup.activate_knight_test(&delegator);
 
     // undelegate knight, undelegate now knight and remove reserve knight
@@ -463,7 +464,11 @@ fn entitled_heir_test() {
     sc_setup.set_heir_test(&delegator, &heir, 365u64);
 
     // undelegate heir, undelegate now heir and remove reserve heir
-    epoch += 365;
+    epoch += 364;
+    sc_setup.blockchain_wrapper.set_block_epoch(epoch);
+    sc_setup.undelegate_heir_fail_test(&heir, &delegator, one.clone(), "You are not yet entitled for inheritance");
+
+    epoch += 1;
     sc_setup.blockchain_wrapper.set_block_epoch(epoch);
     sc_setup.undelegate_heir_test(&heir, &delegator, one.clone());
     sc_setup.undelegate_now_heir_test(&heir, &delegator, one_with_fee, one.clone());
