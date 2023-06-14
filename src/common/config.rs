@@ -293,6 +293,15 @@ pub trait ConfigModule:
         self.wegld_id().set(wegld_id);
     }
 
+    #[storage_mapper("wrap_sc")]
+    fn wrap_sc(&self) -> SingleValueMapper<ManagedAddress<Self::Api>>;
+
+    #[only_owner]
+    #[endpoint(setWrapSC)]
+    fn set_wrap_sc(&self, address: ManagedAddress<Self::Api>) {
+        self.wrap_sc().set(address);
+    }
+
     // custodial liquid staking
 
     #[view(getUserDelegation)]

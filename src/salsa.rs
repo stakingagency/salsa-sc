@@ -59,9 +59,8 @@ pub trait SalsaContract<ContractReader>:
         }
 
         // arbitrage
-        let (sold_amount, bought_amount) = self.do_arbitrage(
-            &self.wegld_id().get(), &delegate_amount
-        );
+        let (sold_amount, bought_amount) =
+            self.do_arbitrage(&self.wegld_id().get(), &delegate_amount);
 
         let liquid_token_id = self.liquid_token_id().get_token_id();
         if bought_amount > 0 {
@@ -181,13 +180,11 @@ pub trait SalsaContract<ContractReader>:
 
         // arbitrage
         if self.user_knight(caller.clone()).is_empty() {
-            let (sold_amount, bought_amount) = self.do_arbitrage(
-                &liquid_token_id, &payment_amount
-            );
+            let (sold_amount, bought_amount) =
+                self.do_arbitrage(&liquid_token_id, &payment_amount);
             if bought_amount > 0 {
                 self.send().direct_egld(&caller, &bought_amount);
             }
-
             payment_amount -= sold_amount;
             if payment_amount == 0 {
                 return
@@ -398,13 +395,11 @@ pub trait SalsaContract<ContractReader>:
         let total_egld_staked = self.total_egld_staked().get();
 
         // arbitrage
-        let (sold_amount, bought_amount) = self.do_arbitrage(
-            &liquid_token_id, &payment_amount
-        );
+        let (sold_amount, bought_amount) =
+            self.do_arbitrage(&liquid_token_id, &payment_amount);
         if bought_amount > 0 {
             self.send().direct_egld(&caller, &bought_amount);
         }
-
         payment_amount -= sold_amount;
         if payment_amount == 0 {
             return

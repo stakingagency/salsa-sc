@@ -21,9 +21,9 @@ pub trait HelpersModule:
     fn get_buy_quantity(&self, egld_amount: BigUint, ls_amount: BigUint, egld_reserve: BigUint, ls_reserve: BigUint) -> BigUint {
         require!(ls_amount > 0, ERROR_INSUFFICIENT_AMOUNT);
 
-        let mut x = &ls_reserve * &egld_reserve * &egld_amount  / &ls_amount;
+        let mut x = &egld_reserve * &ls_reserve * &egld_amount / &ls_amount;
         x = x.sqrt();
-        if x > egld_reserve {
+        if x < egld_reserve {
             return BigUint::zero()
         }
 

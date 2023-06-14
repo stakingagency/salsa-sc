@@ -27,6 +27,7 @@ pub static ERROR_ARBITRAGE_ISSUE: &[u8] = b"Arbitrage issue";
 pub static ERROR_ONEDEX_SC: &[u8] = b"OneDex SC address not set";
 pub static ERROR_ONEDEX_PAIR_ID: &[u8] = b"OneDex pair ID not set";
 pub static ERROR_XEXCHANGE_SC: &[u8] = b"xExchange SC address not set";
+pub static ERROR_WRAP_SC: &[u8] = b"Wrap SC address not set";
 
 pub static ERROR_KNIGHT_ALREADY_SET: &[u8] = b"Knight already set";
 pub static ERROR_KNIGHT_SET: &[u8] = b"When you set a knight, unDelegateNow is disabled";

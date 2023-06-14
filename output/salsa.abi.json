@@ -562,6 +562,18 @@
             "outputs": []
         },
         {
+            "name": "setWrapSC",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "address",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
             "name": "getUserDelegation",
             "mutability": "readonly",
             "inputs": [

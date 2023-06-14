@@ -3,6 +3,7 @@ multiversx_sc::imports!();
 use crate::common::config::State;
 use crate::{common::consts::*, common::errors::*};
 use crate::proxies::xexchange_proxy;
+use crate::proxies::wrap_proxy;
 
 #[multiversx_sc::module]
 pub trait XexchangeModule:
@@ -16,6 +17,10 @@ pub trait XexchangeModule:
         require!(
             !self.xexchange_sc().is_empty(),
             ERROR_XEXCHANGE_SC,
+        );
+        require!(
+            !self.wrap_sc().is_empty(),
+            ERROR_WRAP_SC,
         );
 
         self.xexchange_arbitrage().set(State::Active);
@@ -123,16 +128,30 @@ pub trait XexchangeModule:
         let (old_egld_balance, old_ls_balance) = self.get_sc_balances();
         let is_buy = in_token == &wegld_token_id;
         if is_buy {
+            self.wrap_proxy_obj()
+                .contract(self.wrap_sc().get())
+                .wrap_egld()
+                .with_egld_transfer(in_amount.clone())
+                .execute_on_dest_context::<()>();
+            let payment = EsdtTokenPayment::new(wegld_token_id.clone(), 0, in_amount.clone());
             self.xexchange_proxy_obj()
                 .contract(xexchange_sc_address)
                 .swap_tokens_fixed_input(liquid_token_id, out_amount)
-                .with_egld_transfer(in_amount.clone())
+                .with_esdt_transfer(payment)
                 .execute_on_dest_context::<()>();
         } else {
-            let payment = EsdtTokenPayment::new(liquid_token_id, 0, in_amount.clone());
+            let mut payment = EsdtTokenPayment::new(liquid_token_id, 0, in_amount.clone());
             self.xexchange_proxy_obj()
                 .contract(xexchange_sc_address)
-                .swap_tokens_fixed_input(wegld_token_id, out_amount)
+                .swap_tokens_fixed_input(wegld_token_id.clone(), out_amount)
+                .with_esdt_transfer(payment)
+                .execute_on_dest_context::<()>();
+            let wegld_balance =
+                self.blockchain().get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(wegld_token_id.clone()), 0);
+            payment = EsdtTokenPayment::new(wegld_token_id, 0, wegld_balance);
+            self.wrap_proxy_obj()
+                .contract(self.wrap_sc().get())
+                .unwrap_egld()
                 .with_esdt_transfer(payment)
                 .execute_on_dest_context::<()>();
         }
@@ -158,8 +177,11 @@ pub trait XexchangeModule:
         }
     }
 
-    // proxy
+    // proxies
 
     #[proxy]
     fn xexchange_proxy_obj(&self) -> xexchange_proxy::Proxy<Self::Api>;
+
+    #[proxy]
+    fn wrap_proxy_obj(&self) -> wrap_proxy::Proxy<Self::Api>;
 }
