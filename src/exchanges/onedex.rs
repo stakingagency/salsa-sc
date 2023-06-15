@@ -99,7 +99,7 @@ pub trait OnedexModule:
         self.get_buy_quantity(egld_amount, ls_amount, egld_reserve, ls_reserve)
     }
 
-    fn get_onedex_sell_quantity(&self, ls_amount: BigUint, egld_amount: BigUint, ) -> BigUint {
+    fn get_onedex_sell_quantity(&self, ls_amount: BigUint, egld_amount: BigUint) -> BigUint {
         let pair_id = self.onedex_pair_id().get();
         let (ls_reserve, egld_reserve) = self.get_onedex_reserves(pair_id);
 
