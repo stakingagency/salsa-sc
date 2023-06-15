@@ -80,7 +80,7 @@ pub trait XexchangeModule:
         self.get_buy_quantity(egld_amount, ls_amount, egld_reserve, ls_reserve)
     }
 
-    fn get_xexchange_sell_quantity(&self, ls_amount: BigUint, egld_amount: BigUint, ) -> BigUint {
+    fn get_xexchange_sell_quantity(&self, ls_amount: BigUint, egld_amount: BigUint) -> BigUint {
         let (ls_reserve, egld_reserve) = self.get_xexchange_reserves();
 
         self.get_sell_quantity(ls_amount, egld_amount, ls_reserve, egld_reserve)
