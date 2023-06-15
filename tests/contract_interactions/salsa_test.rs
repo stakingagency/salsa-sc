@@ -114,6 +114,21 @@ where
             .assert_ok();
     }
 
+    pub fn undelegate_now_fail_test(
+        &mut self,
+        sender: &Address,
+        amount: num_bigint::BigUint,
+        min_amount: num_bigint::BigUint,
+        undelegate_amount: num_bigint::BigUint, // custodial
+        error: &str,
+    ) {
+        self.blockchain_wrapper
+            .execute_esdt_transfer(sender, &self.salsa_wrapper, TOKEN_ID, 0, &amount, |sc| {
+                sc.undelegate_now(to_managed_biguint(min_amount), OptionalValue::Some(to_managed_biguint(undelegate_amount)))
+            })
+            .assert_user_error(error);
+    }
+
     pub fn undelegate_all_test(
         &mut self,
         sender: &Address,
