@@ -454,31 +454,6 @@ pub trait SalsaContract<ContractReader>:
         self.add_undelegation(amount, unbond_epoch, self.ltotal_user_undelegations());
     }
 
-    // endpoints: admin
-
-    #[only_owner]
-    #[endpoint(distributeProfit)]
-    fn burn_ls_profit(&self) {
-        require!(!self.is_state_active(), ERROR_ACTIVE);
-
-        let egld_profit = self.egld_profit().get();
-        if egld_profit > 0 {
-            self.egld_reserve()
-                .update(|value| *value += &egld_profit);
-            self.available_egld_reserve()
-                .update(|value| *value += &egld_profit);
-            self.egld_profit().clear();
-        }
-
-        let ls_profit = self.liquid_profit().get();
-        if ls_profit > 0 {
-            self.liquid_token_supply()
-                .update(|value| *value -= &ls_profit);
-            self.burn_liquid_token(&ls_profit);
-            self.liquid_profit().clear();
-        }
-    }
-
     // endpoints: knights
 
     #[endpoint(unDelegateKnight)]
