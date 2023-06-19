@@ -102,13 +102,6 @@
             "outputs": []
         },
         {
-            "name": "distributeProfit",
-            "onlyOwner": true,
-            "mutability": "mutable",
-            "inputs": [],
-            "outputs": []
-        },
-        {
             "name": "unDelegateKnight",
             "mutability": "mutable",
             "inputs": [
@@ -528,38 +521,6 @@
                     "type": "BigUint"
                 }
             ]
-        },
-        {
-            "name": "getLiquidProfit",
-            "mutability": "readonly",
-            "inputs": [],
-            "outputs": [
-                {
-                    "type": "BigUint"
-                }
-            ]
-        },
-        {
-            "name": "getEgldProfit",
-            "mutability": "readonly",
-            "inputs": [],
-            "outputs": [
-                {
-                    "type": "BigUint"
-                }
-            ]
-        },
-        {
-            "name": "setWegldId",
-            "onlyOwner": true,
-            "mutability": "mutable",
-            "inputs": [
-                {
-                    "name": "wegld_id",
-                    "type": "TokenIdentifier"
-                }
-            ],
-            "outputs": []
         },
         {
             "name": "setWrapSC",

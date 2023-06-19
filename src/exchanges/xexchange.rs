@@ -18,10 +18,6 @@ pub trait XexchangeModule:
             !self.xexchange_sc().is_empty(),
             ERROR_XEXCHANGE_SC,
         );
-        require!(
-            !self.wrap_sc().is_empty(),
-            ERROR_WRAP_SC,
-        );
 
         self.xexchange_arbitrage().set(State::Active);
     }
@@ -74,18 +70,6 @@ pub trait XexchangeModule:
             .execute_on_dest_context()
     }
 
-    fn get_xexchange_buy_quantity(&self, egld_amount: BigUint, ls_amount: BigUint) -> BigUint {
-        let (ls_reserve, egld_reserve) = self.get_xexchange_reserves();
-
-        self.get_buy_quantity(egld_amount, ls_amount, egld_reserve, ls_reserve)
-    }
-
-    fn get_xexchange_sell_quantity(&self, ls_amount: BigUint, egld_amount: BigUint) -> BigUint {
-        let (ls_reserve, egld_reserve) = self.get_xexchange_reserves();
-
-        self.get_sell_quantity(ls_amount, egld_amount, ls_reserve, egld_reserve)
-    }
-
     fn do_arbitrage_on_xexchange(
         &self, in_token: &TokenIdentifier, in_amount: &BigUint, out_amount: &BigUint
     ) -> (BigUint, BigUint) {
@@ -94,10 +78,11 @@ pub trait XexchangeModule:
         }
 
         let is_buy = in_token == &self.wegld_id().get();
+        let (ls_reserve, egld_reserve) = self.get_xexchange_reserves();
         let mut amount_to_send_to_xexchange = if is_buy {
-            self.get_xexchange_buy_quantity(in_amount.clone(), out_amount.clone())
+            self.get_buy_quantity(in_amount.clone(), out_amount.clone(), egld_reserve, ls_reserve)
         } else {
-            self.get_xexchange_sell_quantity(in_amount.clone(), out_amount.clone())
+            self.get_sell_quantity(in_amount.clone(), out_amount.clone(), ls_reserve, egld_reserve)
         };
         if amount_to_send_to_xexchange < MIN_EGLD {
             return (BigUint::zero(), BigUint::zero())
@@ -125,7 +110,6 @@ pub trait XexchangeModule:
         let xexchange_sc_address = self.xexchange_sc().get();
         let wegld_token_id = self.wegld_id().get();
         let liquid_token_id = self.liquid_token_id().get_token_id();
-        let (old_egld_balance, old_ls_balance) = self.get_sc_balances();
         let is_buy = in_token == &wegld_token_id;
         if is_buy {
             self.wrap_proxy_obj()
@@ -154,26 +138,6 @@ pub trait XexchangeModule:
                 .unwrap_egld()
                 .with_esdt_transfer(payment)
                 .execute_on_dest_context::<()>();
-        }
-        let (new_egld_balance, new_ls_balance) = self.get_sc_balances();
-        if is_buy {
-            require!(new_ls_balance >= old_ls_balance, ERROR_ARBITRAGE_ISSUE);
-
-            let swapped_amount = &new_ls_balance - &old_ls_balance;
-            require!(&swapped_amount >= out_amount, ERROR_ARBITRAGE_ISSUE);
-
-            let profit = &swapped_amount - out_amount;
-            self.liquid_profit()
-                .update(|value| *value += profit);
-        } else {
-            require!(new_egld_balance >= old_egld_balance, ERROR_ARBITRAGE_ISSUE);
-
-            let swapped_amount = &new_egld_balance - &old_egld_balance;
-            require!(&swapped_amount >= out_amount, ERROR_ARBITRAGE_ISSUE);
-
-            let profit = swapped_amount - out_amount;
-            self.egld_profit()
-                .update(|value| *value += profit);
         }
     }
 

@@ -92,20 +92,6 @@ pub trait OnedexModule:
             .execute_on_dest_context()
     }
 
-    fn get_onedex_buy_quantity(&self, egld_amount: BigUint, ls_amount: BigUint) -> BigUint {
-        let pair_id = self.onedex_pair_id().get();
-        let (ls_reserve, egld_reserve) = self.get_onedex_reserves(pair_id);
-
-        self.get_buy_quantity(egld_amount, ls_amount, egld_reserve, ls_reserve)
-    }
-
-    fn get_onedex_sell_quantity(&self, ls_amount: BigUint, egld_amount: BigUint) -> BigUint {
-        let pair_id = self.onedex_pair_id().get();
-        let (ls_reserve, egld_reserve) = self.get_onedex_reserves(pair_id);
-
-        self.get_sell_quantity(ls_amount, egld_amount, ls_reserve, egld_reserve)
-    }
-
     fn do_arbitrage_on_onedex(
         &self, in_token: &TokenIdentifier, in_amount: &BigUint, out_amount: &BigUint
     ) -> (BigUint, BigUint) {
@@ -114,10 +100,12 @@ pub trait OnedexModule:
         }
 
         let is_buy = in_token == &self.wegld_id().get();
+        let pair_id = self.onedex_pair_id().get();
+        let (ls_reserve, egld_reserve) = self.get_onedex_reserves(pair_id);
         let mut amount_to_send_to_onedex = if is_buy {
-            self.get_onedex_buy_quantity(in_amount.clone(), out_amount.clone())
+            self.get_buy_quantity(in_amount.clone(), out_amount.clone(), egld_reserve, ls_reserve)
         } else {
-            self.get_onedex_sell_quantity(in_amount.clone(), out_amount.clone())
+            self.get_sell_quantity(in_amount.clone(), out_amount.clone(), ls_reserve, egld_reserve)
         };
         if amount_to_send_to_onedex < MIN_EGLD {
             return (BigUint::zero(), BigUint::zero())
@@ -146,7 +134,6 @@ pub trait OnedexModule:
         let wegld_token_id = self.wegld_id().get();
         let liquid_token_id = self.liquid_token_id().get_token_id();
         let mut path: MultiValueEncoded<TokenIdentifier> = MultiValueEncoded::new();
-        let (old_egld_balance, old_ls_balance) = self.get_sc_balances();
         let is_buy = in_token == &wegld_token_id;
         if is_buy {
             path.push(wegld_token_id);
@@ -165,26 +152,6 @@ pub trait OnedexModule:
                 .swap_multi_tokens_fixed_input(out_amount, true, path)
                 .with_esdt_transfer(payment)
                 .execute_on_dest_context::<()>();
-        }
-        let (new_egld_balance, new_ls_balance) = self.get_sc_balances();
-        if is_buy {
-            require!(new_ls_balance >= old_ls_balance, ERROR_ARBITRAGE_ISSUE);
-
-            let swapped_amount = &new_ls_balance - &old_ls_balance;
-            require!(&swapped_amount >= out_amount, ERROR_ARBITRAGE_ISSUE);
-
-            let profit = &swapped_amount - out_amount;
-            self.liquid_profit()
-                .update(|value| *value += profit);
-        } else {
-            require!(new_egld_balance >= old_egld_balance, ERROR_ARBITRAGE_ISSUE);
-
-            let swapped_amount = &new_egld_balance - &old_egld_balance;
-            require!(&swapped_amount >= out_amount, ERROR_ARBITRAGE_ISSUE);
-
-            let profit = swapped_amount - out_amount;
-            self.egld_profit()
-                .update(|value| *value += profit);
         }
     }
 
