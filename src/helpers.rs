@@ -177,9 +177,9 @@ pub trait HelpersModule:
             new_stake_amount.clone()
         };
 
-        require!(ls_amount > 0, ERROR_NOT_ENOUGH_LIQUID_SUPPLY);
-
         if update_storage {
+            require!(ls_amount > 0, ERROR_NOT_ENOUGH_LIQUID_SUPPLY);
+
             self.total_egld_staked()
                 .update(|value| *value += new_stake_amount);
             self.liquid_token_supply()
@@ -196,12 +196,12 @@ pub trait HelpersModule:
             &liquid_token_supply >= ls_amount,
             ERROR_NOT_ENOUGH_LIQUID_SUPPLY
         );
-        require!(ls_amount > &0, ERROR_BAD_PAYMENT_AMOUNT);
 
         let egld_amount = ls_amount * &total_egld_staked / &liquid_token_supply;
-        require!(egld_amount > 0u64, ERROR_BAD_PAYMENT_AMOUNT);
 
         if update_storage {
+            require!(ls_amount > &0 && egld_amount > 0, ERROR_BAD_PAYMENT_AMOUNT);
+
             self.total_egld_staked()
                 .update(|value| *value -= &egld_amount);
             self.liquid_token_supply()

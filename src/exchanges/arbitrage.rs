@@ -53,66 +53,47 @@ pub trait ArbitrageModule:
         }
 
         let (mut sold_amount, mut bought_amount) = (BigUint::zero(), BigUint::zero());
-        let is_buy = in_token == &self.wegld_id().get();
-        let mut out_amount = if is_buy {
-            self.add_liquidity(&in_amount, false)
-        } else {
-            self.remove_liquidity(&in_amount, false)
-        };
-        let mut new_in_amount = in_amount.clone();
-
         let (old_egld_balance, old_ls_balance) = self.get_sc_balances();
 
         if self.is_onedex_arbitrage_active() {
             let (sold, bought) =
-                self.do_arbitrage_on_onedex(in_token, in_amount, &out_amount);
+                self.do_arbitrage_on_onedex(in_token, in_amount);
             sold_amount += &sold;
             bought_amount += &bought;
-            new_in_amount -= sold;
-            out_amount = if new_in_amount > 0 {
-                if is_buy {
-                    self.add_liquidity(&new_in_amount, false)
-                } else {
-                    self.remove_liquidity(&new_in_amount, false)
-                }
-            } else {
-                BigUint::zero()
-            };
         }
-        if self.is_xexchange_arbitrage_active() && new_in_amount > 0 {
+        if self.is_xexchange_arbitrage_active() && in_amount > &sold_amount {
             let (sold, bought) =
-                self.do_arbitrage_on_xexchange(in_token, &new_in_amount, &out_amount);
+                self.do_arbitrage_on_xexchange(in_token, &(in_amount - &sold_amount));
             sold_amount += sold;
             bought_amount += bought;
         }
 
-        let amount_from_salsa = if is_buy {
-            self.add_liquidity(&sold_amount, false)
-        } else {
-            self.remove_liquidity(&sold_amount, false)
-        };
-        require!(amount_from_salsa <= bought_amount, ERROR_ARBITRAGE_ISSUE);
-
         let (new_egld_balance, new_ls_balance) = self.get_sc_balances();
-        if is_buy {
+        if in_token == &self.wegld_id().get() {
             require!(new_ls_balance >= old_ls_balance, ERROR_ARBITRAGE_ISSUE);
 
-            let swapped_amount = &new_ls_balance - &old_ls_balance;
-            require!(swapped_amount >= amount_from_salsa, ERROR_ARBITRAGE_ISSUE);
+            if new_ls_balance > old_ls_balance {
+                let swapped_amount = &new_ls_balance - &old_ls_balance;
+                require!(swapped_amount >= bought_amount, ERROR_ARBITRAGE_ISSUE);
 
-            let profit = swapped_amount - amount_from_salsa;
-            self.burn_liquid_token(&profit);
+                let profit = swapped_amount - bought_amount.clone();
+                if profit > 0 {
+                    self.burn_liquid_token(&profit);
+                }
+            }
         } else {
             require!(new_egld_balance >= old_egld_balance, ERROR_ARBITRAGE_ISSUE);
 
-            let swapped_amount = &new_egld_balance - &old_egld_balance;
-            require!(swapped_amount >= amount_from_salsa, ERROR_ARBITRAGE_ISSUE);
+            if new_egld_balance > old_egld_balance {
+                let swapped_amount = &new_egld_balance - &old_egld_balance;
+                require!(swapped_amount >= bought_amount, ERROR_ARBITRAGE_ISSUE);
 
-            let profit = swapped_amount - amount_from_salsa;
-            self.egld_reserve()
-                .update(|value| *value += profit.clone());
-            self.available_egld_reserve()
-                .update(|value| *value += profit);
+                let profit = swapped_amount - bought_amount.clone();
+                self.egld_reserve()
+                    .update(|value| *value += profit.clone());
+                self.available_egld_reserve()
+                    .update(|value| *value += profit);
+            }
         }
 
         (sold_amount, bought_amount)
