@@ -93,13 +93,18 @@ pub trait OnedexModule:
     }
 
     fn do_arbitrage_on_onedex(
-        &self, in_token: &TokenIdentifier, in_amount: &BigUint, out_amount: &BigUint
+        &self, in_token: &TokenIdentifier, in_amount: &BigUint
     ) -> (BigUint, BigUint) {
         if !self.is_onedex_arbitrage_active() {
             return (BigUint::zero(), BigUint::zero())
         }
 
         let is_buy = in_token == &self.wegld_id().get();
+        let out_amount = if is_buy {
+            self.add_liquidity(&in_amount, false)
+        } else {
+            self.remove_liquidity(&in_amount, false)
+        };
         let pair_id = self.onedex_pair_id().get();
         let (ls_reserve, egld_reserve) = self.get_onedex_reserves(pair_id);
         let mut amount_to_send_to_onedex = if is_buy {
@@ -134,8 +139,7 @@ pub trait OnedexModule:
         let wegld_token_id = self.wegld_id().get();
         let liquid_token_id = self.liquid_token_id().get_token_id();
         let mut path: MultiValueEncoded<TokenIdentifier> = MultiValueEncoded::new();
-        let is_buy = in_token == &wegld_token_id;
-        if is_buy {
+        if in_token == &wegld_token_id {
             path.push(wegld_token_id);
             path.push(liquid_token_id);
             self.onedex_proxy_obj()

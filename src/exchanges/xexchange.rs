@@ -71,13 +71,18 @@ pub trait XexchangeModule:
     }
 
     fn do_arbitrage_on_xexchange(
-        &self, in_token: &TokenIdentifier, in_amount: &BigUint, out_amount: &BigUint
+        &self, in_token: &TokenIdentifier, in_amount: &BigUint
     ) -> (BigUint, BigUint) {
         if !self.is_xexchange_arbitrage_active() {
             return (BigUint::zero(), BigUint::zero())
         }
 
         let is_buy = in_token == &self.wegld_id().get();
+        let out_amount = if is_buy {
+            self.add_liquidity(&in_amount, false)
+        } else {
+            self.remove_liquidity(&in_amount, false)
+        };
         let (ls_reserve, egld_reserve) = self.get_xexchange_reserves();
         let mut amount_to_send_to_xexchange = if is_buy {
             self.get_buy_quantity(in_amount.clone(), out_amount.clone(), egld_reserve, ls_reserve)
@@ -110,8 +115,7 @@ pub trait XexchangeModule:
         let xexchange_sc_address = self.xexchange_sc().get();
         let wegld_token_id = self.wegld_id().get();
         let liquid_token_id = self.liquid_token_id().get_token_id();
-        let is_buy = in_token == &wegld_token_id;
-        if is_buy {
+        if in_token == &wegld_token_id {
             self.wrap_proxy_obj()
                 .contract(self.wrap_sc().get())
                 .wrap_egld()
