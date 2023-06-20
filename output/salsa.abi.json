@@ -63,6 +63,26 @@
             "outputs": []
         },
         {
+            "name": "addToCustody",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "removeFromCustody",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "amount",
+                    "type": "BigUint"
+                }
+            ],
+            "outputs": []
+        },
+        {
             "name": "addReserve",
             "mutability": "mutable",
             "payableInTokens": [
