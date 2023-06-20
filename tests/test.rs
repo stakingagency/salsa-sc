@@ -389,7 +389,7 @@ fn knight_test() {
     sc_setup.set_knight_test(&delegator, &knight1);
     sc_setup.undelegate_now_fail_test(
         &delegator, rust_biguint!(0), exp(1, 18), exp(98, 16),
-        "When you set a knight, unDelegateNow is disabled"
+        "When you set a knight, unDelegateNow and removeFromCustody are disabled"
     );
     sc_setup.confirm_knight_test(&knight1, &delegator);
     sc_setup.activate_knight_test(&delegator);
