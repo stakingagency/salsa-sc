@@ -66,6 +66,8 @@ pub trait SalsaContract<ContractReader>:
         if bought_amount > 0 {
             if custodial {
                 self.user_delegation(caller.clone())
+                    .update(|value| *value += &bought_amount);
+                self.legld_in_custody()
                     .update(|value| *value += bought_amount);
             } else {
                 self.send().direct_esdt(
@@ -112,6 +114,8 @@ pub trait SalsaContract<ContractReader>:
                 let user_payment = self.mint_liquid_token(liquid_tokens);
                 if custodial {
                     self.user_delegation(caller)
+                        .update(|value| *value += &user_payment.amount);
+                    self.legld_in_custody()
                         .update(|value| *value += user_payment.amount);
                 } else {
                     self.send().direct_esdt(
@@ -163,6 +167,8 @@ pub trait SalsaContract<ContractReader>:
             );
 
             self.user_delegation(caller.clone()).set(&delegated_funds - &undelegate_amount);
+            self.legld_in_custody()
+                .update(|value| *value -= &undelegate_amount);
         }
         let (payment_token, mut payment_amount) = self.call_value().egld_or_single_fungible_esdt();
         let liquid_token_id = self.liquid_token_id().get_token_id();
@@ -254,7 +260,9 @@ pub trait SalsaContract<ContractReader>:
 
         let caller = self.blockchain().get_caller();
         self.user_delegation(caller)
-            .update(|value| *value += payment_amount)
+            .update(|value| *value += &payment_amount);
+        self.legld_in_custody()
+            .update(|value| *value += payment_amount);
     }
 
     #[endpoint(removeFromCustody)]
@@ -277,8 +285,8 @@ pub trait SalsaContract<ContractReader>:
             0,
             &amount,
         );
-        self.user_delegation(caller)
-            .update(|value| *value -= delegation);
+        self.user_delegation(caller).set(&delegation - &amount);
+        self.legld_in_custody().update(|value| *value -= amount);
     }
 
     // endpoints: reserves
@@ -415,6 +423,8 @@ pub trait SalsaContract<ContractReader>:
             );
 
             self.user_delegation(caller.clone()).set(&delegated_funds - &undelegate_amount);
+            self.legld_in_custody()
+                .update(|value| *value -= &undelegate_amount);
         }
 
         let (payment_token, mut payment_amount) = self.call_value().egld_or_single_fungible_esdt();

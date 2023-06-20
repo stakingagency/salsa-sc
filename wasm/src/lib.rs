@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           71
+// Endpoints:                           72
 // Async Callback:                       1
-// Total number of exported functions:  73
+// Total number of exported functions:  74
 
 #![no_std]
 #![feature(lang_items)]
@@ -61,6 +61,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         getUserReserve
         getTokenPrice
         setWrapSC
+        getLegldInCustody
         getUserDelegation
         getUserKnight
         getUserHeir
