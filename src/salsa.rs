@@ -26,7 +26,7 @@ pub trait SalsaContract<ContractReader>:
 {
     #[init]
     fn init(&self) {
-        // self.state().set(State::Inactive);
+        self.state().set(State::Inactive);
     }
 
     // endpoints: liquid delegation
@@ -238,6 +238,47 @@ pub trait SalsaContract<ContractReader>:
         self.user_withdrawn_egld()
             .set(total_user_withdrawn_egld);
         self.send().direct_egld(&receiver, &withdraw_amount);
+    }
+
+    // endpoints: custody
+
+    #[payable("*")]
+    #[endpoint(addToCustody)]
+    fn add_to_custody(&self) {
+        self.update_last_accessed();
+        require!(self.is_state_active(), ERROR_NOT_ACTIVE);
+
+        let (payment_token, payment_amount) = self.call_value().egld_or_single_fungible_esdt();
+        let liquid_token_id = self.liquid_token_id().get_token_id();
+        require!(payment_token == liquid_token_id, ERROR_BAD_PAYMENT_TOKEN);
+
+        let caller = self.blockchain().get_caller();
+        self.user_delegation(caller)
+            .update(|value| *value += payment_amount)
+    }
+
+    #[endpoint(removeFromCustody)]
+    fn remove_from_custody(&self, amount: BigUint) {
+        self.update_last_accessed();
+        require!(self.is_state_active(), ERROR_NOT_ACTIVE);
+
+        self.check_knight_set();
+
+        let caller = self.blockchain().get_caller();
+        let delegation = self.user_delegation(caller.clone()).get();
+        require!(amount <= delegation, ERROR_INSUFFICIENT_FUNDS);
+        require!(&delegation - &amount >= MIN_EGLD || delegation == amount, ERROR_DUST_REMAINING);
+        require!(delegation > amount || self.user_heir(caller.clone()).is_empty(), ERROR_HEIR_SET);
+
+        let liquid_token_id = self.liquid_token_id().get_token_id();
+        self.send().direct_esdt(
+            &caller,
+            &liquid_token_id,
+            0,
+            &amount,
+        );
+        self.user_delegation(caller)
+            .update(|value| *value -= delegation);
     }
 
     // endpoints: reserves

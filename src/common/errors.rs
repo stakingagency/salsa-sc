@@ -28,7 +28,7 @@ pub static ERROR_XEXCHANGE_SC: &[u8] = b"xExchange SC address not set";
 pub static ERROR_WRAP_SC: &[u8] = b"Wrap SC address not set";
 
 pub static ERROR_KNIGHT_ALREADY_SET: &[u8] = b"Knight already set";
-pub static ERROR_KNIGHT_SET: &[u8] = b"When you set a knight, unDelegateNow is disabled";
+pub static ERROR_KNIGHT_SET: &[u8] = b"When you set a knight, unDelegateNow and removeFromCustody are disabled";
 pub static ERROR_KNIGHT_NOT_SET: &[u8] = b"Knight not set";
 pub static ERROR_KNIGHT_NOT_CONFIRMED: &[u8] = b"Knight not confirmed";
 pub static ERROR_KNIGHT_ACTIVE: &[u8] = b"Knight is active";
@@ -42,3 +42,4 @@ pub static ERROR_NOT_HEIR_OF_USER: &[u8] = b"You are not the heir of this user";
 pub static ERROR_HEIR_NOT_YET_ENTITLED: &[u8] = b"You are not yet entitled for inheritance";
 pub static ERROR_LOW_INHERITANCE_EPOCHS: &[u8] = b"Inheritance should be after at least one year";
 pub static ERROR_INHERIT_YOURSELF: &[u8] = b"You can't be your own heir";
+pub static ERROR_HEIR_SET: &[u8] = b"When you set a heir, you cannot remove all from custody";
