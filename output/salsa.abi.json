@@ -555,6 +555,16 @@
             "outputs": []
         },
         {
+            "name": "getLegldInCustody",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
             "name": "getUserDelegation",
             "mutability": "readonly",
             "inputs": [

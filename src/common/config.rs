@@ -282,6 +282,10 @@ pub trait ConfigModule:
 
     // custodial liquid staking
 
+    #[view(getLegldInCustody)]
+    #[storage_mapper("legld_in_custody")]
+    fn legld_in_custody(&self) -> SingleValueMapper<BigUint>;
+
     #[view(getUserDelegation)]
     #[storage_mapper("user_delegation")]
     fn user_delegation(&self, user: ManagedAddress) -> SingleValueMapper<BigUint>;
