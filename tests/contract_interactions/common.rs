@@ -274,4 +274,24 @@ where
                 }
             ).assert_ok();
     }
+
+    pub fn check_custodial_delegation(&mut self, user: ManagedAddress<DebugApi>, amount: num_bigint::BigUint) {
+        self.blockchain_wrapper
+            .execute_query(
+                &self.salsa_wrapper, |sc| {
+                    let delegation = sc.user_delegation(user).get();
+                    assert_eq!(delegation == to_managed_biguint(amount), true);
+                }
+            ).assert_ok();
+    }
+
+    pub fn check_total_custodial_delegation(&mut self, amount: num_bigint::BigUint) {
+        self.blockchain_wrapper
+            .execute_query(
+                &self.salsa_wrapper, |sc| {
+                    let delegation = sc.legld_in_custody().get();
+                    assert_eq!(delegation == to_managed_biguint(amount), true);
+                }
+            ).assert_ok();
+    }
 }
