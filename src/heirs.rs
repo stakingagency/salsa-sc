@@ -1,7 +1,7 @@
 multiversx_sc::imports!();
 
 use crate::{common::errors::*, common::consts::MIN_INHERITANCE_EPOCHS};
-use crate::common::config::{Heir};
+use crate::common::config::Heir;
 
 #[multiversx_sc::module]
 pub trait HeirsModule:

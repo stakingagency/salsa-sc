@@ -493,6 +493,36 @@ fn entitled_heir_test() {
     sc_setup.blockchain_wrapper.check_egld_balance(&heir, &exp(3, 18));
 }
 
+#[test]
+fn custodial_delegation_test() {
+    let _ = DebugApi::dummy();
+
+    let mut sc_setup = SalsaContractSetup::new(salsa::contract_obj);
+    let delegator = sc_setup.setup_new_user(10u64);
+    let knight = sc_setup.setup_new_user(0u64);
+    let heir = sc_setup.setup_new_user(0u64);
+    sc_setup.blockchain_wrapper.set_esdt_balance(&delegator, TOKEN_ID, &exp(10, 18));
+
+    sc_setup.delegate_test(&delegator, exp(1, 18), true);
+    sc_setup.add_to_custody_test(&delegator, exp(4, 18));
+
+    sc_setup.set_knight_test(&delegator, &knight);
+    sc_setup.remove_from_custody_fail_test(&delegator, exp(3, 18),
+        "When you set a knight, unDelegateNow and removeFromCustody are disabled");
+    sc_setup.cancel_knight_test(&delegator);
+    sc_setup.remove_from_custody_fail_test(&delegator, exp(45, 17),
+        "Can't leave dust");
+    sc_setup.set_heir_test(&delegator, &heir, 365);
+    sc_setup.remove_from_custody_fail_test(&delegator, exp(5, 18),
+        "When you set a heir, you cannot remove all from custody");
+    sc_setup.remove_from_custody_test(&delegator, exp(3, 18));
+
+    sc_setup.check_custodial_delegation(managed_address!(&delegator), exp(2, 18));
+    sc_setup.check_total_custodial_delegation(exp(2, 18));
+    sc_setup.blockchain_wrapper.check_egld_balance(&delegator, &exp(9, 18));
+    sc_setup.blockchain_wrapper.check_esdt_balance(&delegator, TOKEN_ID, &exp(9, 18));
+}
+
 pub fn exp(value: u64, e: u32) -> num_bigint::BigUint {
     value.mul(rust_biguint!(10).pow(e))
 }

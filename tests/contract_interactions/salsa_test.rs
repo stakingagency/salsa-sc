@@ -63,6 +63,45 @@ where
             .assert_user_error(error);
     }
 
+    pub fn add_to_custody_test(
+        &mut self,
+        sender: &Address,
+        amount: num_bigint::BigUint,
+    ) {
+        self.blockchain_wrapper
+            .execute_esdt_transfer(sender, &self.salsa_wrapper, TOKEN_ID, 0, &amount, |sc| {
+                sc.add_to_custody()
+            })
+            .assert_ok();
+    }
+
+    pub fn remove_from_custody_test(
+        &mut self,
+        sender: &Address,
+        amount: num_bigint::BigUint,
+    ) {
+        let big_zero = rust_biguint!(0);
+        self.blockchain_wrapper
+            .execute_esdt_transfer(sender, &self.salsa_wrapper, TOKEN_ID, 0, &big_zero, |sc| {
+                sc.remove_from_custody(to_managed_biguint(amount))
+            })
+            .assert_ok();
+    }
+
+    pub fn remove_from_custody_fail_test(
+        &mut self,
+        sender: &Address,
+        amount: num_bigint::BigUint,
+        error: &str,
+    ) {
+        let big_zero = rust_biguint!(0);
+        self.blockchain_wrapper
+            .execute_esdt_transfer(sender, &self.salsa_wrapper, TOKEN_ID, 0, &big_zero, |sc| {
+                sc.remove_from_custody(to_managed_biguint(amount))
+            })
+            .assert_user_error(error);
+    }
+
     pub fn withdraw_test(
         &mut self,
         sender: &Address,
