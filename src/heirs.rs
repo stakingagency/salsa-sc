@@ -31,11 +31,12 @@ pub trait HeirsModule:
 
         let current_epoch = self.blockchain().get_block_epoch();
         let new_heir = Heir{
-            address: heir,
+            address: heir.clone(),
             inheritance_epochs,
             last_accessed_epoch: current_epoch,
         };
-        self.user_heir(caller).set(new_heir);
+        self.user_heir(caller.clone()).set(new_heir);
+        self.heir_users(heir).insert(caller);
     }
 
     #[endpoint(removeHeir)]
@@ -46,7 +47,9 @@ pub trait HeirsModule:
             ERROR_NO_HEIR,
         );
 
-        self.user_heir(caller).clear();
+        let heir = self.user_heir(caller.clone()).get();
+        self.user_heir(caller.clone()).clear();
+        self.heir_users(heir.address).swap_remove(&caller);
     }
 
     fn user_has_heir(&self, user: ManagedAddress) -> bool {

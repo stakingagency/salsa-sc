@@ -294,9 +294,17 @@ pub trait ConfigModule:
     #[storage_mapper("user_knight")]
     fn user_knight(&self, user: ManagedAddress) -> SingleValueMapper<Knight<Self::Api>>;
 
+    #[view(getKnightUsers)]
+    #[storage_mapper("knight_users")]
+    fn knight_users(&self, knight: ManagedAddress) -> UnorderedSetMapper<ManagedAddress>;
+
     #[view(getUserHeir)]
     #[storage_mapper("user_heir")]
     fn user_heir(&self, user: ManagedAddress) -> SingleValueMapper<Heir<Self::Api>>;
+
+    #[view(getHeirUsers)]
+    #[storage_mapper("heir_users")]
+    fn heir_users(&self, heir: ManagedAddress) -> UnorderedSetMapper<ManagedAddress>;
 
     #[view(getUserInfo)]
     fn get_user_info(&self, user: ManagedAddress) -> UserInfo<Self::Api> {

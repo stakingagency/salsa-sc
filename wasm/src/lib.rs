@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           72
+// Endpoints:                           74
 // Async Callback:                       1
-// Total number of exported functions:  74
+// Total number of exported functions:  76
 
 #![no_std]
 #![feature(lang_items)]
@@ -64,7 +64,9 @@ multiversx_sc_wasm_adapter::endpoints! {
         getLegldInCustody
         getUserDelegation
         getUserKnight
+        getKnightUsers
         getUserHeir
+        getHeirUsers
         getUserInfo
         unDelegateAll
         compound

@@ -595,6 +595,22 @@
             ]
         },
         {
+            "name": "getKnightUsers",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "knight",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "variadic<Address>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
             "name": "getUserHeir",
             "mutability": "readonly",
             "inputs": [
@@ -606,6 +622,22 @@
             "outputs": [
                 {
                     "type": "Heir"
+                }
+            ]
+        },
+        {
+            "name": "getHeirUsers",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "heir",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "variadic<Address>",
+                    "multi_result": true
                 }
             ]
         },
