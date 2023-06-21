@@ -73,6 +73,8 @@ pub trait XexchangeModule:
     fn do_arbitrage_on_xexchange(
         &self, in_token: &TokenIdentifier, in_amount: &BigUint
     ) -> (BigUint, BigUint) {
+        // Comment
+        // No need for the extra check
         if !self.is_xexchange_arbitrage_active() {
             return (BigUint::zero(), BigUint::zero())
         }
@@ -89,6 +91,9 @@ pub trait XexchangeModule:
         } else {
             self.get_sell_quantity(in_amount.clone(), out_amount.clone(), ls_reserve, egld_reserve)
         };
+
+        // Comment
+        // Like in the OneDex arbitrage function, you can have this checks and updates in the get_buy_quantity function directly
         if amount_to_send_to_xexchange < MIN_EGLD {
             return (BigUint::zero(), BigUint::zero())
         }

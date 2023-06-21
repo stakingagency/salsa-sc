@@ -286,26 +286,42 @@ pub trait ConfigModule:
     #[storage_mapper("legld_in_custody")]
     fn legld_in_custody(&self) -> SingleValueMapper<BigUint>;
 
+    // Comment
+    // I'd use references as keys, so you don't need to clone the value each time
+    // eg. fn user_delegation(&self, user: &ManagedAddress) -> SingleValueMapper<BigUint>;
+    // this applies to all storage mappers that have complex types (no need for simple types like u64)
+    // Also, I'd rename this to user_custodial_delegation, it is better understandable
     #[view(getUserDelegation)]
     #[storage_mapper("user_delegation")]
     fn user_delegation(&self, user: ManagedAddress) -> SingleValueMapper<BigUint>;
 
+    // Comment
+    // Use reference key
     #[view(getUserKnight)]
     #[storage_mapper("user_knight")]
     fn user_knight(&self, user: ManagedAddress) -> SingleValueMapper<Knight<Self::Api>>;
 
+    // Comment
+    // Use reference key
     #[view(getKnightUsers)]
     #[storage_mapper("knight_users")]
     fn knight_users(&self, knight: ManagedAddress) -> UnorderedSetMapper<ManagedAddress>;
 
+    // Comment
+    // Use reference key
     #[view(getUserHeir)]
     #[storage_mapper("user_heir")]
     fn user_heir(&self, user: ManagedAddress) -> SingleValueMapper<Heir<Self::Api>>;
 
+    // Comment
+    // Use reference key
     #[view(getHeirUsers)]
     #[storage_mapper("heir_users")]
     fn heir_users(&self, heir: ManagedAddress) -> UnorderedSetMapper<ManagedAddress>;
 
+    // Comment
+    // You can use ManagedAddress::default() for empty addresses
+    // If you use references as keys for storage mappers, there's no need for cloning the values each time
     #[view(getUserInfo)]
     fn get_user_info(&self, user: ManagedAddress) -> UserInfo<Self::Api> {
         let user_knight = self.user_knight(user.clone());

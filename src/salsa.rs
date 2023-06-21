@@ -52,6 +52,10 @@ pub trait SalsaContract<ContractReader>:
             OptionalValue::None => false
         };
 
+        // Comment
+        // This may not work as intended if the caller is in a different shard
+        // https://docs.multiversx.com/developers/developer-reference/sc-api-functions/#direct
+
         // check if caller is non-payable sc
         let caller = self.blockchain().get_caller();
         if self.blockchain().is_smart_contract(&caller) && !custodial {
@@ -160,6 +164,9 @@ pub trait SalsaContract<ContractReader>:
         undelegate_amount: BigUint,
     ) {
         if undelegate_amount > 0 {
+            // Comment
+            // Save self.user_delegation(&caller) in a variable
+            // Or better still, do the check and set in an update function
             let delegated_funds = self.user_delegation(caller.clone()).get();
             require!(
                 delegated_funds >= undelegate_amount,
@@ -170,6 +177,10 @@ pub trait SalsaContract<ContractReader>:
             self.legld_in_custody()
                 .update(|value| *value -= &undelegate_amount);
         }
+
+        // Comment
+        // I'd move this part at the beginning of the function, before the if statement
+        // Is more clear to have the checks (2 in our case) at the beginning of the function
         let (payment_token, mut payment_amount) = self.call_value().egld_or_single_fungible_esdt();
         let liquid_token_id = self.liquid_token_id().get_token_id();
         if payment_amount > 0 {
@@ -217,6 +228,9 @@ pub trait SalsaContract<ContractReader>:
         self.do_withdraw(user.clone(), user);
     }
 
+    // Comment
+    // Send the ManagedAddresses as references, it will remove a lot of cloning
+    // It will also be cleaner if you update the storage mappers with reference variables keys
     fn do_withdraw(
         &self,
         user: ManagedAddress,
@@ -556,6 +570,10 @@ pub trait SalsaContract<ContractReader>:
         self.check_knight(user.clone());
 
         let knight = self.blockchain().get_caller();
+
+        // Comment
+        // Why does the knight receive the amount, instead of the actual user?
+        // I understand why the heir receives the tokens, but not sure about the knight though
         self.do_remove_reserve(user, knight, amount);
     }
 

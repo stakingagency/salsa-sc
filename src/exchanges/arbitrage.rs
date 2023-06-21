@@ -68,7 +68,16 @@ pub trait ArbitrageModule:
             bought_amount += bought;
         }
 
+        //Comment
+        // I'd put an extra check here, just to be sure
+        // in_token - sold_amount == 0 OR > MIN_EGLD
+
         let (new_egld_balance, new_ls_balance) = self.get_sc_balances();
+        
+        // Comment
+        // This is the is_buy from the dedicated arbitrage functions
+        // Maybe save this as a variable at the beginning, send that variable as a parameter for the arbitrage functions
+        // And then use the is_buy variable here directly
         if in_token == &self.wegld_id().get() {
             require!(new_ls_balance >= old_ls_balance, ERROR_ARBITRAGE_ISSUE);
 
@@ -76,8 +85,15 @@ pub trait ArbitrageModule:
                 let swapped_amount = &new_ls_balance - &old_ls_balance;
                 require!(swapped_amount >= bought_amount, ERROR_ARBITRAGE_ISSUE);
 
+                // Comment
+                // You can do substract operations between references, so there is no need for clone
+                // let profit = &swapped_amount - &bought_amount;
                 let profit = swapped_amount - bought_amount.clone();
                 if profit > 0 {
+                    // Comment
+                    // Shouldn't we update liquid_token_supply as well?
+                    // No matter if it comes from OneDex or from xExchange arbitrage, the ls_token was minted from this contract
+                    // And by burning it, we actually remove it from existance, so there is actually less total supply
                     self.burn_liquid_token(&profit);
                 }
             }

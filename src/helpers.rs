@@ -167,6 +167,14 @@ pub trait HelpersModule:
     fn add_liquidity(&self, new_stake_amount: &BigUint, update_storage: bool) -> BigUint {
         let total_egld_staked = self.total_egld_staked().get();
         let liquid_token_supply = self.liquid_token_supply().get();
+
+        // Comment
+        // Maybe implement the following algorithm like so, to make the code more clean
+        // let mut ls_amount = new_stake_amount + &total_egld_staked;
+        // if liquid_token_supply > 0 && total_egld_staked > 0 {
+        //     ls_amount = new_stake_amount * &liquid_token_supply / &total_egld_staked
+        // };
+
         let ls_amount = if total_egld_staked > 0 {
             if liquid_token_supply == 0 {
                 new_stake_amount + &total_egld_staked

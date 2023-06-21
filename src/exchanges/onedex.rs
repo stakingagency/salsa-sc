@@ -74,6 +74,8 @@ pub trait OnedexModule:
     }
 
     fn get_onedex_amount_out(&self, in_token: &TokenIdentifier, in_amount: &BigUint) -> BigUint {
+        // Comment
+        // Condition repeats itself, as this function is not called from any other place but do_arbitrage_on_onedex
         if !self.is_onedex_arbitrage_active() {
             return BigUint::zero();
         }
@@ -95,11 +97,17 @@ pub trait OnedexModule:
     fn do_arbitrage_on_onedex(
         &self, in_token: &TokenIdentifier, in_amount: &BigUint
     ) -> (BigUint, BigUint) {
+        // Comment
+        // No need for this condition, as it is already checked before calling the function
         if !self.is_onedex_arbitrage_active() {
             return (BigUint::zero(), BigUint::zero())
         }
 
         let is_buy = in_token == &self.wegld_id().get();
+
+        // Comment
+        // I would put this lines of code in a different function, as the sequence is used twice here and twice in xexchange arbitrage
+        // Generic function which receive the following parameters: is_buy, in_amount
         let out_amount = if is_buy {
             self.add_liquidity(&in_amount, false)
         } else {
@@ -116,11 +124,18 @@ pub trait OnedexModule:
             return (BigUint::zero(), BigUint::zero())
         }
 
+        // Comment
+        // I would suggest moving this part to the get_buy_quantity as we already have all the needed info there
+        // This way we simplify the code a bit more, as it is already quite long and complex
+        // In other words, the amount_to_send_to_onedex returned from get_buy_quantity will already have covered this check
         let rest = in_amount - &amount_to_send_to_onedex;
         if rest < MIN_EGLD && rest > 0 {
             amount_to_send_to_onedex = in_amount - MIN_EGLD;
         }
         let amount_from_onedex = self.get_onedex_amount_out(in_token, &amount_to_send_to_onedex);
+
+        // Comment
+        // Again here, use the new generic function
         let amount_from_salsa = if is_buy {
             self.add_liquidity(&amount_to_send_to_onedex, false)
         } else {
