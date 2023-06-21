@@ -1,5 +1,6 @@
 multiversx_sc::imports!();
 
+use crate::common::consts::MAX_HEIR_USERS;
 use crate::{common::errors::*, common::consts::MIN_INHERITANCE_EPOCHS};
 use crate::common::config::Heir;
 
@@ -36,7 +37,11 @@ pub trait HeirsModule:
             last_accessed_epoch: current_epoch,
         };
         self.user_heir(caller.clone()).set(new_heir);
-        self.heir_users(heir).insert(caller);
+
+        let mut heir_users = self.heir_users(heir);
+        require!(heir_users.len() < MAX_HEIR_USERS, ERROR_TOO_MANY_HEIR_USERS);
+
+        heir_users.insert(caller);
     }
 
     #[endpoint(removeHeir)]

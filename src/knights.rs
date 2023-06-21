@@ -1,5 +1,6 @@
 multiversx_sc::imports!();
 
+use crate::common::consts::MAX_KNIGHT_USERS;
 use crate::{common::errors::*};
 use crate::common::config::{Knight, KnightState};
 
@@ -25,7 +26,10 @@ pub trait KnightsModule:
             state: KnightState::PendingConfirmation,
         };
         self.user_knight(caller.clone()).set(new_knight);
-        self.knight_users(knight).insert(caller);
+        let mut knight_users = self.knight_users(knight);
+        require!(knight_users.len() < MAX_KNIGHT_USERS, ERROR_TOO_MANY_KNIGHT_USERS);
+
+        knight_users.insert(caller);
     }
 
     #[endpoint(cancelKnight)]

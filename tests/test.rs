@@ -7,6 +7,7 @@ use contract_setup::*;
 use multiversx_sc_scenario::{
     DebugApi
 };
+use salsa::common::consts::{MAX_HEIR_USERS, MAX_KNIGHT_USERS};
 
 use std::ops::Mul;
 
@@ -441,6 +442,42 @@ fn active_knigth_test() {
     // checks
     sc_setup.blockchain_wrapper.check_egld_balance(&delegator, &exp(7, 18));
     sc_setup.blockchain_wrapper.check_egld_balance(&knight, &exp(3, 18));
+}
+
+#[test]
+fn too_many_knight_users_test() {
+    let _ = DebugApi::dummy();
+
+    let mut sc_setup = SalsaContractSetup::new(salsa::contract_obj);
+    let knight = sc_setup.setup_new_user(0u64);
+    let user11 = sc_setup.setup_new_user(1u64);
+
+    for _ in 0..MAX_KNIGHT_USERS {
+        let user = sc_setup.setup_new_user(1u64);
+        sc_setup.delegate_test(&user, exp(1, 18), true);
+        sc_setup.set_knight_test(&user, &knight);
+    }
+
+    sc_setup.delegate_test(&user11, exp(1, 18), true);
+    sc_setup.set_knight_fail_test(&user11, &knight, "Knight has too many users");
+}
+
+#[test]
+fn too_many_heir_users_test() {
+    let _ = DebugApi::dummy();
+
+    let mut sc_setup = SalsaContractSetup::new(salsa::contract_obj);
+    let heir = sc_setup.setup_new_user(0u64);
+    let user11 = sc_setup.setup_new_user(1u64);
+
+    for _ in 0..MAX_HEIR_USERS {
+        let user = sc_setup.setup_new_user(1u64);
+        sc_setup.delegate_test(&user, exp(1, 18), true);
+        sc_setup.set_heir_test(&user, &heir, 365);
+        }
+
+    sc_setup.delegate_test(&user11, exp(1, 18), true);
+    sc_setup.set_heir_fail_test(&user11, &heir, 365, "Heir has too many users");
 }
 
 #[test]

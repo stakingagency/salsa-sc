@@ -31,6 +31,21 @@ where
             .assert_ok();
     }
 
+    pub fn set_heir_fail_test(
+        &mut self,
+        sender: &Address,
+        heir: &Address,
+        inheritance_epochs: u64,
+        error: &str,
+    ) {
+        let big_zero = rust_biguint!(0);
+        self.blockchain_wrapper
+            .execute_tx(sender, &self.salsa_wrapper, &big_zero, |sc| {
+                sc.set_heir(managed_address!(heir), inheritance_epochs)
+            })
+            .assert_user_error(error);
+    }
+
     pub fn remove_heir_test(
         &mut self,
         sender: &Address,
