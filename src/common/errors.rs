@@ -36,6 +36,7 @@ pub static ERROR_KNIGHT_NOT_ACTIVE: &[u8] = b"Knight not active";
 pub static ERROR_NOT_KNIGHT_OF_USER: &[u8] = b"You are not a knight of this user";
 pub static ERROR_KNIGHT_YOURSELF: &[u8] = b"You can't be your own knight";
 pub static ERROR_KNIGHT_NOT_PENDING: &[u8] = b"Knight can only be canceled or confirmed while pending confirmation";
+pub static ERROR_TOO_MANY_KNIGHT_USERS: &[u8] = b"Knight has too many users";
 
 pub static ERROR_NO_HEIR: &[u8] = b"User has no heir";
 pub static ERROR_NOT_HEIR_OF_USER: &[u8] = b"You are not the heir of this user";
@@ -43,3 +44,4 @@ pub static ERROR_HEIR_NOT_YET_ENTITLED: &[u8] = b"You are not yet entitled for i
 pub static ERROR_LOW_INHERITANCE_EPOCHS: &[u8] = b"Inheritance should be after at least one year";
 pub static ERROR_INHERIT_YOURSELF: &[u8] = b"You can't be your own heir";
 pub static ERROR_HEIR_SET: &[u8] = b"When you set a heir, you cannot remove all from custody";
+pub static ERROR_TOO_MANY_HEIR_USERS: &[u8] = b"Heir has too many users";

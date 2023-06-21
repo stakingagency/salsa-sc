@@ -5,3 +5,5 @@ pub const MAX_PERCENT: u64 = 10_000;
 pub const MAX_UNBOND_PERIOD: u64 = 20;
 pub const DUST_THRESHOLD: u64 = 1_000;
 pub const MIN_INHERITANCE_EPOCHS: u64 = 365;
+pub const MAX_KNIGHT_USERS: usize = 10;
+pub const MAX_HEIR_USERS: usize = 10;
