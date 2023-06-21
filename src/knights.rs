@@ -21,10 +21,11 @@ pub trait KnightsModule:
         require!(caller != knight, ERROR_KNIGHT_YOURSELF);
 
         let new_knight = Knight{
-            address: knight,
+            address: knight.clone(),
             state: KnightState::PendingConfirmation,
         };
-        self.user_knight(caller).set(new_knight);
+        self.user_knight(caller.clone()).set(new_knight);
+        self.knight_users(knight).insert(caller);
     }
 
     #[endpoint(cancelKnight)]
@@ -34,7 +35,9 @@ pub trait KnightsModule:
         self.check_user_has_knight(caller.clone());
         self.check_is_knight_pending(caller.clone());
 
-        self.user_knight(caller).clear();
+        let knight = self.user_knight(caller.clone()).get();
+        self.user_knight(caller.clone()).clear();
+        self.knight_users(knight.address).swap_remove(&caller);
     }
 
     #[endpoint(activateKnight)]
@@ -78,7 +81,9 @@ pub trait KnightsModule:
         self.check_user_has_knight(user.clone());
         self.check_is_knight_for_user(user.clone());
 
-        self.user_knight(user).clear();
+        self.user_knight(user.clone()).clear();
+        let knight = self.blockchain().get_caller();
+        self.knight_users(knight).swap_remove(&user);
     }
 
     // helpers
