@@ -18,7 +18,7 @@ pub trait HeirsModule:
     ) {
         let caller = self.blockchain().get_caller();
         require!(
-            self.user_delegation(caller.clone()).get() > 0,
+            self.user_delegation(&caller).get() > 0,
             ERROR_USER_NOT_DELEGATOR,
         );
         require!(
@@ -36,9 +36,9 @@ pub trait HeirsModule:
             inheritance_epochs,
             last_accessed_epoch: current_epoch,
         };
-        self.user_heir(caller.clone()).set(new_heir);
+        self.user_heir(&caller).set(new_heir);
 
-        let mut heir_users = self.heir_users(heir);
+        let mut heir_users = self.heir_users(&heir);
         require!(heir_users.len() < MAX_HEIR_USERS, ERROR_TOO_MANY_HEIR_USERS);
 
         heir_users.insert(caller);
@@ -52,13 +52,13 @@ pub trait HeirsModule:
             ERROR_NO_HEIR,
         );
 
-        let heir = self.user_heir(caller.clone()).get();
-        self.user_heir(caller.clone()).clear();
-        self.heir_users(heir.address).swap_remove(&caller);
+        let heir = self.user_heir(&caller).get();
+        self.user_heir(&caller).clear();
+        self.heir_users(&heir.address).swap_remove(&caller);
     }
 
     fn user_has_heir(&self, user: ManagedAddress) -> bool {
-        !self.user_heir(user).is_empty()
+        !self.user_heir(&user).is_empty()
     }
 
     fn update_last_accessed(&self) {
@@ -68,7 +68,7 @@ pub trait HeirsModule:
         }
 
         let current_epoch = self.blockchain().get_block_epoch();
-        self.user_heir(caller)
+        self.user_heir(&caller)
             .update(|heir| heir.last_accessed_epoch = current_epoch);
     }
 
@@ -79,7 +79,7 @@ pub trait HeirsModule:
         );
 
         let caller = self.blockchain().get_caller();
-        let heir = self.user_heir(owner).get();
+        let heir = self.user_heir(&owner).get();
         require!(
             caller == heir.address,
             ERROR_NOT_HEIR_OF_USER,

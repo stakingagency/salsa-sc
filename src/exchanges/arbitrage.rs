@@ -54,16 +54,16 @@ pub trait ArbitrageModule:
 
         let (mut sold_amount, mut bought_amount) = (BigUint::zero(), BigUint::zero());
         let (old_egld_balance, old_ls_balance) = self.get_sc_balances();
-
+        let is_buy = in_token == &self.wegld_id().get();
         if self.is_onedex_arbitrage_active() {
             let (sold, bought) =
-                self.do_arbitrage_on_onedex(in_token, in_amount);
+                self.do_arbitrage_on_onedex(in_token, in_amount, is_buy);
             sold_amount += &sold;
             bought_amount += &bought;
         }
         if self.is_xexchange_arbitrage_active() && in_amount > &sold_amount {
             let (sold, bought) =
-                self.do_arbitrage_on_xexchange(in_token, &(in_amount - &sold_amount));
+                self.do_arbitrage_on_xexchange(in_token, &(in_amount - &sold_amount), is_buy);
             sold_amount += sold;
             bought_amount += bought;
         }
@@ -76,9 +76,10 @@ pub trait ArbitrageModule:
                 let swapped_amount = &new_ls_balance - &old_ls_balance;
                 require!(swapped_amount >= bought_amount, ERROR_ARBITRAGE_ISSUE);
 
-                let profit = swapped_amount - bought_amount.clone();
+                let profit = &swapped_amount - &bought_amount;
                 if profit > 0 {
                     self.burn_liquid_token(&profit);
+                    self.liquid_token_supply().update(|value| *value -= profit);
                 }
             }
         } else {
@@ -88,9 +89,9 @@ pub trait ArbitrageModule:
                 let swapped_amount = &new_egld_balance - &old_egld_balance;
                 require!(swapped_amount >= bought_amount, ERROR_ARBITRAGE_ISSUE);
 
-                let profit = swapped_amount - bought_amount.clone();
+                let profit = &swapped_amount - &bought_amount;
                 self.egld_reserve()
-                    .update(|value| *value += profit.clone());
+                    .update(|value| *value += &profit);
                 self.available_egld_reserve()
                     .update(|value| *value += profit);
             }

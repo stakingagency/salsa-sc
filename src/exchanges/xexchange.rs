@@ -59,10 +59,6 @@ pub trait XexchangeModule:
     }
 
     fn get_xexchange_amount_out(&self, in_token: &TokenIdentifier, in_amount: &BigUint) -> BigUint {
-        if !self.is_xexchange_arbitrage_active() {
-            return BigUint::zero();
-        }
-
         let xexchange_sc_address = self.xexchange_sc().get();
         self.xexchange_proxy_obj()
             .contract(xexchange_sc_address.clone())
@@ -71,20 +67,11 @@ pub trait XexchangeModule:
     }
 
     fn do_arbitrage_on_xexchange(
-        &self, in_token: &TokenIdentifier, in_amount: &BigUint
+        &self, in_token: &TokenIdentifier, in_amount: &BigUint, is_buy: bool,
     ) -> (BigUint, BigUint) {
-        if !self.is_xexchange_arbitrage_active() {
-            return (BigUint::zero(), BigUint::zero())
-        }
-
-        let is_buy = in_token == &self.wegld_id().get();
-        let out_amount = if is_buy {
-            self.add_liquidity(&in_amount, false)
-        } else {
-            self.remove_liquidity(&in_amount, false)
-        };
+        let out_amount = self.get_salsa_amount_out(in_amount, is_buy);
         let (ls_reserve, egld_reserve) = self.get_xexchange_reserves();
-        let mut amount_to_send_to_xexchange = if is_buy {
+        let amount_to_send_to_xexchange = if is_buy {
             self.get_buy_quantity(in_amount.clone(), out_amount.clone(), egld_reserve, ls_reserve)
         } else {
             self.get_sell_quantity(in_amount.clone(), out_amount.clone(), ls_reserve, egld_reserve)
@@ -93,16 +80,8 @@ pub trait XexchangeModule:
             return (BigUint::zero(), BigUint::zero())
         }
 
-        let rest = in_amount - &amount_to_send_to_xexchange;
-        if rest < MIN_EGLD && rest > 0 {
-            amount_to_send_to_xexchange = in_amount - MIN_EGLD;
-        }
         let amount_from_xexchange = self.get_xexchange_amount_out(in_token, &amount_to_send_to_xexchange);
-        let amount_from_salsa = if is_buy {
-            self.add_liquidity(&amount_to_send_to_xexchange, false)
-        } else {
-            self.remove_liquidity(&amount_to_send_to_xexchange, false)
-        };
+        let amount_from_salsa = self.get_salsa_amount_out(&amount_to_send_to_xexchange, is_buy);
         if amount_from_xexchange < amount_from_salsa {
             return (BigUint::zero(), BigUint::zero())
         }
