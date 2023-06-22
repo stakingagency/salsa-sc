@@ -1,6 +1,7 @@
 multiversx_sc::imports!();
 
 use crate::common::config::{Undelegation, UndelegationType};
+use crate::common::consts::MIN_EGLD;
 use crate::{common::errors::*};
 
 #[multiversx_sc::module]
@@ -29,10 +30,10 @@ pub trait HelpersModule:
 
         x -= egld_reserve;
         if x > egld_amount {
-            egld_amount
-        } else {
-            x
+            x = egld_amount.clone()
         }
+
+        self.adjust_quantity_if_dust_remaining(&egld_amount, x)
     }
 
     fn get_sell_quantity(&self, ls_amount: BigUint, egld_amount: BigUint, ls_reserve: BigUint, egld_reserve: BigUint) -> BigUint {
@@ -49,11 +50,20 @@ pub trait HelpersModule:
         x -= y;
         x = x * &ls_amount / &egld_amount;
         if x > ls_amount {
-            ls_amount
-        } else {
-            x
+            x = ls_amount.clone()
         }
+
+        self.adjust_quantity_if_dust_remaining(&ls_amount, x)
     }
+
+    fn adjust_quantity_if_dust_remaining(&self, in_amount: &BigUint, quantity: BigUint) -> BigUint {
+        let rest = in_amount - &quantity;
+        if rest < MIN_EGLD && rest > 0 && in_amount >= &MIN_EGLD {
+            in_amount - MIN_EGLD
+        } else {
+            quantity
+        }
+   }
 
     fn add_undelegation(
         &self,
@@ -164,18 +174,21 @@ pub trait HelpersModule:
         }
     }
 
+    fn get_salsa_amount_out(&self, amount_in: &BigUint, is_buy: bool) -> BigUint {
+        if is_buy {
+            self.add_liquidity(amount_in, false)
+        } else {
+            self.remove_liquidity(amount_in, false)
+        }
+    }
+
     fn add_liquidity(&self, new_stake_amount: &BigUint, update_storage: bool) -> BigUint {
         let total_egld_staked = self.total_egld_staked().get();
         let liquid_token_supply = self.liquid_token_supply().get();
-        let ls_amount = if total_egld_staked > 0 {
-            if liquid_token_supply == 0 {
-                new_stake_amount + &total_egld_staked
-            } else {
-                new_stake_amount * &liquid_token_supply / &total_egld_staked
-            }
-        } else {
-            new_stake_amount.clone()
-        };
+        let mut ls_amount = new_stake_amount + &total_egld_staked;
+        if total_egld_staked > 0 && liquid_token_supply > 0 {
+            ls_amount = new_stake_amount * &liquid_token_supply / &total_egld_staked;
+        }
 
         if update_storage {
             require!(ls_amount > 0, ERROR_NOT_ENOUGH_LIQUID_SUPPLY);

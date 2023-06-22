@@ -279,7 +279,7 @@ where
         self.blockchain_wrapper
             .execute_query(
                 &self.salsa_wrapper, |sc| {
-                    let delegation = sc.user_delegation(user).get();
+                    let delegation = sc.user_delegation(&user).get();
                     assert_eq!(delegation == to_managed_biguint(amount), true);
                 }
             ).assert_ok();

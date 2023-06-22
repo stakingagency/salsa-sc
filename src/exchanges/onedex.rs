@@ -74,10 +74,6 @@ pub trait OnedexModule:
     }
 
     fn get_onedex_amount_out(&self, in_token: &TokenIdentifier, in_amount: &BigUint) -> BigUint {
-        if !self.is_onedex_arbitrage_active() {
-            return BigUint::zero();
-        }
-
         let onedex_sc_address = self.onedex_sc().get();
         let wegld_token_id = self.wegld_id().get();
         let liquid_token_id = self.liquid_token_id().get_token_id();
@@ -93,21 +89,12 @@ pub trait OnedexModule:
     }
 
     fn do_arbitrage_on_onedex(
-        &self, in_token: &TokenIdentifier, in_amount: &BigUint
+        &self, in_token: &TokenIdentifier, in_amount: &BigUint, is_buy: bool,
     ) -> (BigUint, BigUint) {
-        if !self.is_onedex_arbitrage_active() {
-            return (BigUint::zero(), BigUint::zero())
-        }
-
-        let is_buy = in_token == &self.wegld_id().get();
-        let out_amount = if is_buy {
-            self.add_liquidity(&in_amount, false)
-        } else {
-            self.remove_liquidity(&in_amount, false)
-        };
+        let out_amount = self.get_salsa_amount_out(in_amount, is_buy);
         let pair_id = self.onedex_pair_id().get();
         let (ls_reserve, egld_reserve) = self.get_onedex_reserves(pair_id);
-        let mut amount_to_send_to_onedex = if is_buy {
+        let amount_to_send_to_onedex = if is_buy {
             self.get_buy_quantity(in_amount.clone(), out_amount.clone(), egld_reserve, ls_reserve)
         } else {
             self.get_sell_quantity(in_amount.clone(), out_amount.clone(), ls_reserve, egld_reserve)
@@ -116,16 +103,8 @@ pub trait OnedexModule:
             return (BigUint::zero(), BigUint::zero())
         }
 
-        let rest = in_amount - &amount_to_send_to_onedex;
-        if rest < MIN_EGLD && rest > 0 {
-            amount_to_send_to_onedex = in_amount - MIN_EGLD;
-        }
         let amount_from_onedex = self.get_onedex_amount_out(in_token, &amount_to_send_to_onedex);
-        let amount_from_salsa = if is_buy {
-            self.add_liquidity(&amount_to_send_to_onedex, false)
-        } else {
-            self.remove_liquidity(&amount_to_send_to_onedex, false)
-        };
+        let amount_from_salsa = self.get_salsa_amount_out(&amount_to_send_to_onedex, is_buy);
         if amount_from_onedex < amount_from_salsa {
             return (BigUint::zero(), BigUint::zero())
         }

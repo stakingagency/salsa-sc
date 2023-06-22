@@ -288,34 +288,34 @@ pub trait ConfigModule:
 
     #[view(getUserDelegation)]
     #[storage_mapper("user_delegation")]
-    fn user_delegation(&self, user: ManagedAddress) -> SingleValueMapper<BigUint>;
+    fn user_delegation(&self, user: &ManagedAddress) -> SingleValueMapper<BigUint>;
 
     #[view(getUserKnight)]
     #[storage_mapper("user_knight")]
-    fn user_knight(&self, user: ManagedAddress) -> SingleValueMapper<Knight<Self::Api>>;
+    fn user_knight(&self, user: &ManagedAddress) -> SingleValueMapper<Knight<Self::Api>>;
 
     #[view(getKnightUsers)]
     #[storage_mapper("knight_users")]
-    fn knight_users(&self, knight: ManagedAddress) -> UnorderedSetMapper<ManagedAddress>;
+    fn knight_users(&self, knight: &ManagedAddress) -> UnorderedSetMapper<ManagedAddress>;
 
     #[view(getUserHeir)]
     #[storage_mapper("user_heir")]
-    fn user_heir(&self, user: ManagedAddress) -> SingleValueMapper<Heir<Self::Api>>;
+    fn user_heir(&self, user: &ManagedAddress) -> SingleValueMapper<Heir<Self::Api>>;
 
     #[view(getHeirUsers)]
     #[storage_mapper("heir_users")]
-    fn heir_users(&self, heir: ManagedAddress) -> UnorderedSetMapper<ManagedAddress>;
+    fn heir_users(&self, heir: &ManagedAddress) -> UnorderedSetMapper<ManagedAddress>;
 
     #[view(getUserInfo)]
-    fn get_user_info(&self, user: ManagedAddress) -> UserInfo<Self::Api> {
-        let user_knight = self.user_knight(user.clone());
+    fn get_user_info(&self, user: &ManagedAddress) -> UserInfo<Self::Api> {
+        let user_knight = self.user_knight(&user);
         let knight = if user_knight.is_empty() {
-            ManagedAddress::from(&[0u8; 32])
+            ManagedAddress::default()
         } else {
             user_knight.get().address
         };
 
-        let user_heir = self.user_heir(user.clone());
+        let user_heir = self.user_heir(&user);
         let heir = if user_heir.is_empty() {
             ManagedAddress::from(&[0u8; 32])
         } else {
