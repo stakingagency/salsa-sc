@@ -258,6 +258,8 @@ pub trait ConfigModule:
         let staked_egld = self.total_egld_staked().get();
         let token_supply = self.liquid_token_supply().get();
 
+        // Comment
+        // You could use MIN_EGLD const
         let one = BigUint::from(1_000_000_000_000_000_000u64);
         if (token_supply == 0) || (staked_egld == 0) {
             one
