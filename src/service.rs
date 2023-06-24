@@ -16,6 +16,8 @@ pub trait ServiceModule:
     fn undelegate_all(&self) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
+        // Comment
+        // Use take as you will clear the storage anyway, if it passes the amount check
         let egld_to_undelegate = self.egld_to_undelegate().get();
         require!(
             egld_to_undelegate >= MIN_EGLD,
@@ -52,6 +54,12 @@ pub trait ServiceModule:
         }
     }
 
+    // Comment
+    // Suggestion
+    // Maybe add a storage with last_compound_epoch which gets updated in the compound_callback
+    // Right now you can call this endpoint infinitely, get_claimable_rewards -> redelegate_rewards -> get_claimable_rewards -> get_claimable_rewards ...
+    // With a last_compound_epoch storage, you know you finished the compound process for that epoch
+    // That way, you can add a check claimable_rewards_epoch > last_compound_epoch at the start of the function
     #[endpoint(compound)]
     fn compound(&self) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);

@@ -155,6 +155,10 @@ pub trait HelpersModule:
             } else if modified {
                 clone_list.set_node_value_by_id(node_id, undelegation);
             }
+
+            // Comment
+            // Maybe add a break at the end of the iteration if total_amount == 0
+            // Only reason to keep the entire loop going is if there are possible undelegation.amount == 0, without any processing done to the list
         }
 
         (total_amount, last_epoch)

@@ -69,6 +69,8 @@ pub trait ArbitrageModule:
         }
 
         let (new_egld_balance, new_ls_balance) = self.get_sc_balances();
+        // Comment
+        // if is_buy
         if in_token == &self.wegld_id().get() {
             require!(new_ls_balance >= old_ls_balance, ERROR_ARBITRAGE_ISSUE);
 

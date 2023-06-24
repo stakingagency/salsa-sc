@@ -10,6 +10,9 @@ pub trait KnightsModule:
     + crate::helpers::HelpersModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
+    // Comment
+    // Small observation for FE, knights can only have 9 users
+    // If you want 10 -> knight_users.len() <= MAX_KNIGHT_USERS
     #[endpoint(setKnight)]
     fn set_knight(&self, knight: ManagedAddress) {
         self.check_is_delegator();
@@ -32,6 +35,10 @@ pub trait KnightsModule:
         knight_users.insert(caller);
     }
 
+    // Comment
+    // I would remove check_is_delegator verifications (it should be only in setKnight and activateKnight)
+    // Maybe the user was a delegator but then it removed all custodial funds until the knight was activated
+    // He should be able to remove the knight even if there are no custodial funds left
     #[endpoint(cancelKnight)]
     fn cancel_knight(&self) {
         let caller = self.blockchain().get_caller();
@@ -44,6 +51,8 @@ pub trait KnightsModule:
         self.knight_users(&knight.address).swap_remove(&caller);
     }
 
+    // Comment
+    // Move the require inside the update
     #[endpoint(activateKnight)]
     fn activate_knight(&self) {
         let caller = self.blockchain().get_caller();
@@ -70,6 +79,13 @@ pub trait KnightsModule:
             .update(|knight| knight.state = KnightState::Inactive);
     }
 
+    // Comment
+    // I would change this function a bit, even if it's for a edge case
+    // The update to self.knight_users(&knight) should happen here
+    // Otherwise, 10 other users may set the knight to their accounts and then lock the knight for other accounts without his confirmation
+    // I think a knight should be in knight_users storage only in Active or Inactive states
+    // This means removing the knight_users storage update from setKnight endpoint
+    // knight_users swap_remove can still be called even if there is no entry in storage
     #[endpoint(confirmKnight)]
     fn confirm_knight(&self, user: ManagedAddress) {
         self.check_user_has_knight(user.clone());
@@ -92,6 +108,9 @@ pub trait KnightsModule:
 
     // helpers
 
+    // Comment
+    // I would change the naming of the function to be more explicit
+    // check_is_custodial_delegator
     fn check_is_delegator(&self) {
         let caller = self.blockchain().get_caller();
         require!(
@@ -100,6 +119,8 @@ pub trait KnightsModule:
         );
     }
 
+    // Comment
+    // Send reference parameter
     fn check_user_has_knight(&self, user: ManagedAddress) {
         require!(
             !self.user_knight(&user).is_empty(),
@@ -107,6 +128,8 @@ pub trait KnightsModule:
         );
     }
 
+    // Comment
+    // Send reference parameter
     fn check_is_knight_for_user(&self, user: ManagedAddress) {
         let caller = self.blockchain().get_caller();
         require!(
@@ -115,6 +138,8 @@ pub trait KnightsModule:
         );
     }
 
+    // Comment
+    // Send reference parameter
     fn check_is_knight_active(&self, user: ManagedAddress) {
         require!(
             self.user_knight(&user).get().state == KnightState::Active,
@@ -122,6 +147,8 @@ pub trait KnightsModule:
         );
     }
 
+    // Comment
+    // Send reference parameter
     fn check_is_knight_pending(&self, user: ManagedAddress) {
         require!(
             self.user_knight(&user).get().state == KnightState::PendingConfirmation,

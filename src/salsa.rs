@@ -238,6 +238,8 @@ pub trait SalsaContract<ContractReader>:
         let withdraw_amount = self.user_withdrawn_egld().get() - &total_user_withdrawn_egld;
         require!(withdraw_amount > 0, ERROR_NOTHING_TO_WITHDRAW);
 
+        // Comment
+        // Should also clear knight_users and heir_users
         if self.user_delegation(&user).get() == 0 {
             self.user_knight(&user).clear();
             self.user_heir(&user).clear();
@@ -272,6 +274,8 @@ pub trait SalsaContract<ContractReader>:
         self.update_last_accessed();
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
+        // Comment
+        // Maybe check if knight is active and allow in case of inactive or pending
         self.check_knight_set();
 
         let caller = self.blockchain().get_caller();
@@ -287,6 +291,11 @@ pub trait SalsaContract<ContractReader>:
             0,
             &amount,
         );
+
+        // Comment
+        // Clear the storage if delegation becomes 0
+        // Maybe use self.user_delegation(&caller).take() at the start of the function
+        // then if delegation still is still > 0, set the remaining amount
         self.user_delegation(&caller).set(&delegation - &amount);
         self.legld_in_custody().update(|value| *value -= amount);
     }
@@ -337,6 +346,9 @@ pub trait SalsaContract<ContractReader>:
         amount: BigUint,
     ) {
         let current_epoch = self.blockchain().get_block_epoch();
+
+        // Comment
+        // self.add_reserve_epoch(&caller).take(); and remove clear code
         let add_reserve_epoch = self.add_reserve_epoch(&caller).get();
         require!(
             add_reserve_epoch < current_epoch,
@@ -406,6 +418,8 @@ pub trait SalsaContract<ContractReader>:
             OptionalValue::None => BigUint::zero()
         };
         let caller = self.blockchain().get_caller();
+        // Comment
+        // Check if knight is active?
         self.check_knight_set();
         self.do_undelegate_now(caller.clone(), caller, min_amount_out, amount);
     }
@@ -561,12 +575,17 @@ pub trait SalsaContract<ContractReader>:
         self.do_remove_reserve(user, knight, amount);
     }
 
+    // Comment
+    // Receive a reference instead of an owned variable
+    // I would move this function in the KnightsModule and keep only endpoints and generic code in the main file
     fn check_knight(&self, user: ManagedAddress) {
         self.check_user_has_knight(user.clone());
         self.check_is_knight_for_user(user.clone());
         self.check_is_knight_active(user);
     }
 
+    // Comment
+    // You already have the caller in the calling functions, remove from here and only pass it as a reference parameter
     fn check_knight_activated(&self) {
         let caller = self.blockchain().get_caller();
         let knight = self.user_knight(&caller);
@@ -578,6 +597,8 @@ pub trait SalsaContract<ContractReader>:
         }
     }
 
+    // Comment
+    // The same here, send the caller as a parameter, to avoid reading it so many times without any extra added benefit
     fn check_knight_set(&self) {
         let caller = self.blockchain().get_caller();
         let knight = self.user_knight(&caller);

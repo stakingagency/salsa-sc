@@ -57,6 +57,11 @@ pub trait HeirsModule:
         self.heir_users(&heir.address).swap_remove(&caller);
     }
 
+    // Comment
+    // Send the user as a reference, you'll lose the clone in quite a few places, when calling this function
+    // fn user_has_heir(&self, user: &ManagedAddress) -> bool {
+    //     !self.user_heir(user).is_empty()
+    // }
     fn user_has_heir(&self, user: ManagedAddress) -> bool {
         !self.user_heir(&user).is_empty()
     }
@@ -72,6 +77,8 @@ pub trait HeirsModule:
             .update(|heir| heir.last_accessed_epoch = current_epoch);
     }
 
+    // Comment
+    // Again here, send address as a reference
     fn check_is_heir_entitled(&self, owner: ManagedAddress) {
         require!(
             self.user_has_heir(owner.clone()),
