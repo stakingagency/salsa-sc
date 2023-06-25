@@ -48,7 +48,7 @@ pub trait HeirsModule:
     fn remove_heir(&self) {
         let caller = self.blockchain().get_caller();
         require!(
-            self.user_has_heir(caller.clone()),
+            self.user_has_heir(&caller),
             ERROR_NO_HEIR,
         );
 
@@ -57,13 +57,13 @@ pub trait HeirsModule:
         self.heir_users(&heir.address).swap_remove(&caller);
     }
 
-    fn user_has_heir(&self, user: ManagedAddress) -> bool {
-        !self.user_heir(&user).is_empty()
+    fn user_has_heir(&self, user: &ManagedAddress) -> bool {
+        !self.user_heir(user).is_empty()
     }
 
     fn update_last_accessed(&self) {
         let caller = self.blockchain().get_caller();
-        if !self.user_has_heir(caller.clone()) {
+        if !self.user_has_heir(&caller) {
             return
         }
 
@@ -72,14 +72,14 @@ pub trait HeirsModule:
             .update(|heir| heir.last_accessed_epoch = current_epoch);
     }
 
-    fn check_is_heir_entitled(&self, owner: ManagedAddress) {
+    fn check_is_heir_entitled(&self, owner: &ManagedAddress) {
         require!(
-            self.user_has_heir(owner.clone()),
+            self.user_has_heir(owner),
             ERROR_NO_HEIR,
         );
 
         let caller = self.blockchain().get_caller();
-        let heir = self.user_heir(&owner).get();
+        let heir = self.user_heir(owner).get();
         require!(
             caller == heir.address,
             ERROR_NOT_HEIR_OF_USER,

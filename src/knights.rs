@@ -12,7 +12,7 @@ pub trait KnightsModule:
 {
     #[endpoint(setKnight)]
     fn set_knight(&self, knight: ManagedAddress) {
-        self.check_is_delegator();
+        self.check_is_custodial_delegator();
 
         let caller = self.blockchain().get_caller();
         require!(
@@ -35,9 +35,8 @@ pub trait KnightsModule:
     #[endpoint(cancelKnight)]
     fn cancel_knight(&self) {
         let caller = self.blockchain().get_caller();
-        self.check_is_delegator();
-        self.check_user_has_knight(caller.clone());
-        self.check_is_knight_pending(caller.clone());
+        self.check_user_has_knight(&caller);
+        self.check_is_knight_pending(&caller);
 
         let knight = self.user_knight(&caller).get();
         self.user_knight(&caller).clear();
@@ -47,8 +46,8 @@ pub trait KnightsModule:
     #[endpoint(activateKnight)]
     fn activate_knight(&self) {
         let caller = self.blockchain().get_caller();
-        self.check_is_delegator();
-        self.check_user_has_knight(caller.clone());
+        self.check_is_custodial_delegator();
+        self.check_user_has_knight(&caller);
         require!(
             self.user_knight(&caller).get().state == KnightState::Inactive,
             ERROR_KNIGHT_NOT_CONFIRMED,
@@ -62,9 +61,9 @@ pub trait KnightsModule:
 
     #[endpoint(deactivateKnight)]
     fn deactivate_knight(&self, user: ManagedAddress) {
-        self.check_user_has_knight(user.clone());
-        self.check_is_knight_for_user(user.clone());
-        self.check_is_knight_active(user.clone());
+        self.check_user_has_knight(&user);
+        self.check_is_knight_for_user(&user);
+        self.check_is_knight_active(&user);
 
         self.user_knight(&user)
             .update(|knight| knight.state = KnightState::Inactive);
@@ -72,9 +71,9 @@ pub trait KnightsModule:
 
     #[endpoint(confirmKnight)]
     fn confirm_knight(&self, user: ManagedAddress) {
-        self.check_user_has_knight(user.clone());
-        self.check_is_knight_for_user(user.clone());
-        self.check_is_knight_pending(user.clone());
+        self.check_user_has_knight(&user);
+        self.check_is_knight_for_user(&user);
+        self.check_is_knight_pending(&user);
 
         self.user_knight(&user)
             .update(|knight| knight.state = KnightState::Inactive);
@@ -82,8 +81,8 @@ pub trait KnightsModule:
 
     #[endpoint(removeKnight)]
     fn remove_knight(&self, user: ManagedAddress) {
-        self.check_user_has_knight(user.clone());
-        self.check_is_knight_for_user(user.clone());
+        self.check_user_has_knight(&user);
+        self.check_is_knight_for_user(&user);
 
         self.user_knight(&user).clear();
         let knight = self.blockchain().get_caller();
@@ -92,7 +91,7 @@ pub trait KnightsModule:
 
     // helpers
 
-    fn check_is_delegator(&self) {
+    fn check_is_custodial_delegator(&self) {
         let caller = self.blockchain().get_caller();
         require!(
             self.user_delegation(&caller).get() > 0,
@@ -100,31 +99,31 @@ pub trait KnightsModule:
         );
     }
 
-    fn check_user_has_knight(&self, user: ManagedAddress) {
+    fn check_user_has_knight(&self, user: &ManagedAddress) {
         require!(
-            !self.user_knight(&user).is_empty(),
+            !self.user_knight(user).is_empty(),
             ERROR_KNIGHT_NOT_SET,
         );
     }
 
-    fn check_is_knight_for_user(&self, user: ManagedAddress) {
+    fn check_is_knight_for_user(&self, user: &ManagedAddress) {
         let caller = self.blockchain().get_caller();
         require!(
-            caller == self.user_knight(&user).get().address,
+            caller == self.user_knight(user).get().address,
             ERROR_NOT_KNIGHT_OF_USER,
         );
     }
 
-    fn check_is_knight_active(&self, user: ManagedAddress) {
+    fn check_is_knight_active(&self, user: &ManagedAddress) {
         require!(
-            self.user_knight(&user).get().state == KnightState::Active,
+            self.user_knight(user).get().state == KnightState::Active,
             ERROR_KNIGHT_NOT_ACTIVE,
         );
     }
 
-    fn check_is_knight_pending(&self, user: ManagedAddress) {
+    fn check_is_knight_pending(&self, user: &ManagedAddress) {
         require!(
-            self.user_knight(&user).get().state == KnightState::PendingConfirmation,
+            self.user_knight(user).get().state == KnightState::PendingConfirmation,
             ERROR_KNIGHT_NOT_PENDING,
         );
     }

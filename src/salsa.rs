@@ -562,9 +562,9 @@ pub trait SalsaContract<ContractReader>:
     }
 
     fn check_knight(&self, user: ManagedAddress) {
-        self.check_user_has_knight(user.clone());
-        self.check_is_knight_for_user(user.clone());
-        self.check_is_knight_active(user);
+        self.check_user_has_knight(&user);
+        self.check_is_knight_for_user(&user);
+        self.check_is_knight_active(&user);
     }
 
     fn check_knight_activated(&self) {
@@ -594,7 +594,7 @@ pub trait SalsaContract<ContractReader>:
     ) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
-        self.check_is_heir_entitled(user.clone());
+        self.check_is_heir_entitled(&user);
 
         self.do_undelegate(user, undelegate_amount);
     }
@@ -608,7 +608,7 @@ pub trait SalsaContract<ContractReader>:
     ) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
-        self.check_is_heir_entitled(user.clone());
+        self.check_is_heir_entitled(&user);
 
         let heir = self.blockchain().get_caller();
         self.do_undelegate_now(user, heir, min_amount_out, undelegate_amount);
@@ -618,7 +618,7 @@ pub trait SalsaContract<ContractReader>:
     fn withdraw_heir(&self, user: ManagedAddress) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
-        self.check_is_heir_entitled(user.clone());
+        self.check_is_heir_entitled(&user);
 
         let heir = self.blockchain().get_caller();
         self.do_withdraw(&user, &heir);
@@ -632,7 +632,7 @@ pub trait SalsaContract<ContractReader>:
     ) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
-        self.check_is_heir_entitled(user.clone());
+        self.check_is_heir_entitled(&user);
 
         let heir = self.blockchain().get_caller();
         self.do_remove_reserve(user, heir, amount);
