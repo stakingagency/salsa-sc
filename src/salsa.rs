@@ -151,7 +151,7 @@ pub trait SalsaContract<ContractReader>:
             OptionalValue::None => BigUint::zero()
         };
         let caller = self.blockchain().get_caller();
-        self.check_knight_activated();
+        self.check_knight_activated(&caller);
         self.do_undelegate(caller, amount);
     }
 
@@ -215,7 +215,7 @@ pub trait SalsaContract<ContractReader>:
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         let user = self.blockchain().get_caller();
-        self.check_knight_activated();
+        self.check_knight_activated(&user);
         self.do_withdraw(&user, &user);
     }
 
@@ -239,8 +239,16 @@ pub trait SalsaContract<ContractReader>:
         require!(withdraw_amount > 0, ERROR_NOTHING_TO_WITHDRAW);
 
         if self.user_delegation(&user).get() == 0 {
-            self.user_knight(&user).clear();
-            self.user_heir(&user).clear();
+            let knight = self.user_knight(&user);
+            if !knight.is_empty() {
+                self.knight_users(&knight.get().address).swap_remove(user);
+                knight.clear();
+            }
+            let heir = self.user_heir(&user);
+            if !heir.is_empty() {
+                self.heir_users(&heir.get().address).swap_remove(user);
+                heir.clear();
+            }
         }
 
         self.user_withdrawn_egld()
@@ -272,10 +280,10 @@ pub trait SalsaContract<ContractReader>:
         self.update_last_accessed();
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
-        self.check_knight_set();
-
         let caller = self.blockchain().get_caller();
-        let delegation = self.user_delegation(&caller).get();
+        self.check_knight_set(&caller);
+
+        let delegation = self.user_delegation(&caller).take();
         require!(amount <= delegation, ERROR_INSUFFICIENT_FUNDS);
         require!(&delegation - &amount >= MIN_EGLD || delegation == amount, ERROR_DUST_REMAINING);
         require!(delegation > amount || self.user_heir(&caller).is_empty(), ERROR_HEIR_SET);
@@ -287,7 +295,9 @@ pub trait SalsaContract<ContractReader>:
             0,
             &amount,
         );
-        self.user_delegation(&caller).set(&delegation - &amount);
+        if delegation > amount {
+            self.user_delegation(&caller).set(&delegation - &amount);
+        }
         self.legld_in_custody().update(|value| *value -= amount);
     }
 
@@ -326,7 +336,7 @@ pub trait SalsaContract<ContractReader>:
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         let caller = self.blockchain().get_caller();
-        self.check_knight_activated();
+        self.check_knight_activated(&caller);
         self.do_remove_reserve(caller.clone(), caller, amount);
     }
 
@@ -337,15 +347,12 @@ pub trait SalsaContract<ContractReader>:
         amount: BigUint,
     ) {
         let current_epoch = self.blockchain().get_block_epoch();
-        let add_reserve_epoch = self.add_reserve_epoch(&caller).get();
+        let add_reserve_epoch = self.add_reserve_epoch(&caller).take();
         require!(
             add_reserve_epoch < current_epoch,
             ERROR_REMOVE_RESERVE_TOO_SOON
         );
 
-        if add_reserve_epoch > 0 {
-            self.add_reserve_epoch(&caller).clear();
-        }
         let old_reserve_points = self.users_reserve_points(&caller).get();
         let old_reserve = self.get_reserve_egld_amount(&old_reserve_points);
         require!(old_reserve > 0, ERROR_USER_NOT_PROVIDER);
@@ -406,7 +413,7 @@ pub trait SalsaContract<ContractReader>:
             OptionalValue::None => BigUint::zero()
         };
         let caller = self.blockchain().get_caller();
-        self.check_knight_set();
+        self.check_knight_set(&caller);
         self.do_undelegate_now(caller.clone(), caller, min_amount_out, amount);
     }
 
@@ -517,7 +524,7 @@ pub trait SalsaContract<ContractReader>:
     ) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
-        self.check_knight(user.clone());
+        self.check_knight(&user);
 
         self.do_undelegate(user, undelegate_amount);
     }
@@ -531,7 +538,7 @@ pub trait SalsaContract<ContractReader>:
     ) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
-        self.check_knight(user.clone());
+        self.check_knight(&user);
 
         let knight = self.blockchain().get_caller();
         self.do_undelegate_now(user, knight, min_amount_out, undelegate_amount);
@@ -541,7 +548,7 @@ pub trait SalsaContract<ContractReader>:
     fn withdraw_knight(&self, user: ManagedAddress) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
-        self.check_knight(user.clone());
+        self.check_knight(&user);
 
         let knight = self.blockchain().get_caller();
         self.do_withdraw(&user, &knight);
@@ -555,33 +562,10 @@ pub trait SalsaContract<ContractReader>:
     ) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
-        self.check_knight(user.clone());
+        self.check_knight(&user);
 
         let knight = self.blockchain().get_caller();
         self.do_remove_reserve(user, knight, amount);
-    }
-
-    fn check_knight(&self, user: ManagedAddress) {
-        self.check_user_has_knight(&user);
-        self.check_is_knight_for_user(&user);
-        self.check_is_knight_active(&user);
-    }
-
-    fn check_knight_activated(&self) {
-        let caller = self.blockchain().get_caller();
-        let knight = self.user_knight(&caller);
-        if !knight.is_empty() {
-            require!(
-                knight.get().state != KnightState::Active,
-                ERROR_KNIGHT_ACTIVE,
-            );
-        }
-    }
-
-    fn check_knight_set(&self) {
-        let caller = self.blockchain().get_caller();
-        let knight = self.user_knight(&caller);
-        require!(knight.is_empty(), ERROR_KNIGHT_SET);
     }
 
     // endpoints: heirs

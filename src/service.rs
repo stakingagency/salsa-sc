@@ -16,13 +16,11 @@ pub trait ServiceModule:
     fn undelegate_all(&self) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
-        let egld_to_undelegate = self.egld_to_undelegate().get();
+        let egld_to_undelegate = self.egld_to_undelegate().take();
         require!(
             egld_to_undelegate >= MIN_EGLD,
             ERROR_INSUFFICIENT_AMOUNT
         );
-
-        self.egld_to_undelegate().clear();
 
         let delegation_contract = self.provider_address().get();
         let gas_for_async_call = self.get_gas_for_async_call();
