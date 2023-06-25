@@ -91,6 +91,27 @@ pub trait KnightsModule:
 
     // helpers
 
+    fn check_knight(&self, user: &ManagedAddress) {
+        self.check_user_has_knight(&user);
+        self.check_is_knight_for_user(&user);
+        self.check_is_knight_active(&user);
+    }
+
+    fn check_knight_activated(&self, caller: &ManagedAddress) {
+        let knight = self.user_knight(&caller);
+        if !knight.is_empty() {
+            require!(
+                knight.get().state != KnightState::Active,
+                ERROR_KNIGHT_ACTIVE,
+            );
+        }
+    }
+
+    fn check_knight_set(&self, caller: &ManagedAddress) {
+        let knight = self.user_knight(&caller);
+        require!(knight.is_empty(), ERROR_KNIGHT_SET);
+    }
+
     fn check_is_custodial_delegator(&self) {
         let caller = self.blockchain().get_caller();
         require!(
