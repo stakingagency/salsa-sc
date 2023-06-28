@@ -20,7 +20,8 @@ where
     X: XexchangeModule,
 {
     pub fn new(sc_ref: &'a X) -> Self {
-        let (first_reserve, second_reserve, lp_supply) = sc_ref.get_xexchange_reserves();
+        let (first_reserve, second_reserve, lp_supply) =
+            sc_ref.get_xexchange_reserves();
         
         XexchangeCache {
             sc_address: sc_ref.xexchange_sc().get(),
