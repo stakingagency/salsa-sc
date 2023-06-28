@@ -188,10 +188,6 @@ pub trait HelpersModule:
 
             storage_cache.total_stake += new_stake_amount;
             storage_cache.liquid_supply += &ls_amount;
-            self.total_egld_staked()
-                .update(|value| *value += new_stake_amount);
-            self.liquid_token_supply()
-               .update(|value| *value += &ls_amount);
         }
 
         ls_amount
@@ -210,10 +206,6 @@ pub trait HelpersModule:
 
             storage_cache.total_stake -= &egld_amount;
             storage_cache.liquid_supply -= ls_amount;
-            self.total_egld_staked()
-                .update(|value| *value -= &egld_amount);
-            self.liquid_token_supply()
-                .update(|value| *value -= ls_amount);
         }
 
         egld_amount

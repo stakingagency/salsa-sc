@@ -2,11 +2,10 @@ multiversx_sc::imports!();
 
 use super::onedex::OnedexModule;
 
-pub struct OnedexCache<'a, O>
+pub struct OnedexCache<O>
 where
     O: OnedexModule,
 {
-    sc_ref: &'a O,
     pub pair_id: usize,
     pub sc_address: ManagedAddress<O::Api>,
     pub liquid_reserve: BigUint<O::Api>,
@@ -15,7 +14,7 @@ where
     pub lp_token: TokenIdentifier<O::Api>,
 }
 
-impl<'a, O> OnedexCache<'a, O>
+impl<'a, O> OnedexCache<O>
 where
     O: OnedexModule,
 {
@@ -29,7 +28,6 @@ where
             egld_reserve: pair.second_token_reserve,
             lp_supply: pair.lp_token_supply,
             lp_token: pair.lp_token_id,
-            sc_ref,
         }
     }
 }

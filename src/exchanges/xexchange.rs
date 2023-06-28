@@ -77,7 +77,7 @@ pub trait XexchangeModule:
         &self,
         is_buy: bool,
         in_amount: &BigUint,
-        storage_cache: &StorageCache<Self>,
+        storage_cache: &mut StorageCache<Self>,
         xexchange_cache: &XexchangeCache<Self>
     ) -> BigUint {
         let in_token = if is_buy {
@@ -92,7 +92,11 @@ pub trait XexchangeModule:
     }
 
     fn do_arbitrage_on_xexchange(
-        &self, is_buy: bool, in_amount: BigUint, storage_cache: &mut StorageCache<Self>, xexchange_cache: XexchangeCache<Self>,
+        &self,
+        is_buy: bool,
+        in_amount: BigUint,
+        storage_cache: &mut StorageCache<Self>,
+        xexchange_cache: XexchangeCache<Self>,
     ) -> (BigUint, BigUint) {
         let out_amount = self.get_salsa_amount_out(&in_amount, is_buy, storage_cache);
         let amount_to_send_to_xexchange =
@@ -120,7 +124,7 @@ pub trait XexchangeModule:
         is_buy: bool,
         in_amount: &BigUint,
         out_amount: &BigUint,
-        storage_cache: &StorageCache<Self>,
+        storage_cache: &mut StorageCache<Self>,
         xexchange_cache: XexchangeCache<Self>,
     ) {
         let wegld_id = storage_cache.wegld_id.clone();

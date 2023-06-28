@@ -85,7 +85,6 @@ pub trait ArbitrageModule:
                 if profit > 0 {
                     self.burn_liquid_token(&profit);
                     storage_cache.liquid_supply -= &profit;
-                    self.liquid_token_supply().update(|value| *value -= profit);
                 }
             }
         } else {

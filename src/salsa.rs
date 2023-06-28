@@ -87,6 +87,7 @@ pub trait SalsaContract<ContractReader>:
         }
 
         let ls_amount = self.add_liquidity(&delegate_amount, true, &mut storage_cache);
+        drop(storage_cache);
 
         let delegation_contract = self.provider_address().get();
         let gas_for_async_call = self.get_gas_for_async_call();
@@ -129,10 +130,9 @@ pub trait SalsaContract<ContractReader>:
                 }
             }
             ManagedAsyncCallResult::Err(_) => {
-                self.total_egld_staked()
-                    .update(|value| *value -= &staked_tokens);
-                self.liquid_token_supply()
-                    .update(|value| *value -= liquid_tokens);
+                let mut storage_cache = StorageCache::new(self);
+                storage_cache.total_stake -= &staked_tokens;
+                storage_cache.liquid_supply -= &liquid_tokens;
                 self.send().direct_egld(&caller, &staked_tokens);
             }
         }

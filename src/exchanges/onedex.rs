@@ -85,7 +85,7 @@ pub trait OnedexModule:
         &self,
         is_buy: bool,
         in_amount: &BigUint,
-        storage_cache: &StorageCache<Self>,
+        storage_cache: &mut StorageCache<Self>,
         onedex_cache: &OnedexCache<Self>,
     ) -> BigUint {
         let (first_token, second_token) = if is_buy {
@@ -131,7 +131,7 @@ pub trait OnedexModule:
         is_buy: bool,
         in_amount: &BigUint,
         out_amount: &BigUint,
-        storage_cache: &StorageCache<Self>,
+        storage_cache: &mut StorageCache<Self>,
         onedex_cache: OnedexCache<Self>,
     ) {
         let mut path: MultiValueEncoded<TokenIdentifier> = MultiValueEncoded::new();

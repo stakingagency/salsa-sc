@@ -2,11 +2,10 @@ multiversx_sc::imports!();
 
 use super::xexchange::XexchangeModule;
 
-pub struct XexchangeCache<'a, X>
+pub struct XexchangeCache<X>
 where
     X: XexchangeModule,
 {
-    sc_ref: &'a X,
     pub sc_address: ManagedAddress<X::Api>,
     pub wrap_sc_address: ManagedAddress<X::Api>,
     pub liquid_reserve: BigUint<X::Api>,
@@ -15,7 +14,7 @@ where
     pub lp_token: TokenIdentifier<X::Api>,
 }
 
-impl<'a, X> XexchangeCache<'a, X>
+impl<'a, X> XexchangeCache<X>
 where
     X: XexchangeModule,
 {
@@ -30,7 +29,6 @@ where
             egld_reserve: second_reserve,
             lp_supply: lp_supply,
             lp_token: sc_ref.xexchange_lp().get(),
-            sc_ref,
         }
     }
 }
