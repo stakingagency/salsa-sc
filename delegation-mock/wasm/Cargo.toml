@@ -24,8 +24,4 @@ panic = "abort"
 path = ".."
 
 [dependencies.multiversx-sc-wasm-adapter]
-version = "0.41.1"
-
-[dependencies.elrond-wasm-output]
-version = "0.38.0"
-features = [ "wasm-output-mode",]
+version = "0.41.3"
