@@ -1,4 +1,32 @@
 multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
+
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq)]
+pub enum State {
+    Inactive,
+    Active,
+    ActiveButNoSwap,
+}
+
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
+pub struct Pair<M: ManagedTypeApi> {
+    pub pair_id: usize,
+    pub state: State,
+    pub enabled: bool,
+    pub owner: ManagedAddress<M>,
+    
+    pub first_token_id: TokenIdentifier<M>,
+    pub second_token_id: TokenIdentifier<M>,
+    pub lp_token_id: TokenIdentifier<M>,
+
+    pub lp_token_decimal: usize,
+
+    pub first_token_reserve: BigUint<M>,
+    pub second_token_reserve: BigUint<M>,
+    pub lp_token_supply: BigUint<M>,
+
+    pub lp_token_roles_are_set: bool
+}
 
 #[multiversx_sc::proxy]
 pub trait OneDexProxy {
@@ -19,11 +47,6 @@ pub trait OneDexProxy {
         amount_in: BigUint
     ) -> BigUint;
 
-    #[view(getPairFirstTokenReserve)]
-    #[storage_mapper("pair_first_token_reserve")]
-    fn pair_first_token_reserve(&self, pair_id: usize) -> SingleValueMapper<BigUint>;
-
-    #[view(getPairSecondTokenReserve)]
-    #[storage_mapper("pair_second_token_reserve")]
-    fn pair_second_token_reserve(&self, pair_id: usize) -> SingleValueMapper<BigUint>;
+    #[view(viewPair)]
+    fn view_pair(&self, pair_id: usize) -> Pair<Self::Api>;
 }

@@ -17,4 +17,7 @@ pub trait XexchangeProxy {
 
     #[view(getReservesAndTotalSupply)]
     fn get_reserves_and_total_supply(&self) -> MultiValue3<BigUint, BigUint, BigUint>;
+
+    #[view(getLpTokenIdentifier)]
+    fn get_lp_token_identifier(&self) -> TokenIdentifier;
 }

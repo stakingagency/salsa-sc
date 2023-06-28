@@ -1,8 +1,11 @@
 multiversx_sc::imports!();
 
 use crate::common::config::State;
+use crate::common::storage_cache::StorageCache;
 use crate::{common::consts::*, common::errors::*};
-use crate::proxies::onedex_proxy;
+use crate::proxies::onedex_proxy::{self, Pair};
+
+use super::onedex_cache::OnedexCache;
 
 #[multiversx_sc::module]
 pub trait OnedexModule:
@@ -21,6 +24,11 @@ pub trait OnedexModule:
             !self.onedex_sc().is_empty(),
             ERROR_ONEDEX_SC,
         );
+        
+        if self.onedex_lp().is_empty() {
+            let pair = self.get_onedex_pair_info();
+            self.onedex_lp().set(pair.lp_token_id);
+        }
 
         self.onedex_arbitrage().set(State::Active);
     }
@@ -47,6 +55,9 @@ pub trait OnedexModule:
     #[storage_mapper("onedex_pair_id")]
     fn onedex_pair_id(&self) -> SingleValueMapper<usize>;
 
+    #[storage_mapper("onedex_lp")]
+    fn onedex_lp(&self) -> SingleValueMapper<TokenIdentifier>;
+
     #[only_owner]
     #[endpoint(setOnedexSC)]
     fn set_onedex_sc(&self, address: ManagedAddress) {
@@ -59,76 +70,86 @@ pub trait OnedexModule:
         self.onedex_pair_id().set(id);
     }
 
-    fn get_onedex_reserves(&self, pair_id: usize) -> (BigUint, BigUint) {
+    fn get_onedex_pair_info(&self) -> Pair<Self::Api> {
+        let pair_id = self.onedex_pair_id().get();
         let onedex_sc_address = self.onedex_sc().get();
-        let ls_reserve: BigUint = self.onedex_proxy_obj()
-            .contract(onedex_sc_address.clone())
-            .pair_first_token_reserve(pair_id)
-            .execute_on_dest_context();
-        let egld_reserve: BigUint = self.onedex_proxy_obj()
-            .contract(onedex_sc_address.clone())
-            .pair_second_token_reserve(pair_id)
+        let pair: Pair<Self::Api> = self.onedex_proxy_obj()
+            .contract(onedex_sc_address)
+            .view_pair(pair_id)
             .execute_on_dest_context();
 
-        (ls_reserve, egld_reserve)
+        pair
     }
 
-    fn get_onedex_amount_out(&self, in_token: &TokenIdentifier, in_amount: &BigUint) -> BigUint {
-        let onedex_sc_address = self.onedex_sc().get();
-        let wegld_token_id = self.wegld_id().get();
-        let liquid_token_id = self.liquid_token_id().get_token_id();
-        let (first_token, second_token) = if in_token == &wegld_token_id {
-            (wegld_token_id, liquid_token_id)
+    fn get_onedex_amount_out(
+        &self,
+        is_buy: bool,
+        in_amount: &BigUint,
+        storage_cache: &StorageCache<Self>,
+        onedex_cache: &OnedexCache<Self>,
+    ) -> BigUint {
+        let (first_token, second_token) = if is_buy {
+            (storage_cache.wegld_id.clone(), storage_cache.liquid_token_id.clone())
         } else {
-            (liquid_token_id, wegld_token_id)
+            (storage_cache.liquid_token_id.clone(), storage_cache.wegld_id.clone())
         };
         self.onedex_proxy_obj()
-            .contract(onedex_sc_address.clone())
+            .contract(onedex_cache.sc_address.clone())
             .get_amount_out_view(&first_token, &second_token, in_amount)
             .execute_on_dest_context()
     }
 
     fn do_arbitrage_on_onedex(
-        &self, in_token: &TokenIdentifier, in_amount: BigUint, is_buy: bool,
+        &self,
+        is_buy: bool,
+        in_amount: BigUint,
+        storage_cache: &mut StorageCache<Self>,
+        onedex_cache: OnedexCache<Self>,
     ) -> (BigUint, BigUint) {
-        let out_amount = self.get_salsa_amount_out(&in_amount, is_buy);
-        let pair_id = self.onedex_pair_id().get();
-        let (ls_reserve, egld_reserve) = self.get_onedex_reserves(pair_id);
+        let out_amount = self.get_salsa_amount_out(&in_amount, is_buy, storage_cache);
         let amount_to_send_to_onedex =
-            self.get_optimal_quantity(in_amount, out_amount, egld_reserve, ls_reserve, is_buy);
+            self.get_optimal_quantity(
+                in_amount, out_amount, onedex_cache.egld_reserve.clone(), onedex_cache.liquid_reserve.clone(), is_buy,
+            );
         if amount_to_send_to_onedex < MIN_EGLD {
             return (BigUint::zero(), BigUint::zero())
         }
 
-        let amount_from_onedex = self.get_onedex_amount_out(in_token, &amount_to_send_to_onedex);
-        let amount_from_salsa = self.get_salsa_amount_out(&amount_to_send_to_onedex, is_buy);
+        let amount_from_onedex =
+            self.get_onedex_amount_out(is_buy, &amount_to_send_to_onedex, storage_cache, &onedex_cache);
+        let amount_from_salsa =
+            self.get_salsa_amount_out(&amount_to_send_to_onedex, is_buy, storage_cache);
         if amount_from_onedex < amount_from_salsa {
             return (BigUint::zero(), BigUint::zero())
         }
-        self.swap_on_onedex(in_token, &amount_to_send_to_onedex, &amount_from_salsa);
+        self.swap_on_onedex(is_buy, &amount_to_send_to_onedex, &amount_from_salsa, &storage_cache, onedex_cache);
 
         (amount_to_send_to_onedex, amount_from_salsa)
     }
 
-    fn swap_on_onedex(&self, in_token: &TokenIdentifier, in_amount: &BigUint, out_amount: &BigUint) {
-        let onedex_sc_address = self.onedex_sc().get();
-        let wegld_token_id = self.wegld_id().get();
-        let liquid_token_id = self.liquid_token_id().get_token_id();
+    fn swap_on_onedex(&self,
+        is_buy: bool,
+        in_amount: &BigUint,
+        out_amount: &BigUint,
+        storage_cache: &StorageCache<Self>,
+        onedex_cache: OnedexCache<Self>,
+    ) {
         let mut path: MultiValueEncoded<TokenIdentifier> = MultiValueEncoded::new();
-        if in_token == &wegld_token_id {
-            path.push(wegld_token_id);
-            path.push(liquid_token_id);
+        if is_buy {
+            path.push(storage_cache.wegld_id.clone());
+            path.push(storage_cache.liquid_token_id.clone());
             self.onedex_proxy_obj()
-                .contract(onedex_sc_address)
+                .contract(onedex_cache.sc_address.clone())
                 .swap_multi_tokens_fixed_input(out_amount, false, path)
                 .with_egld_transfer(in_amount.clone())
                 .execute_on_dest_context::<()>();
         } else {
-            path.push(liquid_token_id.clone());
-            path.push(wegld_token_id);
-            let payment = EsdtTokenPayment::new(liquid_token_id, 0, in_amount.clone());
+            path.push(storage_cache.liquid_token_id.clone());
+            path.push(storage_cache.wegld_id.clone());
+            let payment =
+                EsdtTokenPayment::new(storage_cache.liquid_token_id.clone(), 0, in_amount.clone());
             self.onedex_proxy_obj()
-                .contract(onedex_sc_address)
+                .contract(onedex_cache.sc_address.clone())
                 .swap_multi_tokens_fixed_input(out_amount, true, path)
                 .with_esdt_transfer(payment)
                 .execute_on_dest_context::<()>();
