@@ -109,7 +109,7 @@ pub trait OnedexModule:
         let out_amount = self.get_salsa_amount_out(&in_amount, is_buy, storage_cache);
         let amount_to_send_to_onedex =
             self.get_optimal_quantity(
-                in_amount, out_amount, onedex_cache.egld_reserve.clone(), onedex_cache.liquid_reserve.clone(), is_buy,
+                in_amount, out_amount, &onedex_cache.egld_reserve, &onedex_cache.liquid_reserve, is_buy,
             );
         if amount_to_send_to_onedex < MIN_EGLD {
             return (BigUint::zero(), BigUint::zero())
@@ -122,7 +122,7 @@ pub trait OnedexModule:
         if amount_from_onedex < amount_from_salsa {
             return (BigUint::zero(), BigUint::zero())
         }
-        self.swap_on_onedex(is_buy, &amount_to_send_to_onedex, &amount_from_salsa, &storage_cache, onedex_cache);
+        self.swap_on_onedex(is_buy, &amount_to_send_to_onedex, &amount_from_salsa, storage_cache, onedex_cache);
 
         (amount_to_send_to_onedex, amount_from_salsa)
     }
@@ -135,21 +135,23 @@ pub trait OnedexModule:
         onedex_cache: OnedexCache<Self>,
     ) {
         let mut path: MultiValueEncoded<TokenIdentifier> = MultiValueEncoded::new();
+        let wegld_id = storage_cache.wegld_id.clone();
+        let liquid_token_id = storage_cache.liquid_token_id.clone();
         if is_buy {
-            path.push(storage_cache.wegld_id.clone());
-            path.push(storage_cache.liquid_token_id.clone());
+            path.push(wegld_id);
+            path.push(liquid_token_id);
             self.onedex_proxy_obj()
-                .contract(onedex_cache.sc_address.clone())
+                .contract(onedex_cache.sc_address)
                 .swap_multi_tokens_fixed_input(out_amount, false, path)
                 .with_egld_transfer(in_amount.clone())
                 .execute_on_dest_context::<()>();
         } else {
-            path.push(storage_cache.liquid_token_id.clone());
-            path.push(storage_cache.wegld_id.clone());
+            path.push(liquid_token_id.clone());
+            path.push(wegld_id);
             let payment =
-                EsdtTokenPayment::new(storage_cache.liquid_token_id.clone(), 0, in_amount.clone());
+                EsdtTokenPayment::new(liquid_token_id, 0, in_amount.clone());
             self.onedex_proxy_obj()
-                .contract(onedex_cache.sc_address.clone())
+                .contract(onedex_cache.sc_address)
                 .swap_multi_tokens_fixed_input(out_amount, true, path)
                 .with_esdt_transfer(payment)
                 .execute_on_dest_context::<()>();

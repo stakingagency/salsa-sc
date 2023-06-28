@@ -24,8 +24,8 @@ pub trait HelpersModule:
         &self,
         in_amount: BigUint,
         out_amount: BigUint,
-        reserve1: BigUint,
-        reserve2: BigUint,
+        reserve1: &BigUint,
+        reserve2: &BigUint,
         is_buy: bool
     ) -> BigUint {
         if in_amount == 0 || out_amount == 0 {
@@ -37,9 +37,9 @@ pub trait HelpersModule:
         } else {
             (reserve2, reserve1)
         };
-        let mut x = &in_reserve * &out_reserve * &in_amount / &out_amount;
+        let mut x = in_reserve * out_reserve * &in_amount / &out_amount;
         x = x.sqrt();
-        if x < in_reserve {
+        if &x < in_reserve {
             return BigUint::zero()
         }
 

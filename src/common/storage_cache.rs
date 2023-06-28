@@ -27,3 +27,13 @@ where
         }
     }
 }
+
+impl<'a, C> Drop for StorageCache<'a, C>
+where
+    C: ConfigModule,
+{
+    fn drop(&mut self) {
+        self.sc_ref.total_egld_staked().set(&self.total_stake);
+        self.sc_ref.liquid_token_supply().set(&self.liquid_supply);
+    }
+}
