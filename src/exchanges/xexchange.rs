@@ -67,15 +67,12 @@ pub trait XexchangeModule:
     }
 
     fn do_arbitrage_on_xexchange(
-        &self, in_token: &TokenIdentifier, in_amount: &BigUint, is_buy: bool,
+        &self, in_token: &TokenIdentifier, in_amount: BigUint, is_buy: bool,
     ) -> (BigUint, BigUint) {
-        let out_amount = self.get_salsa_amount_out(in_amount, is_buy);
+        let out_amount = self.get_salsa_amount_out(&in_amount, is_buy);
         let (ls_reserve, egld_reserve) = self.get_xexchange_reserves();
-        let amount_to_send_to_xexchange = if is_buy {
-            self.get_buy_quantity(in_amount.clone(), out_amount.clone(), egld_reserve, ls_reserve)
-        } else {
-            self.get_sell_quantity(in_amount.clone(), out_amount.clone(), ls_reserve, egld_reserve)
-        };
+        let amount_to_send_to_xexchange =
+            self.get_optimal_quantity(in_amount, out_amount, egld_reserve, ls_reserve, is_buy);
         if amount_to_send_to_xexchange < MIN_EGLD {
             return (BigUint::zero(), BigUint::zero())
         }
