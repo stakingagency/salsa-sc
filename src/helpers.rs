@@ -2,6 +2,7 @@ multiversx_sc::imports!();
 
 use crate::common::config::{Undelegation, UndelegationType};
 use crate::common::consts::MIN_EGLD;
+use crate::common::storage_cache::StorageCache;
 use crate::{common::errors::*};
 
 #[multiversx_sc::module]
@@ -168,25 +169,25 @@ pub trait HelpersModule:
         }
     }
 
-    fn get_salsa_amount_out(&self, amount_in: &BigUint, is_buy: bool) -> BigUint {
+    fn get_salsa_amount_out(&self, amount_in: &BigUint, is_buy: bool, storage_cache: &mut StorageCache<Self>) -> BigUint {
         if is_buy {
-            self.add_liquidity(amount_in, false)
+            self.add_liquidity(amount_in, false, storage_cache)
         } else {
-            self.remove_liquidity(amount_in, false)
+            self.remove_liquidity(amount_in, false, storage_cache)
         }
     }
 
-    fn add_liquidity(&self, new_stake_amount: &BigUint, update_storage: bool) -> BigUint {
-        let total_egld_staked = self.total_egld_staked().get();
-        let liquid_token_supply = self.liquid_token_supply().get();
-        let mut ls_amount = new_stake_amount + &total_egld_staked;
-        if total_egld_staked > 0 && liquid_token_supply > 0 {
-            ls_amount = new_stake_amount * &liquid_token_supply / &total_egld_staked;
+    fn add_liquidity(&self, new_stake_amount: &BigUint, update_storage: bool, storage_cache: &mut StorageCache<Self>) -> BigUint {
+        let mut ls_amount = new_stake_amount + &storage_cache.total_stake;
+        if storage_cache.total_stake > 0 && storage_cache.liquid_supply > 0 {
+            ls_amount = new_stake_amount * &storage_cache.liquid_supply / &storage_cache.total_stake;
         }
 
         if update_storage {
             require!(ls_amount > 0, ERROR_NOT_ENOUGH_LIQUID_SUPPLY);
 
+            storage_cache.total_stake += new_stake_amount;
+            storage_cache.liquid_supply += &ls_amount;
             self.total_egld_staked()
                 .update(|value| *value += new_stake_amount);
             self.liquid_token_supply()
@@ -196,19 +197,19 @@ pub trait HelpersModule:
         ls_amount
     }
 
-    fn remove_liquidity(&self, ls_amount: &BigUint, update_storage: bool) -> BigUint {
-        let total_egld_staked = self.total_egld_staked().get();
-        let liquid_token_supply = self.liquid_token_supply().get();
+    fn remove_liquidity(&self, ls_amount: &BigUint, update_storage: bool, storage_cache: &mut StorageCache<Self>) -> BigUint {
         require!(
-            &liquid_token_supply >= ls_amount,
+            &storage_cache.liquid_supply >= ls_amount,
             ERROR_NOT_ENOUGH_LIQUID_SUPPLY
         );
 
-        let egld_amount = ls_amount * &total_egld_staked / &liquid_token_supply;
+        let egld_amount = ls_amount * &storage_cache.total_stake / &storage_cache.liquid_supply;
 
         if update_storage {
             require!(ls_amount > &0 && egld_amount > 0, ERROR_BAD_PAYMENT_AMOUNT);
 
+            storage_cache.total_stake -= &egld_amount;
+            storage_cache.liquid_supply -= ls_amount;
             self.total_egld_staked()
                 .update(|value| *value -= &egld_amount);
             self.liquid_token_supply()

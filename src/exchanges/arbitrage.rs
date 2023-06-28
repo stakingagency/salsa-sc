@@ -1,7 +1,11 @@
 multiversx_sc::imports!();
 
+use crate::common::storage_cache::StorageCache;
 use crate::common::{errors::*, config::State};
 use crate::proxies::wrap_proxy;
+
+use super::onedex_cache::OnedexCache;
+use super::xexchange_cache::XexchangeCache;
 
 #[multiversx_sc::module]
 pub trait ArbitrageModule:
@@ -46,7 +50,7 @@ pub trait ArbitrageModule:
     fn arbitrage(&self) -> SingleValueMapper<State>;
 
     fn do_arbitrage(
-        &self, in_token: &TokenIdentifier, in_amount: BigUint
+        &self, is_buy: bool, in_amount: BigUint, storage_cache: &mut StorageCache<Self>,
     ) -> (BigUint, BigUint) {
         if !self.is_arbitrage_active() {
             return (BigUint::zero(), BigUint::zero())
@@ -54,16 +58,17 @@ pub trait ArbitrageModule:
 
         let (mut sold_amount, mut bought_amount) = (BigUint::zero(), BigUint::zero());
         let (old_egld_balance, old_ls_balance) = self.get_sc_balances();
-        let is_buy = in_token == &self.wegld_id().get();
         if self.is_onedex_arbitrage_active() {
+            let onedex_cache = OnedexCache::new(self);
             let (sold, bought) =
-                self.do_arbitrage_on_onedex(in_token, in_amount.clone(), is_buy);
+                self.do_arbitrage_on_onedex(is_buy, in_amount.clone(), storage_cache, onedex_cache);
             sold_amount += &sold;
             bought_amount += &bought;
         }
         if self.is_xexchange_arbitrage_active() && in_amount > sold_amount {
+            let xexchange_cache = XexchangeCache::new(self);
             let (sold, bought) =
-                self.do_arbitrage_on_xexchange(in_token, in_amount - &sold_amount, is_buy);
+                self.do_arbitrage_on_xexchange(is_buy, in_amount - &sold_amount, storage_cache, xexchange_cache);
             sold_amount += sold;
             bought_amount += bought;
         }
@@ -79,6 +84,7 @@ pub trait ArbitrageModule:
                 let profit = &swapped_amount - &bought_amount;
                 if profit > 0 {
                     self.burn_liquid_token(&profit);
+                    storage_cache.liquid_supply -= &profit;
                     self.liquid_token_supply().update(|value| *value -= profit);
                 }
             }

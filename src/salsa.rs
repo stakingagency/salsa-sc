@@ -10,7 +10,7 @@ pub mod exchanges;
 pub mod knights;
 pub mod heirs;
 
-use crate::{common::config::*, common::consts::*, common::errors::*};
+use crate::{common::config::*, common::{consts::*, storage_cache::StorageCache}, common::errors::*};
 
 #[multiversx_sc::contract]
 pub trait SalsaContract<ContractReader>:
@@ -26,7 +26,7 @@ pub trait SalsaContract<ContractReader>:
 {
     #[init]
     fn init(&self) {
-        // self.state().set(State::Inactive);
+        self.state().set(State::Inactive);
     }
 
     // endpoints: liquid delegation
@@ -59,11 +59,12 @@ pub trait SalsaContract<ContractReader>:
             self.send().direct_egld(&caller, &BigUint::zero());
         }
 
+        let mut storage_cache = StorageCache::new(self);
+        
         // arbitrage
         let (sold_amount, bought_amount) =
-            self.do_arbitrage(&self.wegld_id().get(), delegate_amount.clone());
+            self.do_arbitrage(true, delegate_amount.clone(), &mut storage_cache);
 
-        let liquid_token_id = self.liquid_token_id().get_token_id();
         if bought_amount > 0 {
             if custodial {
                 self.user_delegation(&caller)
@@ -73,7 +74,7 @@ pub trait SalsaContract<ContractReader>:
             } else {
                 self.send().direct_esdt(
                     &caller,
-                    &liquid_token_id,
+                    &storage_cache.liquid_token_id,
                     0,
                     &bought_amount,
                 );
@@ -82,10 +83,10 @@ pub trait SalsaContract<ContractReader>:
 
         delegate_amount -= &sold_amount;
         if delegate_amount == 0 {
-            return EsdtTokenPayment::new(liquid_token_id, 0, sold_amount)
+            return EsdtTokenPayment::new(storage_cache.liquid_token_id.clone(), 0, sold_amount)
         }
 
-        let ls_amount = self.add_liquidity(&delegate_amount, true);
+        let ls_amount = self.add_liquidity(&delegate_amount, true, &mut storage_cache);
 
         let delegation_contract = self.provider_address().get();
         let gas_for_async_call = self.get_gas_for_async_call();
@@ -160,11 +161,11 @@ pub trait SalsaContract<ContractReader>:
         caller: ManagedAddress,
         undelegate_amount: BigUint,
     ) {
+        let mut storage_cache = StorageCache::new(self);
         let (payment_token, mut payment_amount) = self.call_value().egld_or_single_fungible_esdt();
-        let liquid_token_id = self.liquid_token_id().get_token_id();
         if payment_amount > 0 {
             require!(
-                payment_token == liquid_token_id,
+                payment_token == storage_cache.liquid_token_id,
                 ERROR_BAD_PAYMENT_TOKEN
             );
         }
@@ -189,7 +190,7 @@ pub trait SalsaContract<ContractReader>:
         // arbitrage
         if self.user_knight(&caller).is_empty() {
             let (sold_amount, bought_amount) =
-                self.do_arbitrage(&liquid_token_id, payment_amount.clone());
+                self.do_arbitrage(false, payment_amount.clone(), &mut storage_cache);
             if bought_amount > 0 {
                 self.send().direct_egld(&caller, &bought_amount);
             }
@@ -200,7 +201,7 @@ pub trait SalsaContract<ContractReader>:
         }
 
         // normal undelegate
-        let egld_to_undelegate = self.remove_liquidity(&payment_amount, true);
+        let egld_to_undelegate = self.remove_liquidity(&payment_amount, true, &mut storage_cache);
         self.burn_liquid_token(&payment_amount);
         self.egld_to_undelegate()
             .update(|value| *value += &egld_to_undelegate);
@@ -436,11 +437,11 @@ pub trait SalsaContract<ContractReader>:
                 .update(|value| *value -= &undelegate_amount);
         }
 
+        let mut storage_cache = StorageCache::new(self);
         let (payment_token, mut payment_amount) = self.call_value().egld_or_single_fungible_esdt();
-        let liquid_token_id = self.liquid_token_id().get_token_id();
         if payment_amount > 0 {
             require!(
-                payment_token == liquid_token_id,
+                payment_token == storage_cache.liquid_token_id,
                 ERROR_BAD_PAYMENT_TOKEN
             );
         }
@@ -456,7 +457,7 @@ pub trait SalsaContract<ContractReader>:
 
         // arbitrage
         let (sold_amount, bought_amount) =
-            self.do_arbitrage(&liquid_token_id, payment_amount.clone());
+            self.do_arbitrage(false, payment_amount.clone(), &mut storage_cache);
         if bought_amount > 0 {
             self.send().direct_egld(&caller, &bought_amount);
         }
@@ -466,7 +467,7 @@ pub trait SalsaContract<ContractReader>:
         };
 
         // normal unDelegateNow
-        let egld_to_undelegate = self.remove_liquidity(&payment_amount, true);
+        let egld_to_undelegate = self.remove_liquidity(&payment_amount, true, &mut storage_cache);
         self.burn_liquid_token(&payment_amount);
         require!(
             egld_to_undelegate >= MIN_EGLD,

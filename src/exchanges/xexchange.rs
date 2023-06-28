@@ -1,9 +1,12 @@
 multiversx_sc::imports!();
 
 use crate::common::config::State;
+use crate::common::storage_cache::StorageCache;
 use crate::{common::consts::*, common::errors::*};
 use crate::proxies::xexchange_proxy;
 use crate::proxies::wrap_proxy;
+
+use super::xexchange_cache::{XexchangeCache};
 
 #[multiversx_sc::module]
 pub trait XexchangeModule:
@@ -18,6 +21,15 @@ pub trait XexchangeModule:
             !self.xexchange_sc().is_empty(),
             ERROR_XEXCHANGE_SC,
         );
+
+        if self.xexchange_lp().is_empty() {
+            let xexchange_sc_address = self.xexchange_sc().get();
+            let lp: TokenIdentifier = self.xexchange_proxy_obj()
+                .contract(xexchange_sc_address)
+                .get_lp_token_identifier()
+                .execute_on_dest_context();
+            self.xexchange_lp().set(lp);
+        }
 
         self.xexchange_arbitrage().set(State::Active);
     }
@@ -41,80 +53,102 @@ pub trait XexchangeModule:
     #[storage_mapper("xexchange_sc")]
     fn xexchange_sc(&self) -> SingleValueMapper<ManagedAddress>;
 
+    #[storage_mapper("xexchange_lp")]
+    fn xexchange_lp(&self) -> SingleValueMapper<TokenIdentifier>;
+
     #[only_owner]
     #[endpoint(setXexchangeSC)]
     fn set_xexchange_sc(&self, address: ManagedAddress) {
         self.xexchange_sc().set(address);
     }
 
-    fn get_xexchange_reserves(&self) -> (BigUint, BigUint) {
+    fn get_xexchange_reserves(&self) -> (BigUint, BigUint, BigUint) {
         let xexchange_sc_address = self.xexchange_sc().get();
         let res: MultiValue3<BigUint, BigUint, BigUint> = self.xexchange_proxy_obj()
             .contract(xexchange_sc_address)
             .get_reserves_and_total_supply()
             .execute_on_dest_context();
-        let (ls_reserve, egld_reserve, _) = res.into_tuple();
+        let (ls_reserve, egld_reserve, lp_supply) = res.into_tuple();
 
-        (ls_reserve, egld_reserve)
+        (ls_reserve, egld_reserve, lp_supply)
     }
 
-    fn get_xexchange_amount_out(&self, in_token: &TokenIdentifier, in_amount: &BigUint) -> BigUint {
-        let xexchange_sc_address = self.xexchange_sc().get();
+    fn get_xexchange_amount_out(
+        &self,
+        is_buy: bool,
+        in_amount: &BigUint,
+        storage_cache: &StorageCache<Self>,
+        xexchange_cache: &XexchangeCache<Self>
+    ) -> BigUint {
+        let in_token = if is_buy {
+            storage_cache.wegld_id.clone()
+        } else {
+            storage_cache.liquid_token_id.clone()
+        };
         self.xexchange_proxy_obj()
-            .contract(xexchange_sc_address.clone())
+            .contract(xexchange_cache.sc_address.clone())
             .get_amount_out_view(in_token, in_amount)
             .execute_on_dest_context()
     }
 
     fn do_arbitrage_on_xexchange(
-        &self, in_token: &TokenIdentifier, in_amount: BigUint, is_buy: bool,
+        &self, is_buy: bool, in_amount: BigUint, storage_cache: &mut StorageCache<Self>, xexchange_cache: XexchangeCache<Self>,
     ) -> (BigUint, BigUint) {
-        let out_amount = self.get_salsa_amount_out(&in_amount, is_buy);
-        let (ls_reserve, egld_reserve) = self.get_xexchange_reserves();
+        let out_amount = self.get_salsa_amount_out(&in_amount, is_buy, storage_cache);
         let amount_to_send_to_xexchange =
-            self.get_optimal_quantity(in_amount, out_amount, egld_reserve, ls_reserve, is_buy);
+            self.get_optimal_quantity(
+                in_amount, out_amount, xexchange_cache.egld_reserve.clone(), xexchange_cache.liquid_reserve.clone(), is_buy
+            );
         if amount_to_send_to_xexchange < MIN_EGLD {
             return (BigUint::zero(), BigUint::zero())
         }
 
-        let amount_from_xexchange = self.get_xexchange_amount_out(in_token, &amount_to_send_to_xexchange);
-        let amount_from_salsa = self.get_salsa_amount_out(&amount_to_send_to_xexchange, is_buy);
+        let amount_from_xexchange =
+            self.get_xexchange_amount_out(is_buy, &amount_to_send_to_xexchange, storage_cache, &xexchange_cache);
+        let amount_from_salsa =
+            self.get_salsa_amount_out(&amount_to_send_to_xexchange, is_buy, storage_cache);
         if amount_from_xexchange < amount_from_salsa {
             return (BigUint::zero(), BigUint::zero())
         }
-        self.swap_on_xexchange(in_token, &amount_to_send_to_xexchange, &amount_from_salsa);
+        self.swap_on_xexchange(is_buy, &amount_to_send_to_xexchange, &amount_from_salsa, storage_cache, xexchange_cache);
 
         (amount_to_send_to_xexchange, amount_from_salsa)
     }
 
-    fn swap_on_xexchange(&self, in_token: &TokenIdentifier, in_amount: &BigUint, out_amount: &BigUint) {
-        let xexchange_sc_address = self.xexchange_sc().get();
-        let wegld_token_id = self.wegld_id().get();
-        let liquid_token_id = self.liquid_token_id().get_token_id();
-        if in_token == &wegld_token_id {
+    fn swap_on_xexchange(
+        &self,
+        is_buy: bool,
+        in_amount: &BigUint,
+        out_amount: &BigUint,
+        storage_cache: &StorageCache<Self>,
+        xexchange_cache: XexchangeCache<Self>,
+    ) {
+        if is_buy {
             self.wrap_proxy_obj()
-                .contract(self.wrap_sc().get())
+                .contract(xexchange_cache.wrap_sc_address)
                 .wrap_egld()
                 .with_egld_transfer(in_amount.clone())
                 .execute_on_dest_context::<()>();
-            let payment = EsdtTokenPayment::new(wegld_token_id.clone(), 0, in_amount.clone());
+            let payment =
+                EsdtTokenPayment::new(storage_cache.wegld_id.clone(), 0, in_amount.clone());
             self.xexchange_proxy_obj()
-                .contract(xexchange_sc_address)
-                .swap_tokens_fixed_input(liquid_token_id, out_amount)
+                .contract(xexchange_cache.sc_address)
+                .swap_tokens_fixed_input(storage_cache.liquid_token_id.clone(), out_amount)
                 .with_esdt_transfer(payment)
                 .execute_on_dest_context::<()>();
         } else {
-            let mut payment = EsdtTokenPayment::new(liquid_token_id, 0, in_amount.clone());
+            let mut payment =
+                EsdtTokenPayment::new(storage_cache.liquid_token_id.clone(), 0, in_amount.clone());
             self.xexchange_proxy_obj()
-                .contract(xexchange_sc_address)
-                .swap_tokens_fixed_input(wegld_token_id.clone(), out_amount)
+                .contract(xexchange_cache.sc_address)
+                .swap_tokens_fixed_input(storage_cache.wegld_id.clone(), out_amount)
                 .with_esdt_transfer(payment)
                 .execute_on_dest_context::<()>();
             let wegld_balance =
-                self.blockchain().get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(wegld_token_id.clone()), 0);
-            payment = EsdtTokenPayment::new(wegld_token_id, 0, wegld_balance);
+                self.blockchain().get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(storage_cache.wegld_id.clone()), 0);
+            payment = EsdtTokenPayment::new(storage_cache.wegld_id.clone(), 0, wegld_balance);
             self.wrap_proxy_obj()
-                .contract(self.wrap_sc().get())
+                .contract(xexchange_cache.wrap_sc_address)
                 .unwrap_egld()
                 .with_esdt_transfer(payment)
                 .execute_on_dest_context::<()>();
