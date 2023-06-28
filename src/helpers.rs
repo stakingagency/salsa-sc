@@ -19,46 +19,40 @@ pub trait HelpersModule:
         (balance, ls_balance)
     }
 
-    fn get_buy_quantity(&self, egld_amount: BigUint, ls_amount: BigUint, egld_reserve: BigUint, ls_reserve: BigUint) -> BigUint {
-        require!(ls_amount > 0, ERROR_INSUFFICIENT_AMOUNT);
-
-        let mut x = &egld_reserve * &ls_reserve * &egld_amount / &ls_amount;
-        x = x.sqrt();
-        if x < egld_reserve {
+    fn get_optimal_quantity(
+        &self,
+        in_amount: BigUint,
+        out_amount: BigUint,
+        reserve1: BigUint,
+        reserve2: BigUint,
+        is_buy: bool
+    ) -> BigUint {
+        if in_amount == 0 || out_amount == 0 {
             return BigUint::zero()
         }
 
-        x -= egld_reserve;
-        if x > egld_amount {
-            x = egld_amount.clone()
-        }
-
-        self.adjust_quantity_if_dust_remaining(&egld_amount, x)
-    }
-
-    fn get_sell_quantity(&self, ls_amount: BigUint, egld_amount: BigUint, ls_reserve: BigUint, egld_reserve: BigUint) -> BigUint {
-        require!(egld_amount > 0, ERROR_INSUFFICIENT_AMOUNT);
-        require!(ls_amount > 0, ERROR_INSUFFICIENT_AMOUNT);
-
-        let mut x = &egld_reserve * &ls_reserve * &egld_amount / &ls_amount;
+        let (in_reserve, out_reserve) = if is_buy {
+            (reserve1, reserve2)
+        } else {
+            (reserve2, reserve1)
+        };
+        let mut x = &in_reserve * &out_reserve * &in_amount / &out_amount;
         x = x.sqrt();
-        let y = &ls_reserve * &egld_amount / &ls_amount;
-        if x < y {
+        if x < in_reserve {
             return BigUint::zero()
         }
 
-        x -= y;
-        x = x * &ls_amount / &egld_amount;
-        if x > ls_amount {
-            x = ls_amount.clone()
+        x -= in_reserve;
+        if x > in_amount {
+            x = in_amount.clone();
         }
 
-        self.adjust_quantity_if_dust_remaining(&ls_amount, x)
+        self.adjust_quantity_if_dust_remaining(in_amount, x)
     }
 
-    fn adjust_quantity_if_dust_remaining(&self, in_amount: &BigUint, quantity: BigUint) -> BigUint {
-        let rest = in_amount - &quantity;
-        if rest < MIN_EGLD && rest > 0 && in_amount >= &MIN_EGLD {
+    fn adjust_quantity_if_dust_remaining(&self, in_amount: BigUint, quantity: BigUint) -> BigUint {
+        let rest = &in_amount - &quantity;
+        if rest < MIN_EGLD && rest > 0 && in_amount >= MIN_EGLD {
             in_amount - MIN_EGLD
         } else {
             quantity

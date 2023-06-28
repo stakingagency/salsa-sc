@@ -46,7 +46,7 @@ pub trait ArbitrageModule:
     fn arbitrage(&self) -> SingleValueMapper<State>;
 
     fn do_arbitrage(
-        &self, in_token: &TokenIdentifier, in_amount: &BigUint
+        &self, in_token: &TokenIdentifier, in_amount: BigUint
     ) -> (BigUint, BigUint) {
         if !self.is_arbitrage_active() {
             return (BigUint::zero(), BigUint::zero())
@@ -57,13 +57,13 @@ pub trait ArbitrageModule:
         let is_buy = in_token == &self.wegld_id().get();
         if self.is_onedex_arbitrage_active() {
             let (sold, bought) =
-                self.do_arbitrage_on_onedex(in_token, in_amount, is_buy);
+                self.do_arbitrage_on_onedex(in_token, in_amount.clone(), is_buy);
             sold_amount += &sold;
             bought_amount += &bought;
         }
-        if self.is_xexchange_arbitrage_active() && in_amount > &sold_amount {
+        if self.is_xexchange_arbitrage_active() && in_amount > sold_amount {
             let (sold, bought) =
-                self.do_arbitrage_on_xexchange(in_token, &(in_amount - &sold_amount), is_buy);
+                self.do_arbitrage_on_xexchange(in_token, in_amount - &sold_amount, is_buy);
             sold_amount += sold;
             bought_amount += bought;
         }

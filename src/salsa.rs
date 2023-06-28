@@ -26,7 +26,7 @@ pub trait SalsaContract<ContractReader>:
 {
     #[init]
     fn init(&self) {
-        self.state().set(State::Inactive);
+        // self.state().set(State::Inactive);
     }
 
     // endpoints: liquid delegation
@@ -61,7 +61,7 @@ pub trait SalsaContract<ContractReader>:
 
         // arbitrage
         let (sold_amount, bought_amount) =
-            self.do_arbitrage(&self.wegld_id().get(), &delegate_amount);
+            self.do_arbitrage(&self.wegld_id().get(), delegate_amount.clone());
 
         let liquid_token_id = self.liquid_token_id().get_token_id();
         if bought_amount > 0 {
@@ -189,7 +189,7 @@ pub trait SalsaContract<ContractReader>:
         // arbitrage
         if self.user_knight(&caller).is_empty() {
             let (sold_amount, bought_amount) =
-                self.do_arbitrage(&liquid_token_id, &payment_amount);
+                self.do_arbitrage(&liquid_token_id, payment_amount.clone());
             if bought_amount > 0 {
                 self.send().direct_egld(&caller, &bought_amount);
             }
@@ -456,7 +456,7 @@ pub trait SalsaContract<ContractReader>:
 
         // arbitrage
         let (sold_amount, bought_amount) =
-            self.do_arbitrage(&liquid_token_id, &payment_amount);
+            self.do_arbitrage(&liquid_token_id, payment_amount.clone());
         if bought_amount > 0 {
             self.send().direct_egld(&caller, &bought_amount);
         }
