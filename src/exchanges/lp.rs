@@ -13,9 +13,13 @@ crate::common::config::ConfigModule
 + crate::exchanges::xexchange::XexchangeModule
 + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
+    #[endpoint(addLP)]
     fn add_lp(&self) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
-        require!(self.is_arbitrage_active(), ERROR_ARBITRAGE_NOT_ACTIVE);
+
+        if !self.is_arbitrage_active() {
+            return
+        }
 
         let storage_cache = StorageCache::new(self);
         let mut lp_cache = LpCache::new(self);
@@ -139,17 +143,27 @@ crate::common::config::ConfigModule
         lp_cache.legld_in_lp += added_legld;
     }
 
-    fn remove_egld_lp(&self, amount: BigUint) {
-        require!(self.is_state_active(), ERROR_NOT_ACTIVE);
-        require!(self.is_arbitrage_active(), ERROR_ARBITRAGE_NOT_ACTIVE);
+    fn remove_egld_lp(&self, amount: BigUint, lp_cache: &mut LpCache<Self>) {
+        if !self.is_arbitrage_active() {
+            return
+        }
 
-        let mut lp_cache = LpCache::new(self);
-        require!(amount <= lp_cache.egld_in_lp, ERROR_INSUFFICIENT_FUNDS);
+        require!(amount <= &lp_cache.excess_lp_egld + &lp_cache.egld_in_lp, ERROR_INSUFFICIENT_FUNDS);
+
+        let mut left_amount = amount;
+        if lp_cache.excess_lp_egld > 0 {
+            if left_amount > lp_cache.excess_lp_egld {
+                left_amount -= &lp_cache.excess_lp_egld;
+                lp_cache.excess_lp_egld = BigUint::zero();
+            } else {
+                lp_cache.excess_lp_egld -= &left_amount;
+                return
+            }
+        }
 
         let storage_cache = StorageCache::new(self);
         let mut onedex_cache = OnedexCache::new(self);
         let mut xexchange_cache = XexchangeCache::new(self);
-        let mut left_amount = amount;
         let (old_egld_balance, old_ls_balance) = self.get_sc_balances();
 
         loop {
@@ -252,17 +266,27 @@ crate::common::config::ConfigModule
         }
     }
 
-    fn remove_legld_lp(&self, amount: BigUint) {
-        require!(self.is_state_active(), ERROR_NOT_ACTIVE);
-        require!(self.is_arbitrage_active(), ERROR_ARBITRAGE_NOT_ACTIVE);
+    fn remove_legld_lp(&self, amount: BigUint, lp_cache: &mut LpCache<Self>) {
+        if !self.is_arbitrage_active() {
+            return
+        }
 
-        let mut lp_cache = LpCache::new(self);
-        require!(amount <= lp_cache.legld_in_lp, ERROR_INSUFFICIENT_FUNDS);
+        require!(amount <= &lp_cache.excess_lp_legld + &lp_cache.legld_in_lp, ERROR_INSUFFICIENT_FUNDS);
+
+        let mut left_amount = amount;
+        if lp_cache.excess_lp_legld > 0 {
+            if left_amount > lp_cache.excess_lp_legld {
+                left_amount -= &lp_cache.excess_lp_legld;
+                lp_cache.excess_lp_legld = BigUint::zero();
+            } else {
+                lp_cache.excess_lp_legld -= &left_amount;
+                return
+            }
+        }
 
         let storage_cache = StorageCache::new(self);
         let mut onedex_cache = OnedexCache::new(self);
         let mut xexchange_cache = XexchangeCache::new(self);
-        let mut left_amount = amount;
         let (old_egld_balance, old_ls_balance) = self.get_sc_balances();
 
         loop {
