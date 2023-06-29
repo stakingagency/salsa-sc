@@ -927,7 +927,7 @@
             "type": "enum",
             "variants": [
                 {
-                    "name": "Inactive",
+                    "name": "InactiveKnight",
                     "discriminant": 0
                 },
                 {
@@ -935,7 +935,7 @@
                     "discriminant": 1
                 },
                 {
-                    "name": "Active",
+                    "name": "ActiveKnight",
                     "discriminant": 2
                 }
             ]

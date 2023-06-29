@@ -24,9 +24,9 @@ pub struct Undelegation<M: ManagedTypeApi> {
 
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
 pub enum KnightState {
-    Inactive,
+    InactiveKnight,
     PendingConfirmation,
-    Active,
+    ActiveKnight,
 }
 
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
