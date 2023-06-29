@@ -22,6 +22,7 @@ pub static ERROR_INSUFFICIENT_FUNDS: &[u8] = b"Insufficient funds";
 pub static ERROR_USER_NOT_DELEGATOR: &[u8] = b"You are not a custodial delegator";
 
 pub static ERROR_ARBITRAGE_ISSUE: &[u8] = b"Arbitrage issue";
+pub static ERROR_ARBITRAGE_NOT_ACTIVE: &[u8] = b"Arbitrage not active";
 pub static ERROR_ONEDEX_SC: &[u8] = b"OneDex SC address not set";
 pub static ERROR_ONEDEX_PAIR_ID: &[u8] = b"OneDex pair ID not set";
 pub static ERROR_XEXCHANGE_SC: &[u8] = b"xExchange SC address not set";

@@ -101,7 +101,7 @@ pub trait XexchangeModule:
         let out_amount = self.get_salsa_amount_out(&in_amount, is_buy, storage_cache);
         let amount_to_send_to_xexchange =
             self.get_optimal_quantity(
-                in_amount, out_amount, &xexchange_cache.egld_reserve, &xexchange_cache.liquid_reserve, is_buy
+                in_amount, out_amount, &xexchange_cache.lp_info.egld_reserve, &xexchange_cache.lp_info.liquid_reserve, is_buy
             );
         if amount_to_send_to_xexchange < MIN_EGLD {
             return (BigUint::zero(), BigUint::zero())

@@ -49,4 +49,17 @@ pub trait OneDexProxy {
 
     #[view(viewPair)]
     fn view_pair(&self, pair_id: usize) -> Pair<Self::Api>;
+
+    #[payable("*")]
+    #[endpoint(addLiquidity)]
+    fn add_liquidity(&self, first_token_amount_min: BigUint, second_token_amount_min: BigUint);
+
+    #[payable("*")]
+    #[endpoint(removeLiquidity)]
+    fn remove_liquidity(
+        &self,
+        first_token_amount_min: BigUint,
+        second_token_amount_min: BigUint,
+        unwrap_required: bool
+    );
 }
