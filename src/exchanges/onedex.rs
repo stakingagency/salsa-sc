@@ -109,7 +109,7 @@ pub trait OnedexModule:
         let out_amount = self.get_salsa_amount_out(&in_amount, is_buy, storage_cache);
         let amount_to_send_to_onedex =
             self.get_optimal_quantity(
-                in_amount, out_amount, &onedex_cache.egld_reserve, &onedex_cache.liquid_reserve, is_buy,
+                in_amount, out_amount, &onedex_cache.lp_info.egld_reserve, &onedex_cache.lp_info.liquid_reserve, is_buy,
             );
         if amount_to_send_to_onedex < MIN_EGLD {
             return (BigUint::zero(), BigUint::zero())

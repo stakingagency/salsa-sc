@@ -60,7 +60,7 @@ pub trait SalsaContract<ContractReader>:
         }
 
         let mut storage_cache = StorageCache::new(self);
-        
+
         // arbitrage
         let (sold_amount, bought_amount) =
             self.do_arbitrage(true, delegate_amount.clone(), &mut storage_cache);
@@ -69,8 +69,7 @@ pub trait SalsaContract<ContractReader>:
             if custodial {
                 self.user_delegation(&caller)
                     .update(|value| *value += &bought_amount);
-                self.legld_in_custody()
-                    .update(|value| *value += bought_amount);
+                storage_cache.legld_in_custody += bought_amount;
             } else {
                 self.send().direct_esdt(
                     &caller,
@@ -112,14 +111,14 @@ pub trait SalsaContract<ContractReader>:
         liquid_tokens: BigUint,
         #[call_result] result: ManagedAsyncCallResult<()>,
     ) {
+        let mut storage_cache = StorageCache::new(self);
         match result {
             ManagedAsyncCallResult::Ok(()) => {
                 let user_payment = self.mint_liquid_token(liquid_tokens);
                 if custodial {
                     self.user_delegation(&caller)
                         .update(|value| *value += &user_payment.amount);
-                    self.legld_in_custody()
-                        .update(|value| *value += user_payment.amount);
+                    storage_cache.legld_in_custody += user_payment.amount;
                 } else {
                     self.send().direct_esdt(
                         &caller,
@@ -130,7 +129,6 @@ pub trait SalsaContract<ContractReader>:
                 }
             }
             ManagedAsyncCallResult::Err(_) => {
-                let mut storage_cache = StorageCache::new(self);
                 storage_cache.total_stake -= &staked_tokens;
                 storage_cache.liquid_supply -= &liquid_tokens;
                 self.send().direct_egld(&caller, &staked_tokens);
@@ -183,8 +181,7 @@ pub trait SalsaContract<ContractReader>:
             );
 
             self.user_delegation(&caller).set(&delegated_funds - &undelegate_amount);
-            self.legld_in_custody()
-                .update(|value| *value -= &undelegate_amount);
+            storage_cache.legld_in_custody -= &undelegate_amount;
         }
 
         // arbitrage
@@ -265,15 +262,14 @@ pub trait SalsaContract<ContractReader>:
         self.update_last_accessed();
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
+        let mut storage_cache = StorageCache::new(self);
         let (payment_token, payment_amount) = self.call_value().egld_or_single_fungible_esdt();
-        let liquid_token_id = self.liquid_token_id().get_token_id();
-        require!(payment_token == liquid_token_id, ERROR_BAD_PAYMENT_TOKEN);
+        require!(payment_token == storage_cache.liquid_token_id, ERROR_BAD_PAYMENT_TOKEN);
 
         let caller = self.blockchain().get_caller();
         self.user_delegation(&caller)
             .update(|value| *value += &payment_amount);
-        self.legld_in_custody()
-            .update(|value| *value += payment_amount);
+        storage_cache.legld_in_custody += payment_amount;
     }
 
     #[endpoint(removeFromCustody)]
@@ -284,22 +280,22 @@ pub trait SalsaContract<ContractReader>:
         let caller = self.blockchain().get_caller();
         self.check_knight_set(&caller);
 
+        let mut storage_cache = StorageCache::new(self);
         let delegation = self.user_delegation(&caller).take();
         require!(amount <= delegation, ERROR_INSUFFICIENT_FUNDS);
         require!(&delegation - &amount >= MIN_EGLD || delegation == amount, ERROR_DUST_REMAINING);
         require!(delegation > amount || self.user_heir(&caller).is_empty(), ERROR_HEIR_SET);
 
-        let liquid_token_id = self.liquid_token_id().get_token_id();
         self.send().direct_esdt(
             &caller,
-            &liquid_token_id,
+            &storage_cache.liquid_token_id,
             0,
             &amount,
         );
         if delegation > amount {
             self.user_delegation(&caller).set(&delegation - &amount);
         }
-        self.legld_in_custody().update(|value| *value -= amount);
+        storage_cache.legld_in_custody -= amount;
     }
 
     // endpoints: reserves
@@ -474,11 +470,10 @@ pub trait SalsaContract<ContractReader>:
             ERROR_BAD_PAYMENT_AMOUNT
         );
 
-        let available_egld_reserve = self.available_egld_reserve().get();
         let egld_to_undelegate_with_fee =
             egld_to_undelegate.clone() - egld_to_undelegate.clone() * fee / MAX_PERCENT;
         require!(
-            egld_to_undelegate_with_fee <= available_egld_reserve,
+            egld_to_undelegate_with_fee <= storage_cache.available_egld_reserve,
             ERROR_NOT_ENOUGH_FUNDS
         );
         require!(egld_to_undelegate <= total_egld_staked, ERROR_NOT_ENOUGH_FUNDS);
@@ -496,8 +491,7 @@ pub trait SalsaContract<ContractReader>:
         // update storage
         self.egld_to_undelegate()
             .update(|value| *value += &egld_to_undelegate);
-        self.available_egld_reserve()
-            .update(|value| *value -= &egld_to_undelegate_with_fee);
+        storage_cache.available_egld_reserve -= &egld_to_undelegate_with_fee;
         let total_rewards = &egld_to_undelegate - &egld_to_undelegate_with_fee;
         self.egld_reserve()
             .update(|value| *value += &total_rewards);

@@ -51,6 +51,23 @@ pub struct UserInfo<M: ManagedTypeApi + multiversx_sc::api::StorageMapperApi> {
     pub heir: ManagedAddress<M>,
 }
 
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
+pub enum Exchange {
+    None,
+    Onedex,
+    Xexchange,
+}
+
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
+pub struct LpInfo<M: ManagedTypeApi> {
+    pub exchange: Exchange,
+    pub liquid_reserve: BigUint<M>,
+    pub egld_reserve: BigUint<M>,
+    pub lp_supply: BigUint<M>,
+    pub lp_token: TokenIdentifier<M>,
+    pub lp_balance: BigUint<M>,
+}
+
 #[multiversx_sc::module]
 pub trait ConfigModule:
   multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
@@ -258,7 +275,7 @@ pub trait ConfigModule:
         let staked_egld = self.total_egld_staked().get();
         let token_supply = self.liquid_token_supply().get();
 
-        let one = BigUint::from(1_000_000_000_000_000_000u64);
+        let one = BigUint::from(ONE_EGLD);
         if (token_supply == 0) || (staked_egld == 0) {
             one
         } else {
@@ -280,6 +297,18 @@ pub trait ConfigModule:
         self.wrap_sc().set(address);
     }
 
+    #[storage_mapper("egld_in_lp")]
+    fn egld_in_lp(&self) -> SingleValueMapper<BigUint>;
+
+    #[storage_mapper("legld_in_lp")]
+    fn legld_in_lp(&self) -> SingleValueMapper<BigUint>;
+
+    #[storage_mapper("excess_lp_egld")]
+    fn excess_lp_egld(&self) -> SingleValueMapper<BigUint>;
+    
+    #[storage_mapper("excess_lp_legld")]
+    fn excess_lp_legld(&self) -> SingleValueMapper<BigUint>;
+    
     // custodial liquid staking
 
     #[view(getLegldInCustody)]

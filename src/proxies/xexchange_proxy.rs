@@ -2,6 +2,12 @@ multiversx_sc::imports!();
 
 pub type SwapTokensFixedInputResultType<BigUint> = EsdtTokenPayment<BigUint>;
 
+pub type AddLiquidityResultType<BigUint> =
+    MultiValue3<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
+
+pub type RemoveLiquidityResultType<BigUint> =
+    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
+
 #[multiversx_sc::proxy]
 pub trait XexchangeProxy {
     #[payable("*")]
@@ -20,4 +26,20 @@ pub trait XexchangeProxy {
 
     #[view(getLpTokenIdentifier)]
     fn get_lp_token_identifier(&self) -> TokenIdentifier;
+
+    #[payable("*")]
+    #[endpoint(addLiquidity)]
+    fn add_liquidity(
+        &self,
+        first_token_amount_min: BigUint,
+        second_token_amount_min: BigUint,
+    ) -> AddLiquidityResultType<Self::Api>;
+
+    #[payable("*")]
+    #[endpoint(removeLiquidity)]
+    fn remove_liquidity(
+        &self,
+        first_token_amount_min: BigUint,
+        second_token_amount_min: BigUint,
+    ) -> RemoveLiquidityResultType<Self::Api>;
 }
