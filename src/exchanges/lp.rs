@@ -13,16 +13,13 @@ crate::common::config::ConfigModule
 + crate::exchanges::xexchange::XexchangeModule
 + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
-    #[endpoint(addLP)]
-    fn add_lp(&self) {
+    fn add_lp(&self, storage_cache: &mut StorageCache<Self>, lp_cache: &mut LpCache<Self>) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         if !self.is_arbitrage_active() {
             return
         }
 
-        let storage_cache = StorageCache::new(self);
-        let mut lp_cache = LpCache::new(self);
         let available_egld_for_lp =
             &lp_cache.excess_lp_egld + &storage_cache.available_egld_reserve - &lp_cache.egld_in_lp;
         if available_egld_for_lp < MIN_EGLD {
@@ -143,7 +140,7 @@ crate::common::config::ConfigModule
         lp_cache.legld_in_lp += added_legld;
     }
 
-    fn remove_egld_lp(&self, amount: BigUint, lp_cache: &mut LpCache<Self>) {
+    fn remove_egld_lp(&self, amount: BigUint, storage_cache: &mut StorageCache<Self>, lp_cache: &mut LpCache<Self>) {
         if !self.is_arbitrage_active() {
             return
         }
@@ -161,7 +158,6 @@ crate::common::config::ConfigModule
             }
         }
 
-        let storage_cache = StorageCache::new(self);
         let mut onedex_cache = OnedexCache::new(self);
         let mut xexchange_cache = XexchangeCache::new(self);
         let (old_egld_balance, old_ls_balance) = self.get_sc_balances();
@@ -266,7 +262,7 @@ crate::common::config::ConfigModule
         }
     }
 
-    fn remove_legld_lp(&self, amount: BigUint, lp_cache: &mut LpCache<Self>) {
+    fn remove_legld_lp(&self, amount: BigUint, storage_cache: &mut StorageCache<Self>, lp_cache: &mut LpCache<Self>) {
         if !self.is_arbitrage_active() {
             return
         }
@@ -284,7 +280,6 @@ crate::common::config::ConfigModule
             }
         }
 
-        let storage_cache = StorageCache::new(self);
         let mut onedex_cache = OnedexCache::new(self);
         let mut xexchange_cache = XexchangeCache::new(self);
         let (old_egld_balance, old_ls_balance) = self.get_sc_balances();
@@ -387,6 +382,31 @@ crate::common::config::ConfigModule
             lp_cache.legld_in_lp = BigUint::zero();
             lp_cache.excess_lp_legld += excess;
         }
+    }
+
+    #[only_owner]
+    #[endpoint(takeLpProfit)]
+    fn take_lp_profit(&self) {
+        let mut storage_cache = StorageCache::new(self);
+        let mut lp_cache = LpCache::new(self);
+        self.remove_egld_lp(lp_cache.egld_in_lp.clone(), &mut storage_cache, &mut lp_cache);
+        self.remove_legld_lp(lp_cache.legld_in_lp.clone(), &mut storage_cache, &mut lp_cache);
+
+        let have_excess = lp_cache.excess_lp_egld > 0 || lp_cache.excess_lp_legld > 0;
+        let lp_empty = lp_cache.egld_in_lp == 0 && lp_cache.legld_in_lp == 0;
+        require!(have_excess && lp_empty, ERROR_INSUFFICIENT_FUNDS);
+
+        if lp_cache.excess_lp_egld > 0 {
+            self.egld_reserve().update(|value| *value += &lp_cache.excess_lp_egld);
+            storage_cache.available_egld_reserve += &lp_cache.excess_lp_egld;
+            lp_cache.excess_lp_egld = BigUint::zero();
+        }
+        if lp_cache.excess_lp_legld > 0 {
+            self.burn_liquid_token(&lp_cache.excess_lp_legld);
+            storage_cache.liquid_supply -= &lp_cache.excess_lp_legld;
+            lp_cache.excess_lp_legld = BigUint::zero();
+        }
+        self.add_lp(&mut storage_cache, &mut lp_cache);
     }
 
     // proxies

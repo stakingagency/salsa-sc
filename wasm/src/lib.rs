@@ -84,7 +84,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         setXexchangeArbitrageInactive
         getXexchangeArbitrageState
         setXexchangeSC
-        addLP
+        takeLpProfit
         setKnight
         cancelKnight
         activateKnight

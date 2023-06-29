@@ -185,7 +185,7 @@ pub trait SalsaContract<ContractReader>:
             let mut lp_cache = LpCache::new(self);
             let available_legld = &storage_cache.legld_in_custody - &lp_cache.legld_in_lp;
             if available_legld < undelegate_amount {
-                self.remove_legld_lp(&undelegate_amount - &available_legld, &mut lp_cache);
+                self.remove_legld_lp(&undelegate_amount - &available_legld, &mut storage_cache, &mut lp_cache);
             }
 
             self.user_delegation(&caller).set(&delegated_funds - &undelegate_amount);
@@ -278,7 +278,8 @@ pub trait SalsaContract<ContractReader>:
         self.user_delegation(&caller)
             .update(|value| *value += &payment_amount);
         storage_cache.legld_in_custody += payment_amount;
-        self.add_lp();
+        let mut lp_cache = LpCache::new(self);
+        self.add_lp(&mut storage_cache, &mut lp_cache);
     }
 
     #[endpoint(removeFromCustody)]
@@ -299,7 +300,7 @@ pub trait SalsaContract<ContractReader>:
         let mut lp_cache = LpCache::new(self);
         let available_legld = &storage_cache.legld_in_custody - &lp_cache.legld_in_lp;
         if available_legld < amount {
-            self.remove_legld_lp(&amount - &available_legld, &mut lp_cache);
+            self.remove_legld_lp(&amount - &available_legld, &mut storage_cache, &mut lp_cache);
         }
 
         self.send().direct_esdt(
@@ -341,7 +342,10 @@ pub trait SalsaContract<ContractReader>:
 
         self.egld_reserve().update(|value| *value += reserve_amount.clone_value());
         self.available_egld_reserve().update(|value| *value += reserve_amount.clone_value());
-        self.add_lp();
+        
+        let mut storage_cache = StorageCache::new(self);
+        let mut lp_cache = LpCache::new(self);
+        self.add_lp(&mut storage_cache, &mut lp_cache);
     }
 
     #[endpoint(removeReserve)]
@@ -385,19 +389,19 @@ pub trait SalsaContract<ContractReader>:
         }
 
         self.egld_reserve().update(|value| *value -= &egld_to_remove);
-        let available_egld_reserve = self.available_egld_reserve().get();
+        let mut storage_cache = StorageCache::new(self);
 
         // check if there is enough eGLD balance. remove from LP if not
         let mut lp_cache = LpCache::new(self);
-        let available_egld = &available_egld_reserve - &lp_cache.egld_in_lp;
+        let available_egld = &storage_cache.available_egld_reserve - &lp_cache.egld_in_lp;
         if available_egld < amount {
-            self.remove_egld_lp(&amount - &available_egld, &mut lp_cache);
+            self.remove_egld_lp(&amount - &available_egld, &mut storage_cache, &mut lp_cache);
         }
 
         // if there is not enough available reserve, move the reserve to user undelegation
-        if egld_to_remove > available_egld_reserve {
+        if egld_to_remove > storage_cache.available_egld_reserve {
             let unbond_period = self.unbond_period().get();
-            let egld_to_move = &egld_to_remove - &available_egld_reserve;
+            let egld_to_move = &egld_to_remove - &storage_cache.available_egld_reserve;
             let (remaining_egld, unbond_epoch) = self.remove_undelegations(
                 egld_to_move.clone(),
                 &current_epoch + &unbond_period,
@@ -408,10 +412,9 @@ pub trait SalsaContract<ContractReader>:
             require!(remaining_egld == 0, ERROR_NOT_ENOUGH_FUNDS);
 
             self.add_user_undelegation(caller.clone(), egld_to_move, unbond_epoch);
-            egld_to_remove = available_egld_reserve;
+            egld_to_remove = storage_cache.available_egld_reserve.clone();
         }
-        self.available_egld_reserve()
-            .update(|value| *value -= &egld_to_remove);
+        storage_cache.available_egld_reserve -= &egld_to_remove;
         self.users_reserve_points(&caller)
             .update(|value| *value -= &points_to_remove);
         self.reserve_points()
@@ -457,7 +460,7 @@ pub trait SalsaContract<ContractReader>:
             // check if there is enough LEGLD balance. remove from LP if not
             let available_legld = &storage_cache.legld_in_custody - &lp_cache.legld_in_lp;
             if available_legld < undelegate_amount {
-                self.remove_legld_lp(&undelegate_amount - &available_legld, &mut lp_cache);
+                self.remove_legld_lp(&undelegate_amount - &available_legld, &mut storage_cache, &mut lp_cache);
             }
 
             self.user_delegation(&caller).set(&delegated_funds - &undelegate_amount);
@@ -515,7 +518,7 @@ pub trait SalsaContract<ContractReader>:
         // check if there is enough eGLD balance. remove from LP if not
         let available_egld = &storage_cache.available_egld_reserve - &lp_cache.egld_in_lp;
         if available_egld < egld_to_undelegate_with_fee {
-            self.remove_egld_lp(&egld_to_undelegate_with_fee - &available_egld, &mut lp_cache);
+            self.remove_egld_lp(&egld_to_undelegate_with_fee - &available_egld, &mut storage_cache, &mut lp_cache);
         }
 
         // add to reserve undelegations

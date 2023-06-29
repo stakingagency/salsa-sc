@@ -789,7 +789,8 @@
             "outputs": []
         },
         {
-            "name": "addLP",
+            "name": "takeLpProfit",
+            "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [],
             "outputs": []
