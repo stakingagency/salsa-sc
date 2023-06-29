@@ -49,12 +49,12 @@ pub trait KnightsModule:
         self.check_is_custodial_delegator();
         self.check_user_has_knight(&caller);
         require!(
-            self.user_knight(&caller).get().state == KnightState::Inactive,
+            self.user_knight(&caller).get().state == KnightState::InactiveKnight,
             ERROR_KNIGHT_NOT_CONFIRMED,
         );
 
         self.user_knight(&caller)
-            .update(|knight| knight.state = KnightState::Active);
+            .update(|knight| knight.state = KnightState::ActiveKnight);
     }
 
     // knight actions
@@ -66,7 +66,7 @@ pub trait KnightsModule:
         self.check_is_knight_active(&user);
 
         self.user_knight(&user)
-            .update(|knight| knight.state = KnightState::Inactive);
+            .update(|knight| knight.state = KnightState::InactiveKnight);
     }
 
     #[endpoint(confirmKnight)]
@@ -76,7 +76,7 @@ pub trait KnightsModule:
         self.check_is_knight_pending(&user);
 
         self.user_knight(&user)
-            .update(|knight| knight.state = KnightState::Inactive);
+            .update(|knight| knight.state = KnightState::InactiveKnight);
     }
 
     #[endpoint(removeKnight)]
@@ -101,7 +101,7 @@ pub trait KnightsModule:
         let knight = self.user_knight(&caller);
         if !knight.is_empty() {
             require!(
-                knight.get().state != KnightState::Active,
+                knight.get().state != KnightState::ActiveKnight,
                 ERROR_KNIGHT_ACTIVE,
             );
         }
@@ -137,7 +137,7 @@ pub trait KnightsModule:
 
     fn check_is_knight_active(&self, user: &ManagedAddress) {
         require!(
-            self.user_knight(user).get().state == KnightState::Active,
+            self.user_knight(user).get().state == KnightState::ActiveKnight,
             ERROR_KNIGHT_NOT_ACTIVE,
         );
     }
