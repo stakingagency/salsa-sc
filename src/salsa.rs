@@ -340,11 +340,12 @@ pub trait SalsaContract<ContractReader>:
         self.reserve_points()
             .update(|value| *value += user_reserve_points);
 
-        self.egld_reserve().update(|value| *value += reserve_amount.clone_value());
-        self.available_egld_reserve().update(|value| *value += reserve_amount.clone_value());
-        
         let mut storage_cache = StorageCache::new(self);
         let mut lp_cache = LpCache::new(self);
+
+        self.egld_reserve().update(|value| *value += reserve_amount.clone_value());
+        storage_cache.available_egld_reserve += reserve_amount.clone_value();
+        
         self.add_lp(&mut storage_cache, &mut lp_cache);
     }
 

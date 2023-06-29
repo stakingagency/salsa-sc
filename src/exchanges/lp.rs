@@ -71,10 +71,10 @@ crate::common::config::ConfigModule
 
         // calculate amounts to add to LP
         let mut egld_to_lp = available_egld_for_lp;
-        let mut legld_to_lp = &egld_to_lp / &best_price;
+        let mut legld_to_lp = &one * &egld_to_lp / &best_price;
         if legld_to_lp > available_legld_for_lp {
             legld_to_lp = available_legld_for_lp;
-            egld_to_lp = &legld_to_lp * &best_price;
+            egld_to_lp = &legld_to_lp * &best_price / &one;
         }
         let mut payments :ManagedVec<Self::Api, EsdtTokenPayment<Self::Api>> = ManagedVec::new();
         payments.push(EsdtTokenPayment::new(storage_cache.liquid_token_id.clone(), 0, legld_to_lp.clone()));
@@ -93,14 +93,14 @@ crate::common::config::ConfigModule
             Exchange::Onedex => {
                 self.onedex_lp_proxy_obj()
                     .contract(onedex_cache.sc_address)
-                    .add_liquidity(legld_to_lp, egld_to_lp)
+                    .add_liquidity(BigUint::from(1u64), BigUint::from(1u64))
                     .with_multi_token_transfer(payments)
                     .execute_on_dest_context::<()>();
             }
             Exchange::Xexchange => {
                 self.xexchange_lp_proxy_obj()
                     .contract(xexchange_cache.sc_address)
-                    .add_liquidity(legld_to_lp, egld_to_lp)
+                    .add_liquidity(BigUint::from(1u64), BigUint::from(1u64))
                     .with_multi_token_transfer(payments)
                     .execute_on_dest_context::<()>();
             }
@@ -160,6 +160,7 @@ crate::common::config::ConfigModule
 
         let mut onedex_cache = OnedexCache::new(self);
         let mut xexchange_cache = XexchangeCache::new(self);
+        let one = BigUint::from(ONE_EGLD);
         let (old_egld_balance, old_ls_balance) = self.get_sc_balances();
 
         loop {
@@ -173,56 +174,51 @@ crate::common::config::ConfigModule
             }
 
             // find the exchange with the most cheap LEGLD
-            let one = BigUint::from(ONE_EGLD);
             let mut best_price = BigUint::zero();
             let mut best_exchange = Exchange::None;
+            let mut lp_to_remove = BigUint::zero();
             for lp in lps.iter() {
                 let egld_per_lp = &one * &lp.egld_reserve / &lp.lp_supply;
                 if best_price < egld_per_lp {
                     best_price = egld_per_lp;
                     best_exchange = lp.exchange;
+                    lp_to_remove = &left_amount * &lp.lp_supply / &lp.egld_reserve;
+                    lp_to_remove += BigUint::from(1u64);
                 }
             }
 
-            if best_exchange == Exchange::None {
+            if best_exchange == Exchange::None || left_amount == 0 {
                 break
             }
 
             // remove LP
-            let mut lp_to_remove = &one * &left_amount / &best_price;
-            let mut egld_to_remove = BigUint::zero();
+            let mut egld_to_remove = left_amount.clone();
             match best_exchange {
                 Exchange::Onedex => {
                     if lp_to_remove > onedex_cache.lp_info.lp_balance {
                         lp_to_remove = onedex_cache.lp_info.lp_balance.clone();
+                        egld_to_remove = &onedex_cache.lp_info.egld_reserve * &lp_to_remove / &onedex_cache.lp_info.lp_supply;
                     }
-                    let legld_to_remove =
-                        &onedex_cache.lp_info.liquid_reserve * &lp_to_remove / &onedex_cache.lp_info.lp_supply;
-                    egld_to_remove =
-                        &onedex_cache.lp_info.egld_reserve * &lp_to_remove / &onedex_cache.lp_info.lp_supply;
                     let payment =
                         EsdtTokenPayment::new(onedex_cache.lp_info.lp_token.clone(), 0, lp_to_remove.clone());
                     onedex_cache.lp_info.lp_balance -= &lp_to_remove;
                     self.onedex_lp_proxy_obj()
                         .contract(onedex_cache.sc_address.clone())
-                        .remove_liquidity(legld_to_remove, egld_to_remove.clone(), false)
+                        .remove_liquidity(BigUint::from(1u64), BigUint::from(1u64), false)
                         .with_esdt_transfer(payment)
                         .execute_on_dest_context::<()>();
                 }
                 Exchange::Xexchange => {
                     if lp_to_remove > xexchange_cache.lp_info.lp_balance {
                         lp_to_remove = xexchange_cache.lp_info.lp_balance.clone();
+                        egld_to_remove = &xexchange_cache.lp_info.egld_reserve * &lp_to_remove / &xexchange_cache.lp_info.lp_supply;
                     }
-                    let legld_to_remove =
-                        &xexchange_cache.lp_info.liquid_reserve * &lp_to_remove / &xexchange_cache.lp_info.lp_supply;
-                    egld_to_remove =
-                        &xexchange_cache.lp_info.egld_reserve * &lp_to_remove / &xexchange_cache.lp_info.lp_supply;
                     let payment
                         = EsdtTokenPayment::new(xexchange_cache.lp_info.lp_token.clone(), 0, lp_to_remove.clone());
                     xexchange_cache.lp_info.lp_balance -= &lp_to_remove;
                     self.xexchange_lp_proxy_obj()
                         .contract(xexchange_cache.sc_address.clone())
-                        .remove_liquidity(legld_to_remove, egld_to_remove.clone())
+                        .remove_liquidity(BigUint::from(1u64), BigUint::from(1u64))
                         .with_esdt_transfer(payment)
                         .execute_on_dest_context::<()>();
                 }
@@ -282,6 +278,7 @@ crate::common::config::ConfigModule
 
         let mut onedex_cache = OnedexCache::new(self);
         let mut xexchange_cache = XexchangeCache::new(self);
+        let one = BigUint::from(ONE_EGLD);
         let (old_egld_balance, old_ls_balance) = self.get_sc_balances();
 
         loop {
@@ -295,56 +292,51 @@ crate::common::config::ConfigModule
             }
 
             // find the exchange with the most expensive LEGLD
-            let one = BigUint::from(ONE_EGLD);
             let mut best_price = BigUint::zero();
             let mut best_exchange = Exchange::None;
+            let mut lp_to_remove = BigUint::zero();
             for lp in lps.iter() {
                 let legld_per_lp = &one * &lp.liquid_reserve / &lp.lp_supply;
                 if best_price < legld_per_lp {
                     best_price = legld_per_lp;
                     best_exchange = lp.exchange;
+                    lp_to_remove = &left_amount * &lp.lp_supply / &lp.liquid_reserve;
+                    lp_to_remove += BigUint::from(1u64);
                 }
             }
 
-            if best_exchange == Exchange::None {
+            if best_exchange == Exchange::None || left_amount == 0 {
                 break
             }
 
             // remove LP
-            let mut lp_to_remove = &one * &left_amount / &best_price;
-            let mut legld_to_remove = BigUint::zero();
+            let mut legld_to_remove = left_amount.clone();
             match best_exchange {
                 Exchange::Onedex => {
                     if lp_to_remove > onedex_cache.lp_info.lp_balance {
                         lp_to_remove = onedex_cache.lp_info.lp_balance.clone();
+                        legld_to_remove = &onedex_cache.lp_info.liquid_reserve * &lp_to_remove / &onedex_cache.lp_info.lp_supply;
                     }
-                    let egld_to_remove =
-                        &onedex_cache.lp_info.egld_reserve * &lp_to_remove / &onedex_cache.lp_info.lp_supply;
-                    legld_to_remove =
-                        &onedex_cache.lp_info.liquid_reserve * &lp_to_remove / &onedex_cache.lp_info.lp_supply;
                     let payment =
                         EsdtTokenPayment::new(onedex_cache.lp_info.lp_token.clone(), 0, lp_to_remove.clone());
                     onedex_cache.lp_info.lp_balance -= &lp_to_remove;
                     self.onedex_lp_proxy_obj()
                         .contract(onedex_cache.sc_address.clone())
-                        .remove_liquidity(legld_to_remove.clone(), egld_to_remove, false)
+                        .remove_liquidity(BigUint::from(1u64), BigUint::from(1u64), false)
                         .with_esdt_transfer(payment)
                         .execute_on_dest_context::<()>();
                 }
                 Exchange::Xexchange => {
                     if lp_to_remove > xexchange_cache.lp_info.lp_balance {
                         lp_to_remove = xexchange_cache.lp_info.lp_balance.clone();
+                        legld_to_remove = &xexchange_cache.lp_info.liquid_reserve * &lp_to_remove / &xexchange_cache.lp_info.lp_supply;
                     }
-                    let egld_to_remove =
-                        &xexchange_cache.lp_info.egld_reserve * &lp_to_remove / &xexchange_cache.lp_info.lp_supply;
-                    legld_to_remove =
-                        &xexchange_cache.lp_info.liquid_reserve * &lp_to_remove / &xexchange_cache.lp_info.lp_supply;
                     let payment
                         = EsdtTokenPayment::new(xexchange_cache.lp_info.lp_token.clone(), 0, lp_to_remove.clone());
                     xexchange_cache.lp_info.lp_balance -= &lp_to_remove;
                     self.xexchange_lp_proxy_obj()
                         .contract(xexchange_cache.sc_address.clone())
-                        .remove_liquidity(legld_to_remove.clone(), egld_to_remove)
+                        .remove_liquidity(BigUint::from(1u64), BigUint::from(1u64))
                         .with_esdt_transfer(payment)
                         .execute_on_dest_context::<()>();
                 }
