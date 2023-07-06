@@ -337,14 +337,14 @@ pub trait ConfigModule:
 
     #[view(getUserInfo)]
     fn get_user_info(&self, user: &ManagedAddress) -> UserInfo<Self::Api> {
-        let user_knight = self.user_knight(&user);
+        let user_knight = self.user_knight(user);
         let knight = if user_knight.is_empty() {
             ManagedAddress::default()
         } else {
             user_knight.get().address
         };
 
-        let user_heir = self.user_heir(&user);
+        let user_heir = self.user_heir(user);
         let heir = if user_heir.is_empty() {
             ManagedAddress::from(&[0u8; 32])
         } else {
@@ -353,14 +353,14 @@ pub trait ConfigModule:
 
         let mut undelegations: ManagedVec<Self::Api, Undelegation<Self::Api>> =
             ManagedVec::new();
-        for node in self.luser_undelegations(&user).iter() {
+        for node in self.luser_undelegations(user).iter() {
             let undelegation = node.into_value();
             undelegations.push(undelegation);
         }
 
         UserInfo{
             undelegations,
-            reserve: self.get_user_reserve(&user),
+            reserve: self.get_user_reserve(user),
             delegation: self.user_delegation(user).get(),
             knight,
             heir,

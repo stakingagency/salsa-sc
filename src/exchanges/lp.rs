@@ -77,7 +77,7 @@ crate::common::config::ConfigModule
             egld_to_lp = &legld_to_lp * &best_price / &one;
         }
         let mut payments :ManagedVec<Self::Api, EsdtTokenPayment<Self::Api>> = ManagedVec::new();
-        payments.push(EsdtTokenPayment::new(storage_cache.liquid_token_id.clone(), 0, legld_to_lp.clone()));
+        payments.push(EsdtTokenPayment::new(storage_cache.liquid_token_id.clone(), 0, legld_to_lp));
         payments.push(EsdtTokenPayment::new(storage_cache.wegld_id.clone(), 0, egld_to_lp.clone()));
         let (old_egld_balance, old_ls_balance) = self.get_sc_balances();
 
@@ -85,7 +85,7 @@ crate::common::config::ConfigModule
         self.wrap_lp_proxy_obj()
             .contract(xexchange_cache.wrap_sc_address.clone())
             .wrap_egld()
-            .with_egld_transfer(egld_to_lp.clone())
+            .with_egld_transfer(egld_to_lp)
             .execute_on_dest_context::<()>();
 
         // add to LP
