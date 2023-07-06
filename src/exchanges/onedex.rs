@@ -99,6 +99,9 @@ pub trait OnedexModule:
             .execute_on_dest_context()
     }
 
+    // Comment
+    // Does get_onedex_amount_out take into account all the existing fees?
+    // Also, in case amount_from_onedex == amount_from_salsa, you still want to swap? So arbitrage is always the first option, if possible?
     fn do_arbitrage_on_onedex(
         &self,
         is_buy: bool,

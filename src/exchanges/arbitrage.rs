@@ -49,6 +49,10 @@ pub trait ArbitrageModule:
     #[storage_mapper("arbitrage")]
     fn arbitrage(&self) -> SingleValueMapper<State>;
 
+    // Comment
+    // For clarity, I would rename the variable bought_amount, maybe salsa_computed_amount or something like that
+    // It does not refer to what was bought, but to the amount that you would have received from the salsa algorithm
+    // The actual bought_amount would be swapped_amount
     fn do_arbitrage(
         &self, is_buy: bool, in_amount: BigUint, storage_cache: &mut StorageCache<Self>,
     ) -> (BigUint, BigUint) {
@@ -94,6 +98,9 @@ pub trait ArbitrageModule:
                 let swapped_amount = &new_egld_balance - &old_egld_balance;
                 require!(swapped_amount >= bought_amount, ERROR_ARBITRAGE_ISSUE);
 
+                // Comment
+                // Very important!!!
+                // Update storage cache instead of actual storages, as it will overwrite what you did here on drop
                 let profit = &swapped_amount - &bought_amount;
                 self.egld_reserve()
                     .update(|value| *value += &profit);

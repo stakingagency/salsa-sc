@@ -91,6 +91,15 @@ pub trait XexchangeModule:
             .execute_on_dest_context()
     }
 
+    // Comment
+    // Food for thought
+    // This function is nearly identical with do_arbitrage_on_onedex
+    // You could send a new parameter, exchange: Exchange, which can be OneDex or xExchange
+    // Make the non generic function be more generic, eg. get_xexchange_amount_out -> get_exchange_amount_out
+    // Here you can pass this parameter and based on that, the new function could call the xExchange view or OneDex view
+    // This would remove a lot of duplicated code 
+    // Indeed a bit of extra handling for the exchangeCache needs to be done, as they are not the same
+    // You should keep it like this if you plan to further customize each dex interaction
     fn do_arbitrage_on_xexchange(
         &self,
         is_buy: bool,

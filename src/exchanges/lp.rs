@@ -140,6 +140,11 @@ crate::common::config::ConfigModule
         lp_cache.legld_in_lp += added_legld;
     }
 
+    // Comment
+    // There is a lot of identical code for the 3 functions
+    // They all check for exchanges and call some functions from them, but they check for particular info
+    // Maybe there is a way to make a single function which reduces the boilerplate fom all 3 functions
+    // And have only specific code for each function separated in different functions (while all can call the same common functions)
     fn remove_egld_lp(&self, amount: BigUint, storage_cache: &mut StorageCache<Self>, lp_cache: &mut LpCache<Self>) {
         if !self.is_arbitrage_active() {
             return
@@ -190,7 +195,11 @@ crate::common::config::ConfigModule
             if best_exchange == Exchange::None || left_amount == 0 {
                 break
             }
-
+            
+            // Comment
+            // I recommend you interpret the results from the exchanges, for egld_to_remove and not deduct an amount computed internally by this SC
+            // Also, add a check that egld_to_remove is not > than left_amount
+            // You should not trust that an external SC does not change its computation algorithm
             // remove LP
             let mut egld_to_remove = left_amount.clone();
             match best_exchange {
@@ -309,6 +318,8 @@ crate::common::config::ConfigModule
                 break
             }
 
+            // Comment
+            // Same here as in remove_egld_lp function, interpret the results from the exchanges and add check
             // remove LP
             let mut legld_to_remove = left_amount.clone();
             match best_exchange {
@@ -381,6 +392,14 @@ crate::common::config::ConfigModule
     fn take_lp_profit(&self) {
         let mut storage_cache = StorageCache::new(self);
         let mut lp_cache = LpCache::new(self);
+        // Comment
+        // I don't think these 2 functions are as precise as you need them to be
+        // egld_in_lp and legld_in_lp are not fix, they change in the pair SCs as users swap tokens
+        // You might have 9 egld in storage but in reality you might have 9 lp tokens that translates in 8 egld when you remove liquidity
+        // I would suggest trying to simplify the entire logic throughout the module,
+        // to try to rely only on actual real time data from the pair SCs, based on actual LP tokens
+        // Also, the entire flow is a bit hard to follow, as you have 2 different functions, remove_egld_lp and remove_legld_lp, that do more or less the same thing
+        // Maybe try to find a sweet spot and have a function that can cover both needs, but more precisely, by relying only on lp tokens in balance?
         self.remove_egld_lp(lp_cache.egld_in_lp.clone(), &mut storage_cache, &mut lp_cache);
         self.remove_legld_lp(lp_cache.legld_in_lp.clone(), &mut storage_cache, &mut lp_cache);
 
@@ -389,6 +408,10 @@ crate::common::config::ConfigModule
         require!(have_excess && lp_empty, ERROR_INSUFFICIENT_FUNDS);
 
         if lp_cache.excess_lp_egld > 0 {
+            // Comment
+            // !!!Update egld_reserve variable from storage_cache
+            // Very important when you have values in storage_cache instantiated to update those
+            // Otherwise, they will overwrite what you previously saved (like in this case)
             self.egld_reserve().update(|value| *value += &lp_cache.excess_lp_egld);
             storage_cache.available_egld_reserve += &lp_cache.excess_lp_egld;
             lp_cache.excess_lp_egld = BigUint::zero();

@@ -32,6 +32,9 @@ pub trait SalsaContract<ContractReader>:
 
     // endpoints: liquid delegation
 
+    // Comment
+    // Maybe a known fact, but is better to remind it nonetheless
+    // The case of non-payable SC in other shards still isn't covered
     #[payable("EGLD")]
     #[endpoint(delegate)]
     fn delegate(
@@ -192,6 +195,8 @@ pub trait SalsaContract<ContractReader>:
             storage_cache.legld_in_custody -= &undelegate_amount;
         }
 
+        // Comment
+        // So because of the arbitrage function, users can receive a part or the entire undelegation amount on the spot
         // arbitrage
         if self.user_knight(&caller).is_empty() {
             let (sold_amount, bought_amount) =
@@ -240,9 +245,15 @@ pub trait SalsaContract<ContractReader>:
             UndelegationType::UserList,
             user.clone()
         );
+
+        // Comment
+        // Why the double storage read? You could define another variable for the result of remove_undelegations
         let withdraw_amount = self.user_withdrawn_egld().get() - &total_user_withdrawn_egld;
         require!(withdraw_amount > 0, ERROR_NOTHING_TO_WITHDRAW);
 
+        // Comment
+        // Seems like the wrong place to put this here, as the user_delegation storage is not updated in the withdraw flow
+        // Maybe move it in undelegate?
         if self.user_delegation(user).get() == 0 {
             let knight = self.user_knight(user);
             if !knight.is_empty() {
@@ -293,6 +304,9 @@ pub trait SalsaContract<ContractReader>:
         let delegation = self.user_delegation(&caller).take();
         require!(amount <= delegation, ERROR_INSUFFICIENT_FUNDS);
         require!(&delegation - &amount >= MIN_EGLD || delegation == amount, ERROR_DUST_REMAINING);
+
+        // Comment
+        // Should you enforce this? This means the user must first remove his heir if he still wants to remove his tokens?
         require!(delegation > amount || self.user_heir(&caller).is_empty(), ERROR_HEIR_SET);
 
         // check if there is enough LEGLD balance. remove from LP if not
@@ -478,6 +492,8 @@ pub trait SalsaContract<ContractReader>:
 
         let fee = self.undelegate_now_fee().get();
         let caller = self.blockchain().get_caller();
+        // Comment
+        // No need to read from storage, you can get this value from storage_cache
         let total_egld_staked = self.total_egld_staked().get();
 
         // arbitrage
