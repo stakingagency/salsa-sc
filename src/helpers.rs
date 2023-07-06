@@ -13,7 +13,7 @@ pub trait HelpersModule:
     fn get_sc_balances(&self) -> (BigUint, BigUint) {
         let liquid_token_id = self.liquid_token_id().get_token_id();
         let ls_balance = self.blockchain()
-            .get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(liquid_token_id.clone()), 0);
+            .get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(liquid_token_id), 0);
         let balance = self.blockchain()
             .get_sc_balance(&EgldOrEsdtTokenIdentifier::egld(), 0);
 
@@ -129,7 +129,7 @@ pub trait HelpersModule:
         let mut total_amount = amount;
         let current_epoch = self.blockchain().get_block_epoch();
         let unbond_period = self.unbond_period().get();
-        let mut last_epoch = &current_epoch + &unbond_period;
+        let mut last_epoch = current_epoch + unbond_period;
         for node in list.iter() {
             let mut modified = false;
             let node_id = node.get_node_id();
@@ -146,7 +146,7 @@ pub trait HelpersModule:
                 }
             }
             if undelegation.amount == 0 {
-                clone_list.remove_node_by_id(node_id.clone());
+                clone_list.remove_node_by_id(node_id);
             } else if modified {
                 clone_list.set_node_value_by_id(node_id, undelegation);
             }

@@ -104,10 +104,8 @@ pub trait DelegationMock<ContractReader> {
         let total_deposit = self.address_deposit(&caller).get();
 
         if current_epoch > last_claim_epoch {
-            let rewards = (total_deposit * APY / MAX_PERCENTAGE)
-                * (current_epoch - last_claim_epoch) / EPOCHS_IN_YEAR;
-
-            rewards
+            (total_deposit * APY / MAX_PERCENTAGE)
+                * (current_epoch - last_claim_epoch) / EPOCHS_IN_YEAR
         } else {
             BigUint::zero()
         }

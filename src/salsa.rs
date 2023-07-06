@@ -208,10 +208,9 @@ pub trait SalsaContract<ContractReader>:
         // normal undelegate
         let egld_to_undelegate = self.remove_liquidity(&payment_amount, true, &mut storage_cache);
         self.burn_liquid_token(&payment_amount);
-        self.egld_to_undelegate()
-            .update(|value| *value += &egld_to_undelegate);
+        storage_cache.egld_to_undelegate += &egld_to_undelegate;
         let current_epoch = self.blockchain().get_block_epoch();
-        let unbond_period = current_epoch + self.unbond_period().get();
+        let unbond_period = current_epoch + storage_cache.unbond_period;
         self.add_user_undelegation(caller, egld_to_undelegate, unbond_period);
     }
 
@@ -237,29 +236,28 @@ pub trait SalsaContract<ContractReader>:
         (total_user_withdrawn_egld, _) = self.remove_undelegations(
             total_user_withdrawn_egld,
             current_epoch,
-            self.luser_undelegations(&user),
+            self.luser_undelegations(user),
             UndelegationType::UserList,
             user.clone()
         );
         let withdraw_amount = self.user_withdrawn_egld().get() - &total_user_withdrawn_egld;
         require!(withdraw_amount > 0, ERROR_NOTHING_TO_WITHDRAW);
 
-        if self.user_delegation(&user).get() == 0 {
-            let knight = self.user_knight(&user);
+        if self.user_delegation(user).get() == 0 {
+            let knight = self.user_knight(user);
             if !knight.is_empty() {
                 self.knight_users(&knight.get().address).swap_remove(user);
                 knight.clear();
             }
-            let heir = self.user_heir(&user);
+            let heir = self.user_heir(user);
             if !heir.is_empty() {
                 self.heir_users(&heir.get().address).swap_remove(user);
                 heir.clear();
             }
         }
 
-        self.user_withdrawn_egld()
-            .set(total_user_withdrawn_egld);
-        self.send().direct_egld(&receiver, &withdraw_amount);
+        self.user_withdrawn_egld().set(total_user_withdrawn_egld);
+        self.send().direct_egld(receiver, &withdraw_amount);
     }
 
     // endpoints: custody
@@ -278,6 +276,7 @@ pub trait SalsaContract<ContractReader>:
         self.user_delegation(&caller)
             .update(|value| *value += &payment_amount);
         storage_cache.legld_in_custody += payment_amount;
+
         let mut lp_cache = LpCache::new(self);
         self.add_lp(&mut storage_cache, &mut lp_cache);
     }
@@ -337,15 +336,13 @@ pub trait SalsaContract<ContractReader>:
 
         self.users_reserve_points(&caller)
             .update(|value| *value += &user_reserve_points);
-        self.reserve_points()
-            .update(|value| *value += user_reserve_points);
 
         let mut storage_cache = StorageCache::new(self);
-        let mut lp_cache = LpCache::new(self);
-
-        self.egld_reserve().update(|value| *value += reserve_amount.clone_value());
+        storage_cache.reserve_points += user_reserve_points;
+        storage_cache.egld_reserve += reserve_amount.clone_value();
         storage_cache.available_egld_reserve += reserve_amount.clone_value();
         
+        let mut lp_cache = LpCache::new(self);
         self.add_lp(&mut storage_cache, &mut lp_cache);
     }
 
@@ -383,14 +380,14 @@ pub trait SalsaContract<ContractReader>:
         let mut points_to_remove = self.get_reserve_points_amount(&egld_to_remove) + 1u64;
         if &old_reserve - &amount < DUST_THRESHOLD {
             // avoid rounding issues
-            points_to_remove = old_reserve_points.clone();
-            egld_to_remove = old_reserve.clone();
+            points_to_remove = old_reserve_points;
+            egld_to_remove = old_reserve;
         } else {
             require!(&old_reserve - &amount >= MIN_EGLD, ERROR_DUST_REMAINING);
         }
 
-        self.egld_reserve().update(|value| *value -= &egld_to_remove);
         let mut storage_cache = StorageCache::new(self);
+        storage_cache.egld_reserve -= &egld_to_remove;
 
         // check if there is enough eGLD balance. remove from LP if not
         let mut lp_cache = LpCache::new(self);
@@ -401,11 +398,10 @@ pub trait SalsaContract<ContractReader>:
 
         // if there is not enough available reserve, move the reserve to user undelegation
         if egld_to_remove > storage_cache.available_egld_reserve {
-            let unbond_period = self.unbond_period().get();
             let egld_to_move = &egld_to_remove - &storage_cache.available_egld_reserve;
             let (remaining_egld, unbond_epoch) = self.remove_undelegations(
                 egld_to_move.clone(),
-                &current_epoch + &unbond_period,
+                current_epoch + storage_cache.unbond_period,
                 self.lreserve_undelegations(),
                 UndelegationType::ReservesList,
                 caller.clone()
@@ -416,9 +412,8 @@ pub trait SalsaContract<ContractReader>:
             egld_to_remove = storage_cache.available_egld_reserve.clone();
         }
         storage_cache.available_egld_reserve -= &egld_to_remove;
+        storage_cache.reserve_points -= &points_to_remove;
         self.users_reserve_points(&caller)
-            .update(|value| *value -= &points_to_remove);
-        self.reserve_points()
             .update(|value| *value -= &points_to_remove);
         self.send().direct_egld(&receiver, &egld_to_remove);
     }
@@ -524,17 +519,14 @@ pub trait SalsaContract<ContractReader>:
 
         // add to reserve undelegations
         let current_epoch = self.blockchain().get_block_epoch();
-        let unbond_epoch = current_epoch + self.unbond_period().get();
+        let unbond_epoch = current_epoch + storage_cache.unbond_period;
 
         self.add_undelegation(egld_to_undelegate.clone(), unbond_epoch, self.lreserve_undelegations());
 
         // update storage
-        self.egld_to_undelegate()
-            .update(|value| *value += &egld_to_undelegate);
+        storage_cache.egld_to_undelegate += &egld_to_undelegate;
         storage_cache.available_egld_reserve -= &egld_to_undelegate_with_fee;
-        let total_rewards = &egld_to_undelegate - &egld_to_undelegate_with_fee;
-        self.egld_reserve()
-            .update(|value| *value += &total_rewards);
+        storage_cache.egld_reserve += &egld_to_undelegate - &egld_to_undelegate_with_fee;
 
         self.send().direct_egld(&receiver, &egld_to_undelegate_with_fee);
     }
