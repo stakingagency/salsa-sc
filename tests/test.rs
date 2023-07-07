@@ -36,7 +36,6 @@ fn delegation_test() {
     let caller = sc_setup.setup_new_user(1u64);
     let amount = exp(1, 18);
     sc_setup.blockchain_wrapper.set_block_epoch(1u64);
-    sc_setup.blockchain_wrapper.set_egld_balance(&caller, &amount);
 
     // delegate
     sc_setup.delegate_test(&caller, amount.clone(), false);
@@ -78,14 +77,12 @@ fn reserves_test() {
     let mut sc_setup = SalsaContractSetup::new(salsa::contract_obj);
     let big_zero = rust_biguint!(0);
     let reserver = sc_setup.setup_new_user(1u64);
-    let caller = sc_setup.setup_new_user(2u64);
+    let caller = sc_setup.setup_new_user(1u64);
     let one = exp(1, 18);
     let one_plus_fee = exp(102, 16);
     let one_minus_fee = exp(98, 16);
     let rest = exp(2, 16);
     sc_setup.blockchain_wrapper.set_block_epoch(1u64);
-    sc_setup.blockchain_wrapper.set_egld_balance(&reserver, &one);
-    sc_setup.blockchain_wrapper.set_egld_balance(&caller, &one);
 
     // delegate
     sc_setup.delegate_test(&caller, one.clone(), false);
@@ -135,22 +132,16 @@ fn reserve_to_user_undelegation_test() {
 
     let mut sc_setup = SalsaContractSetup::new(salsa::contract_obj);
     let big_zero = rust_biguint!(0);
-    let ten = exp(10, 18);
     let one = exp(1, 18);
 
-    let delegator1 = sc_setup.setup_new_user(1u64);
-    let delegator2 = sc_setup.setup_new_user(2u64);
-    let reserver1 = sc_setup.setup_new_user(3u64);
-    let reserver2 = sc_setup.setup_new_user(4u64);
-    let caller = sc_setup.setup_new_user(5u64);
+    let delegator1 = sc_setup.setup_new_user(10u64);
+    let delegator2 = sc_setup.setup_new_user(10u64);
+    let reserver1 = sc_setup.setup_new_user(10u64);
+    let reserver2 = sc_setup.setup_new_user(10u64);
+    let caller = sc_setup.setup_new_user(1u64);
 
-    // set epoch and balances
+    // set epoch
     sc_setup.blockchain_wrapper.set_block_epoch(1u64);
-    sc_setup.blockchain_wrapper.set_egld_balance(&delegator1, &ten);
-    sc_setup.blockchain_wrapper.set_egld_balance(&delegator2, &ten);
-    sc_setup.blockchain_wrapper.set_egld_balance(&reserver1, &ten);
-    sc_setup.blockchain_wrapper.set_egld_balance(&reserver2, &ten);
-    sc_setup.blockchain_wrapper.set_egld_balance(&caller, &one);
 
     // delegate 5 and add reserves 5
     sc_setup.delegate_test(&delegator1, one.clone(), false);
@@ -216,15 +207,12 @@ fn merge_undelegations_test() {
     let one = exp(1, 18);
     let mut epoch = 1u64;
 
-    let delegator = sc_setup.setup_new_user(1u64);
-    let reserver = sc_setup.setup_new_user(2u64);
-    let caller = sc_setup.setup_new_user(3u64);
+    let delegator = sc_setup.setup_new_user(250u64);
+    let reserver = sc_setup.setup_new_user(125u64);
+    let caller = sc_setup.setup_new_user(1u64);
 
-    // set epoch and balances
+    // set epoch
     sc_setup.blockchain_wrapper.set_block_epoch(epoch);
-    sc_setup.blockchain_wrapper.set_egld_balance(&delegator, &(one.clone() * 250u64));
-    sc_setup.blockchain_wrapper.set_egld_balance(&reserver, &(one.clone() * 125u64));
-    sc_setup.blockchain_wrapper.set_egld_balance(&caller, &one);
 
     // delegate and add reserve
     sc_setup.delegate_test(&delegator, one.clone() * 250u64, false);
@@ -268,11 +256,10 @@ fn user_undelegations_order_test() {
     let big_zero = rust_biguint!(0);
     let one = exp(1, 18);
     let mut epoch = 1u64;
-    let delegator = sc_setup.setup_new_user(1u64);
+    let delegator = sc_setup.setup_new_user(100u64);
 
-    // set epoch and balances
+    // set epoch
     sc_setup.blockchain_wrapper.set_block_epoch(epoch);
-    sc_setup.blockchain_wrapper.set_egld_balance(&delegator, &exp(100, 18));
 
     // delegate
     sc_setup.delegate_test(&delegator, exp(100, 18), false);

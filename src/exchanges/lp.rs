@@ -224,7 +224,11 @@ crate::common::config::ConfigModule
                 }
                 Exchange::None => {}
             }
-            left_amount -= &egld_to_remove;
+            left_amount = if egld_to_remove > left_amount {
+                BigUint::zero()
+            } else {
+                &left_amount - &egld_to_remove
+            };
         }
 
         // unwrap WEGLD
@@ -342,7 +346,11 @@ crate::common::config::ConfigModule
                 }
                 Exchange::None => {}
             }
-            left_amount -= &legld_to_remove;
+            left_amount = if legld_to_remove > left_amount {
+                BigUint::zero()
+            } else {
+                &left_amount - &legld_to_remove
+            };
         }
 
         // unwrap WEGLD
@@ -389,7 +397,7 @@ crate::common::config::ConfigModule
         require!(have_excess && lp_empty, ERROR_INSUFFICIENT_FUNDS);
 
         if lp_cache.excess_lp_egld > 0 {
-            self.egld_reserve().update(|value| *value += &lp_cache.excess_lp_egld);
+            storage_cache.egld_reserve += &lp_cache.excess_lp_egld;
             storage_cache.available_egld_reserve += &lp_cache.excess_lp_egld;
             lp_cache.excess_lp_egld = BigUint::zero();
         }

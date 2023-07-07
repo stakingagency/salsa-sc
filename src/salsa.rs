@@ -231,7 +231,8 @@ pub trait SalsaContract<ContractReader>:
     ) {
         self.compute_withdrawn();
         let current_epoch = self.blockchain().get_block_epoch();
-        let mut total_user_withdrawn_egld = self.user_withdrawn_egld().get();
+        let user_withdrawn_egld = self.user_withdrawn_egld().get();
+        let mut total_user_withdrawn_egld = user_withdrawn_egld.clone();
 
         (total_user_withdrawn_egld, _) = self.remove_undelegations(
             total_user_withdrawn_egld,
@@ -240,7 +241,7 @@ pub trait SalsaContract<ContractReader>:
             UndelegationType::UserList,
             user.clone()
         );
-        let withdraw_amount = self.user_withdrawn_egld().get() - &total_user_withdrawn_egld;
+        let withdraw_amount = &user_withdrawn_egld - &total_user_withdrawn_egld;
         require!(withdraw_amount > 0, ERROR_NOTHING_TO_WITHDRAW);
 
         if self.user_delegation(user).get() == 0 {
@@ -478,7 +479,6 @@ pub trait SalsaContract<ContractReader>:
 
         let fee = self.undelegate_now_fee().get();
         let caller = self.blockchain().get_caller();
-        let total_egld_staked = self.total_egld_staked().get();
 
         // arbitrage
         let (sold_amount, bought_amount) =
@@ -505,7 +505,7 @@ pub trait SalsaContract<ContractReader>:
             egld_to_undelegate_with_fee <= storage_cache.available_egld_reserve,
             ERROR_NOT_ENOUGH_FUNDS
         );
-        require!(egld_to_undelegate <= total_egld_staked, ERROR_NOT_ENOUGH_FUNDS);
+        require!(egld_to_undelegate <= storage_cache.total_stake, ERROR_NOT_ENOUGH_FUNDS);
         require!(
             egld_to_undelegate_with_fee >= min_amount_out,
             ERROR_FEE_CHANGED
