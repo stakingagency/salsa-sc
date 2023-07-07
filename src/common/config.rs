@@ -234,28 +234,37 @@ pub trait ConfigModule:
     fn get_reserve_points_amount(&self, egld_amount: &BigUint) -> BigUint {
         let egld_reserve = self.egld_reserve().get();
         let reserve_points = self.reserve_points().get();
-        let mut user_reserve_points = egld_amount.clone();
-        if egld_reserve > 0 {
-            if reserve_points == 0 {
-                user_reserve_points += egld_reserve
-            } else {
-                user_reserve_points = egld_amount * &reserve_points / &egld_reserve
-            }
-        }
 
-        user_reserve_points
+        self.compute_reserve_points_amount(egld_amount, &egld_reserve, &reserve_points)
+    }
+
+    fn compute_reserve_points_amount(&self, egld_amount: &BigUint, egld_reserve: &BigUint, reserve_points: &BigUint) -> BigUint {
+        let mut points = egld_amount.clone();
+        if egld_reserve > &0 {
+            if reserve_points == &0 {
+                points += egld_reserve
+            } else {
+                points = egld_amount * reserve_points / egld_reserve
+            }
+        };
+
+        points
     }
 
     #[view(getReserveEgldAmount)]
     fn get_reserve_egld_amount(&self, points_amount: &BigUint) -> BigUint {
         let egld_reserve = self.egld_reserve().get();
         let reserve_points = self.reserve_points().get();
-        let mut user_egld_amount = points_amount.clone();
-        if reserve_points > 0 {
-            user_egld_amount = points_amount * &egld_reserve / &reserve_points
-        }
 
-        user_egld_amount
+        self.compute_reserve_egld_amount(points_amount, &egld_reserve, &reserve_points)
+    }
+
+    fn compute_reserve_egld_amount(&self, points_amount: &BigUint, egld_reserve: &BigUint, reserve_points: &BigUint) -> BigUint {
+        if reserve_points > &0 {
+            points_amount * egld_reserve / reserve_points
+        } else {
+            points_amount.clone()
+        }
     }
 
     #[view(getUserReserve)]
