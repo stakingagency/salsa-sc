@@ -86,7 +86,8 @@ pub trait SalsaContract<ContractReader>:
             return EsdtTokenPayment::new(storage_cache.liquid_token_id.clone(), 0, sold_amount)
         }
 
-        let ls_amount = self.add_liquidity(&delegate_amount, true, &mut storage_cache);
+        let ls_amount =
+            self.add_liquidity(&delegate_amount, true, &mut storage_cache);
         drop(storage_cache);
 
         let delegation_contract = self.provider_address().get();
@@ -333,12 +334,13 @@ pub trait SalsaContract<ContractReader>:
             ERROR_INSUFFICIENT_AMOUNT
         );
 
-        let user_reserve_points = self.get_reserve_points_amount(&reserve_amount);
+        let mut storage_cache = StorageCache::new(self);
+        let user_reserve_points =
+            self.compute_reserve_points_amount(&reserve_amount, &storage_cache.egld_reserve, &storage_cache.reserve_points);
 
         self.users_reserve_points(&caller)
             .update(|value| *value += &user_reserve_points);
 
-        let mut storage_cache = StorageCache::new(self);
         storage_cache.reserve_points += user_reserve_points;
         storage_cache.egld_reserve += reserve_amount.clone_value();
         storage_cache.available_egld_reserve += reserve_amount.clone_value();
@@ -370,15 +372,18 @@ pub trait SalsaContract<ContractReader>:
             ERROR_REMOVE_RESERVE_TOO_SOON
         );
 
+        let mut storage_cache = StorageCache::new(self);
         let old_reserve_points = self.users_reserve_points(&caller).get();
-        let old_reserve = self.get_reserve_egld_amount(&old_reserve_points);
+        let old_reserve =
+            self.compute_reserve_egld_amount(&old_reserve_points, &storage_cache.egld_reserve, &storage_cache.reserve_points);
         require!(old_reserve > 0, ERROR_USER_NOT_PROVIDER);
         require!(old_reserve >= amount, ERROR_NOT_ENOUGH_FUNDS);
 
         self.compute_withdrawn();
 
         let mut egld_to_remove = amount.clone();
-        let mut points_to_remove = self.get_reserve_points_amount(&egld_to_remove) + 1u64;
+        let mut points_to_remove =
+            self.compute_reserve_points_amount(&egld_to_remove, &storage_cache.egld_reserve, &storage_cache.reserve_points) + 1u64;
         if &old_reserve - &amount < DUST_THRESHOLD {
             // avoid rounding issues
             points_to_remove = old_reserve_points;
@@ -387,7 +392,6 @@ pub trait SalsaContract<ContractReader>:
             require!(&old_reserve - &amount >= MIN_EGLD, ERROR_DUST_REMAINING);
         }
 
-        let mut storage_cache = StorageCache::new(self);
         storage_cache.egld_reserve -= &egld_to_remove;
 
         // check if there is enough eGLD balance. remove from LP if not
