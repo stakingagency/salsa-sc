@@ -162,7 +162,8 @@ pub trait SalsaContract<ContractReader>:
         undelegate_amount: BigUint,
     ) {
         let mut storage_cache = StorageCache::new(self);
-        let (payment_token, mut payment_amount) = self.call_value().egld_or_single_fungible_esdt();
+        let (payment_token, mut payment_amount) =
+            self.call_value().egld_or_single_fungible_esdt();
         if payment_amount > 0 {
             require!(
                 payment_token == storage_cache.liquid_token_id,
@@ -207,7 +208,8 @@ pub trait SalsaContract<ContractReader>:
         }
 
         // normal undelegate
-        let egld_to_undelegate = self.remove_liquidity(&payment_amount, true, &mut storage_cache);
+        let egld_to_undelegate =
+            self.remove_liquidity(&payment_amount, true, &mut storage_cache);
         self.burn_liquid_token(&payment_amount);
         storage_cache.egld_to_undelegate += &egld_to_undelegate;
         let current_epoch = self.blockchain().get_block_epoch();
@@ -271,7 +273,8 @@ pub trait SalsaContract<ContractReader>:
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         let mut storage_cache = StorageCache::new(self);
-        let (payment_token, payment_amount) = self.call_value().egld_or_single_fungible_esdt();
+        let (payment_token, payment_amount) =
+            self.call_value().egld_or_single_fungible_esdt();
         require!(payment_token == storage_cache.liquid_token_id, ERROR_BAD_PAYMENT_TOKEN);
 
         let caller = self.blockchain().get_caller();
@@ -468,7 +471,8 @@ pub trait SalsaContract<ContractReader>:
             storage_cache.legld_in_custody -= &undelegate_amount;
         }
 
-        let (payment_token, mut payment_amount) = self.call_value().egld_or_single_fungible_esdt();
+        let (payment_token, mut payment_amount) =
+            self.call_value().egld_or_single_fungible_esdt();
         if payment_amount > 0 {
             require!(
                 payment_token == storage_cache.liquid_token_id,
@@ -483,6 +487,7 @@ pub trait SalsaContract<ContractReader>:
 
         let fee = self.undelegate_now_fee().get();
         let caller = self.blockchain().get_caller();
+        let total_egld_staked = self.total_egld_staked().get();
 
         // arbitrage
         let (sold_amount, bought_amount) =
@@ -496,7 +501,8 @@ pub trait SalsaContract<ContractReader>:
         };
 
         // normal unDelegateNow
-        let egld_to_undelegate = self.remove_liquidity(&payment_amount, true, &mut storage_cache);
+        let egld_to_undelegate =
+            self.remove_liquidity(&payment_amount, true, &mut storage_cache);
         self.burn_liquid_token(&payment_amount);
         require!(
             egld_to_undelegate >= MIN_EGLD,
@@ -509,7 +515,7 @@ pub trait SalsaContract<ContractReader>:
             egld_to_undelegate_with_fee <= storage_cache.available_egld_reserve,
             ERROR_NOT_ENOUGH_FUNDS
         );
-        require!(egld_to_undelegate <= storage_cache.total_stake, ERROR_NOT_ENOUGH_FUNDS);
+        require!(egld_to_undelegate <= total_egld_staked, ERROR_NOT_ENOUGH_FUNDS);
         require!(
             egld_to_undelegate_with_fee >= min_amount_out,
             ERROR_FEE_CHANGED
