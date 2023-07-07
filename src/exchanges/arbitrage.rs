@@ -95,10 +95,8 @@ pub trait ArbitrageModule:
                 require!(swapped_amount >= bought_amount, ERROR_ARBITRAGE_ISSUE);
 
                 let profit = &swapped_amount - &bought_amount;
-                self.egld_reserve()
-                    .update(|value| *value += &profit);
-                self.available_egld_reserve()
-                    .update(|value| *value += profit);
+                storage_cache.egld_reserve += &profit;
+                storage_cache.available_egld_reserve += profit;
             }
         }
 
