@@ -487,7 +487,7 @@ pub trait SalsaContract<ContractReader>:
 
         let fee = self.undelegate_now_fee().get();
         let caller = self.blockchain().get_caller();
-        let total_egld_staked = self.total_egld_staked().get();
+        let total_egld_staked = storage_cache.total_stake.clone();
 
         // arbitrage
         let (sold_amount, bought_amount) =
