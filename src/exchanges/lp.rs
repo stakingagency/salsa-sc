@@ -13,12 +13,36 @@ crate::common::config::ConfigModule
 + crate::exchanges::xexchange::XexchangeModule
 + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
-    fn add_lp(&self, storage_cache: &mut StorageCache<Self>, lp_cache: &mut LpCache<Self>) {
-        require!(self.is_state_active(), ERROR_NOT_ACTIVE);
+    #[only_owner]
+    #[endpoint(setLpActive)]
+    fn set_lp_active(&self) {
+        require!(self.is_arbitrage_active(), ERROR_ARBITRAGE_NOT_ACTIVE);
 
-        if !self.is_arbitrage_active() {
+        self.lp_state().set(State::Active);
+    }
+
+    #[only_owner]
+    #[endpoint(setLpInactive)]
+    fn set_lp_inactive(&self) {
+        self.lp_state().set(State::Inactive);
+    }
+
+    #[inline]
+    fn is_lp_active(&self) -> bool {
+        let lp = self.lp_state().get();
+        lp == State::Active
+    }
+
+    #[view(getLpState)]
+    #[storage_mapper("lp_state")]
+    fn lp_state(&self) -> SingleValueMapper<State>;
+
+    fn add_lp(&self, storage_cache: &mut StorageCache<Self>, lp_cache: &mut LpCache<Self>) {
+        if !self.is_lp_active() || !self.is_arbitrage_active() {
             return
         }
+
+        require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         let available_egld_for_lp =
             &lp_cache.excess_lp_egld + &storage_cache.available_egld_reserve - &lp_cache.egld_in_lp;
@@ -141,7 +165,7 @@ crate::common::config::ConfigModule
     }
 
     fn remove_egld_lp(&self, amount: BigUint, storage_cache: &mut StorageCache<Self>, lp_cache: &mut LpCache<Self>) {
-        if !self.is_arbitrage_active() {
+        if !self.is_lp_active() || !self.is_arbitrage_active() {
             return
         }
 
@@ -160,7 +184,6 @@ crate::common::config::ConfigModule
 
         let mut onedex_cache = OnedexCache::new(self);
         let mut xexchange_cache = XexchangeCache::new(self);
-        let one = BigUint::from(ONE_EGLD);
         let (old_egld_balance, old_ls_balance) = self.get_sc_balances();
 
         loop {
@@ -173,20 +196,8 @@ crate::common::config::ConfigModule
                 lps.push(xexchange_cache.lp_info.clone());
             }
 
-            // find the exchange with the most cheap LEGLD
-            let mut best_price = BigUint::zero();
-            let mut best_exchange = Exchange::None;
-            let mut lp_to_remove = BigUint::zero();
-            for lp in lps.iter() {
-                let egld_per_lp = &one * &lp.egld_reserve / &lp.lp_supply;
-                if best_price < egld_per_lp {
-                    best_price = egld_per_lp;
-                    best_exchange = lp.exchange;
-                    lp_to_remove = &left_amount * &lp.lp_supply / &lp.egld_reserve;
-                    lp_to_remove += BigUint::from(1u64);
-                }
-            }
-
+            let (best_exchange, mut lp_to_remove) =
+                self.get_exchange_with_cheap_legld(lps, &left_amount);
             if best_exchange == Exchange::None || left_amount == 0 {
                 break
             }
@@ -263,7 +274,7 @@ crate::common::config::ConfigModule
     }
 
     fn remove_legld_lp(&self, amount: BigUint, storage_cache: &mut StorageCache<Self>, lp_cache: &mut LpCache<Self>) {
-        if !self.is_arbitrage_active() {
+        if !self.is_lp_active() || !self.is_arbitrage_active() {
             return
         }
 
@@ -282,7 +293,6 @@ crate::common::config::ConfigModule
 
         let mut onedex_cache = OnedexCache::new(self);
         let mut xexchange_cache = XexchangeCache::new(self);
-        let one = BigUint::from(ONE_EGLD);
         let (old_egld_balance, old_ls_balance) = self.get_sc_balances();
 
         loop {
@@ -295,20 +305,8 @@ crate::common::config::ConfigModule
                 lps.push(xexchange_cache.lp_info.clone());
             }
 
-            // find the exchange with the most expensive LEGLD
-            let mut best_price = BigUint::zero();
-            let mut best_exchange = Exchange::None;
-            let mut lp_to_remove = BigUint::zero();
-            for lp in lps.iter() {
-                let legld_per_lp = &one * &lp.liquid_reserve / &lp.lp_supply;
-                if best_price < legld_per_lp {
-                    best_price = legld_per_lp;
-                    best_exchange = lp.exchange;
-                    lp_to_remove = &left_amount * &lp.lp_supply / &lp.liquid_reserve;
-                    lp_to_remove += BigUint::from(1u64);
-                }
-            }
-
+            let (best_exchange, mut lp_to_remove) =
+                self.get_exchange_with_expensive_legld(lps, &left_amount);
             if best_exchange == Exchange::None || left_amount == 0 {
                 break
             }
@@ -389,8 +387,81 @@ crate::common::config::ConfigModule
     fn take_lp_profit(&self) {
         let mut storage_cache = StorageCache::new(self);
         let mut lp_cache = LpCache::new(self);
-        self.remove_egld_lp(lp_cache.egld_in_lp.clone(), &mut storage_cache, &mut lp_cache);
-        self.remove_legld_lp(lp_cache.legld_in_lp.clone(), &mut storage_cache, &mut lp_cache);
+        let onedex_cache = OnedexCache::new(self);
+        let xexchange_cache = XexchangeCache::new(self);
+
+        if lp_cache.egld_in_lp > 0 {
+            self.remove_egld_lp(lp_cache.egld_in_lp.clone(), &mut storage_cache, &mut lp_cache);
+        }
+        if lp_cache.legld_in_lp > 0 {
+            self.remove_legld_lp(lp_cache.legld_in_lp.clone(), &mut storage_cache, &mut lp_cache);
+        }
+
+        let mut lps: ManagedVec<Self::Api, LpInfo<Self::Api>> = ManagedVec::new();
+        if self.is_onedex_arbitrage_active() {
+            lps.push(onedex_cache.lp_info.clone());
+        }
+        if self.is_xexchange_arbitrage_active() {
+            lps.push(xexchange_cache.lp_info.clone());
+        }
+
+        if lp_cache.excess_lp_egld > 0 && lp_cache.legld_in_lp > 0 {
+            let (best_exchange, _) = self.get_exchange_with_cheap_legld(lps.clone(), &BigUint::zero());
+            let (old_egld_balance, old_ls_balance) = self.get_sc_balances();
+            match best_exchange {
+                Exchange::Onedex => {
+                    self.swap_on_onedex(true, &lp_cache.excess_lp_egld, &lp_cache.legld_in_lp, &mut storage_cache, &onedex_cache)
+                }
+                Exchange::Xexchange => {
+                    self.swap_on_xexchange(true, &lp_cache.excess_lp_egld, &lp_cache.legld_in_lp, &mut storage_cache, &xexchange_cache)
+                }
+                Exchange::None => {}
+            }
+            let (new_egld_balance, new_ls_balance) = self.get_sc_balances();
+            require!(
+                old_egld_balance >= new_egld_balance && old_ls_balance <= new_ls_balance,
+                ERROR_INSUFFICIENT_FUNDS,
+            );
+
+            let sold_amount = &old_egld_balance - &new_egld_balance;
+            let bought_amount = &new_ls_balance - &old_ls_balance;
+            lp_cache.excess_lp_egld -= sold_amount;
+            if bought_amount > lp_cache.legld_in_lp {
+                lp_cache.excess_lp_legld += &bought_amount - &lp_cache.legld_in_lp;
+                lp_cache.legld_in_lp = BigUint::zero();
+            } else {
+                lp_cache.legld_in_lp -= bought_amount;
+            }
+        }
+
+        if lp_cache.excess_lp_legld > 0 && lp_cache.egld_in_lp > 0 {
+            let (best_exchange, _) = self.get_exchange_with_expensive_legld(lps, &BigUint::zero());
+            let (old_egld_balance, old_ls_balance) = self.get_sc_balances();
+            match best_exchange {
+                Exchange::Onedex => {
+                    self.swap_on_onedex(false, &lp_cache.excess_lp_legld, &lp_cache.egld_in_lp, &mut storage_cache, &onedex_cache)
+                }
+                Exchange::Xexchange => {
+                    self.swap_on_xexchange(false, &lp_cache.excess_lp_legld, &lp_cache.egld_in_lp, &mut storage_cache, &xexchange_cache)
+                }
+                Exchange::None => {}
+            }
+            let (new_egld_balance, new_ls_balance) = self.get_sc_balances();
+            require!(
+                old_egld_balance <= new_egld_balance && old_ls_balance >= new_ls_balance,
+                ERROR_INSUFFICIENT_FUNDS,
+            );
+
+            let sold_amount = &new_egld_balance - &old_egld_balance;
+            let bought_amount = &old_ls_balance - &new_ls_balance;
+            lp_cache.excess_lp_legld -= sold_amount;
+            if bought_amount > lp_cache.egld_in_lp {
+                lp_cache.excess_lp_egld += &bought_amount - &lp_cache.egld_in_lp;
+                lp_cache.egld_in_lp = BigUint::zero();
+            } else {
+                lp_cache.egld_in_lp -= bought_amount;
+            }
+        }
 
         let have_excess = lp_cache.excess_lp_egld > 0 || lp_cache.excess_lp_legld > 0;
         let lp_empty = lp_cache.egld_in_lp == 0 && lp_cache.legld_in_lp == 0;
@@ -406,7 +477,54 @@ crate::common::config::ConfigModule
             storage_cache.liquid_supply -= &lp_cache.excess_lp_legld;
             lp_cache.excess_lp_legld = BigUint::zero();
         }
+
         self.add_lp(&mut storage_cache, &mut lp_cache);
+    }
+
+    // helpers
+
+    fn get_exchange_with_cheap_legld(
+        &self,
+        lps: ManagedVec<Self::Api, LpInfo<Self::Api>>,
+        amount: &BigUint,
+    ) -> (Exchange, BigUint) {
+        let one = BigUint::from(ONE_EGLD);
+        let mut best_price = BigUint::zero();
+        let mut best_exchange = Exchange::None;
+        let mut lp_to_remove = BigUint::zero();
+        for lp in lps.iter() {
+            let egld_per_lp = &one * &lp.egld_reserve / &lp.lp_supply;
+            if best_price < egld_per_lp {
+                best_price = egld_per_lp;
+                best_exchange = lp.exchange;
+                lp_to_remove = amount * &lp.lp_supply / &lp.egld_reserve;
+                lp_to_remove += BigUint::from(1u64);
+            }
+        }
+
+        (best_exchange, lp_to_remove)
+    }
+
+    fn get_exchange_with_expensive_legld(
+        &self,
+        lps: ManagedVec<Self::Api, LpInfo<Self::Api>>,
+        amount: &BigUint,
+    ) -> (Exchange, BigUint) {
+        let one = BigUint::from(ONE_EGLD);
+        let mut best_price = BigUint::zero();
+        let mut best_exchange = Exchange::None;
+        let mut lp_to_remove = BigUint::zero();
+        for lp in lps.iter() {
+            let legld_per_lp = &one * &lp.liquid_reserve / &lp.lp_supply;
+            if best_price < legld_per_lp {
+                best_price = legld_per_lp;
+                best_exchange = lp.exchange;
+                lp_to_remove = amount * &lp.lp_supply / &lp.liquid_reserve;
+                lp_to_remove += BigUint::from(1u64);
+            }
+        }
+
+        (best_exchange, lp_to_remove)
     }
 
     // proxies
