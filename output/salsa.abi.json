@@ -1,11 +1,11 @@
 {
     "buildInfo": {
         "rustc": {
-            "version": "1.72.0-nightly",
-            "commitHash": "04075b32021932e3e8f6ab55d519b3b3494b6ef9",
-            "commitDate": "2023-06-22",
+            "version": "1.70.0-nightly",
+            "commitHash": "cf7ada217c8ac63367b184afd9fffaff30f6ed44",
+            "commitDate": "2023-04-03",
             "channel": "Nightly",
-            "short": "rustc 1.72.0-nightly (04075b320 2023-06-22)"
+            "short": "rustc 1.70.0-nightly (cf7ada217 2023-04-03)"
         },
         "contractCrate": {
             "name": "salsa",
@@ -787,6 +787,30 @@
                 }
             ],
             "outputs": []
+        },
+        {
+            "name": "setLpActive",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "setLpInactive",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "getLpState",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "State"
+                }
+            ]
         },
         {
             "name": "takeLpProfit",

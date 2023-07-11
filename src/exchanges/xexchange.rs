@@ -114,7 +114,8 @@ pub trait XexchangeModule:
         if amount_from_xexchange <= amount_from_salsa {
             return (BigUint::zero(), BigUint::zero())
         }
-        self.swap_on_xexchange(is_buy, &amount_to_send_to_xexchange, &amount_from_salsa, storage_cache, xexchange_cache);
+
+        self.swap_on_xexchange(is_buy, &amount_to_send_to_xexchange, &amount_from_salsa, storage_cache, &xexchange_cache);
 
         (amount_to_send_to_xexchange, amount_from_salsa)
     }
@@ -125,20 +126,20 @@ pub trait XexchangeModule:
         in_amount: &BigUint,
         out_amount: &BigUint,
         storage_cache: &mut StorageCache<Self>,
-        xexchange_cache: XexchangeCache<Self>,
+        xexchange_cache: &XexchangeCache<Self>,
     ) {
         let wegld_id = storage_cache.wegld_id.clone();
         let liquid_token_id = storage_cache.liquid_token_id.clone();
         if is_buy {
             self.wrap_proxy_obj()
-                .contract(xexchange_cache.wrap_sc_address)
+                .contract(xexchange_cache.wrap_sc_address.clone())
                 .wrap_egld()
                 .with_egld_transfer(in_amount.clone())
                 .execute_on_dest_context::<()>();
             let payment =
                 EsdtTokenPayment::new(wegld_id, 0, in_amount.clone());
             self.xexchange_proxy_obj()
-                .contract(xexchange_cache.sc_address)
+                .contract(xexchange_cache.sc_address.clone())
                 .swap_tokens_fixed_input(liquid_token_id, out_amount)
                 .with_esdt_transfer(payment)
                 .execute_on_dest_context::<()>();
@@ -146,7 +147,7 @@ pub trait XexchangeModule:
             let mut payment =
                 EsdtTokenPayment::new(liquid_token_id, 0, in_amount.clone());
             self.xexchange_proxy_obj()
-                .contract(xexchange_cache.sc_address)
+                .contract(xexchange_cache.sc_address.clone())
                 .swap_tokens_fixed_input(wegld_id.clone(), out_amount)
                 .with_esdt_transfer(payment)
                 .execute_on_dest_context::<()>();
@@ -154,7 +155,7 @@ pub trait XexchangeModule:
                 self.blockchain().get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(wegld_id.clone()), 0);
             payment = EsdtTokenPayment::new(wegld_id, 0, wegld_balance);
             self.wrap_proxy_obj()
-                .contract(xexchange_cache.wrap_sc_address)
+                .contract(xexchange_cache.wrap_sc_address.clone())
                 .unwrap_egld()
                 .with_esdt_transfer(payment)
                 .execute_on_dest_context::<()>();
