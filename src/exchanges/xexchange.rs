@@ -6,7 +6,7 @@ use crate::{common::consts::*, common::errors::*};
 use crate::proxies::xexchange_proxy;
 use crate::proxies::wrap_proxy;
 
-use super::xexchange_cache::{XexchangeCache};
+use super::xexchange_cache::XexchangeCache;
 
 #[multiversx_sc::module]
 pub trait XexchangeModule:
