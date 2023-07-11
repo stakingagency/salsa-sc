@@ -494,7 +494,7 @@ crate::common::config::ConfigModule
         let mut lp_to_remove = BigUint::zero();
         for lp in lps.iter() {
             let egld_per_lp = &one * &lp.egld_reserve / &lp.lp_supply;
-            if best_price < egld_per_lp {
+            if best_price > egld_per_lp || best_price == 0 {
                 best_price = egld_per_lp;
                 best_exchange = lp.exchange;
                 lp_to_remove = amount * &lp.lp_supply / &lp.egld_reserve;
@@ -516,7 +516,7 @@ crate::common::config::ConfigModule
         let mut lp_to_remove = BigUint::zero();
         for lp in lps.iter() {
             let legld_per_lp = &one * &lp.liquid_reserve / &lp.lp_supply;
-            if best_price < legld_per_lp {
+            if best_price > legld_per_lp || best_price == 0 {
                 best_price = legld_per_lp;
                 best_exchange = lp.exchange;
                 lp_to_remove = amount * &lp.lp_supply / &lp.liquid_reserve;
