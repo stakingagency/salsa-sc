@@ -642,6 +642,16 @@
             ]
         },
         {
+            "name": "getContractInfo",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "ContractInfo"
+                }
+            ]
+        },
+        {
             "name": "getUserInfo",
             "mutability": "readonly",
             "inputs": [
@@ -900,6 +910,47 @@
     "events": [],
     "hasCallback": true,
     "types": {
+        "ContractInfo": {
+            "type": "struct",
+            "fields": [
+                {
+                    "name": "state",
+                    "type": "State"
+                },
+                {
+                    "name": "liquid_token_id",
+                    "type": "TokenIdentifier"
+                },
+                {
+                    "name": "liquid_token_supply",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "total_egld_staked",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "provider_address",
+                    "type": "Address"
+                },
+                {
+                    "name": "egld_reserve",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "available_egld_reserve",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "unbond_period",
+                    "type": "u64"
+                },
+                {
+                    "name": "token_price",
+                    "type": "BigUint"
+                }
+            ]
+        },
         "EsdtTokenPayment": {
             "type": "struct",
             "fields": [
@@ -1002,16 +1053,28 @@
                     "type": "BigUint"
                 },
                 {
+                    "name": "add_reserve_epoch",
+                    "type": "u64"
+                },
+                {
                     "name": "delegation",
                     "type": "BigUint"
                 },
                 {
                     "name": "knight",
-                    "type": "Address"
+                    "type": "Knight"
+                },
+                {
+                    "name": "knight_users",
+                    "type": "List<Knight>"
                 },
                 {
                     "name": "heir",
-                    "type": "Address"
+                    "type": "Heir"
+                },
+                {
+                    "name": "heir_users",
+                    "type": "List<Heir>"
                 }
             ]
         }
