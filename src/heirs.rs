@@ -1,7 +1,7 @@
 multiversx_sc::imports!();
 
-use crate::common::consts::MAX_HEIR_USERS;
-use crate::{common::errors::*, common::consts::MIN_INHERITANCE_EPOCHS};
+use crate::common::consts::*;
+use crate::common::errors::*;
 use crate::common::config::Heir;
 
 #[multiversx_sc::module]

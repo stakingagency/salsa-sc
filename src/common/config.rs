@@ -3,7 +3,7 @@ multiversx_sc::derive_imports!();
 
 use crate::{common::consts::*, common::errors::*};
 
-#[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Eq, Copy, Clone, Debug)]
 pub enum State {
     Inactive,
     Active,
@@ -22,20 +22,20 @@ pub struct Undelegation<M: ManagedTypeApi> {
     pub unbond_epoch: u64,
 }
 
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
 pub enum KnightState {
     InactiveKnight,
     PendingConfirmation,
     ActiveKnight,
 }
 
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
 pub struct Knight<M: ManagedTypeApi> {
     pub address: ManagedAddress<M>,
     pub state: KnightState,
 }
 
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
 pub struct Heir<M: ManagedTypeApi> {
     pub address: ManagedAddress<M>,
     pub inheritance_epochs: u64,
@@ -46,9 +46,25 @@ pub struct Heir<M: ManagedTypeApi> {
 pub struct UserInfo<M: ManagedTypeApi + multiversx_sc::api::StorageMapperApi> {
     pub undelegations: ManagedVec<M, Undelegation<M>>,
     pub reserve: BigUint<M>,
+    pub add_reserve_epoch: u64,
     pub delegation: BigUint<M>,
-    pub knight: ManagedAddress<M>,
-    pub heir: ManagedAddress<M>,
+    pub knight: Knight<M>,
+    pub knight_users: ManagedVec<M, Knight<M>>,
+    pub heir: Heir<M>,
+    pub heir_users: ManagedVec<M, Heir<M>>,
+}
+
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
+pub struct ContractInfo<M: ManagedTypeApi + multiversx_sc::api::StorageMapperApi> {
+    pub state: State,
+    pub liquid_token_id: TokenIdentifier<M>,
+    pub liquid_token_supply: BigUint<M>,
+    pub total_egld_staked: BigUint<M>,
+    pub provider_address: ManagedAddress<M>,
+    pub egld_reserve: BigUint<M>,
+    pub available_egld_reserve: BigUint<M>,
+    pub unbond_period: u64,
+    pub token_price: BigUint<M>,
 }
 
 #[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
@@ -344,24 +360,59 @@ pub trait ConfigModule:
     #[storage_mapper("heir_users")]
     fn heir_users(&self, heir: &ManagedAddress) -> UnorderedSetMapper<ManagedAddress>;
 
+    #[view(getContractInfo)]
+    fn get_contract_info(&self) -> ContractInfo<Self::Api> {
+        ContractInfo{
+            state: self.state().get(),
+            liquid_token_id: self.liquid_token_id().get_token_id(),
+            liquid_token_supply: self.liquid_token_supply().get(),
+            total_egld_staked: self.total_egld_staked().get(),
+            provider_address: self.provider_address().get(),
+            egld_reserve: self.egld_reserve().get(),
+            available_egld_reserve: self.available_egld_reserve().get(),
+            unbond_period: self.unbond_period().get(),
+            token_price: self.token_price(),
+        }
+    }
+
     #[view(getUserInfo)]
     fn get_user_info(&self, user: &ManagedAddress) -> UserInfo<Self::Api> {
         let user_knight = self.user_knight(user);
         let knight = if user_knight.is_empty() {
-            ManagedAddress::default()
+            Knight{
+                address: ManagedAddress::from(&[0u8; 32]),
+                state: KnightState::PendingConfirmation,
+            }
         } else {
-            user_knight.get().address
+            user_knight.get()
         };
+
+        let mut knight_users: ManagedVec<Self::Api, Knight<Self::Api>> = ManagedVec::new();
+        for knight_user in self.knight_users(user).iter() {
+            let mut k = self.user_knight(&knight_user).get();
+            k.address = knight_user;
+            knight_users.push(k);
+        }
 
         let user_heir = self.user_heir(user);
         let heir = if user_heir.is_empty() {
-            ManagedAddress::from(&[0u8; 32])
+            Heir{
+                address: ManagedAddress::from(&[0u8; 32]),
+                inheritance_epochs: 0,
+                last_accessed_epoch: 0,
+            }
         } else {
-            user_heir.get().address
+            user_heir.get()
         };
 
-        let mut undelegations: ManagedVec<Self::Api, Undelegation<Self::Api>> =
-            ManagedVec::new();
+        let mut heir_users: ManagedVec<Self::Api, Heir<Self::Api>> = ManagedVec::new();
+        for heir_user in self.heir_users(user).iter() {
+            let mut h = self.user_heir(&heir_user).get();
+            h.address = heir_user;
+            heir_users.push(h);
+        }
+
+        let mut undelegations: ManagedVec<Self::Api, Undelegation<Self::Api>> = ManagedVec::new();
         for node in self.luser_undelegations(user).iter() {
             let undelegation = node.into_value();
             undelegations.push(undelegation);
@@ -370,9 +421,12 @@ pub trait ConfigModule:
         UserInfo{
             undelegations,
             reserve: self.get_user_reserve(user),
+            add_reserve_epoch: self.add_reserve_epoch(user).get(),
             delegation: self.user_delegation(user).get(),
             knight,
+            knight_users,
             heir,
+            heir_users,
         }
     }
 }

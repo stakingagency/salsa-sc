@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           78
+// Endpoints:                           79
 // Async Callback:                       1
-// Total number of exported functions:  80
+// Total number of exported functions:  81
 
 #![no_std]
 #![feature(lang_items)]
@@ -67,6 +67,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         getKnightUsers
         getUserHeir
         getHeirUsers
+        getContractInfo
         getUserInfo
         unDelegateAll
         compound

@@ -1,7 +1,7 @@
 multiversx_sc::imports!();
 
 use crate::common::consts::MAX_KNIGHT_USERS;
-use crate::{common::errors::*};
+use crate::common::errors::*;
 use crate::common::config::{Knight, KnightState};
 
 #[multiversx_sc::module]
