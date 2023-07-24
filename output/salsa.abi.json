@@ -1002,16 +1002,20 @@
             "type": "enum",
             "variants": [
                 {
-                    "name": "InactiveKnight",
+                    "name": "Undefined",
                     "discriminant": 0
                 },
                 {
-                    "name": "PendingConfirmation",
+                    "name": "InactiveKnight",
                     "discriminant": 1
                 },
                 {
-                    "name": "ActiveKnight",
+                    "name": "PendingConfirmation",
                     "discriminant": 2
+                },
+                {
+                    "name": "ActiveKnight",
+                    "discriminant": 3
                 }
             ]
         },
