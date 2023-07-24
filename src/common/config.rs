@@ -24,6 +24,7 @@ pub struct Undelegation<M: ManagedTypeApi> {
 
 #[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
 pub enum KnightState {
+    Undefined,
     InactiveKnight,
     PendingConfirmation,
     ActiveKnight,
@@ -381,7 +382,7 @@ pub trait ConfigModule:
         let knight = if user_knight.is_empty() {
             Knight{
                 address: ManagedAddress::from(&[0u8; 32]),
-                state: KnightState::PendingConfirmation,
+                state: KnightState::Undefined,
             }
         } else {
             user_knight.get()
