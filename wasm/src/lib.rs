@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           75
+// Endpoints:                           76
 // Async Callback:                       1
-// Total number of exported functions:  77
+// Total number of exported functions:  78
 
 #![no_std]
 #![feature(lang_items)]
@@ -92,6 +92,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         confirmKnight
         removeKnight
         setHeir
+        cancelHeir
         removeHeir
         callBack
     )

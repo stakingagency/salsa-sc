@@ -870,9 +870,20 @@
             "outputs": []
         },
         {
-            "name": "removeHeir",
+            "name": "cancelHeir",
             "mutability": "mutable",
             "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "removeHeir",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "user",
+                    "type": "Address"
+                }
+            ],
             "outputs": []
         }
     ],
