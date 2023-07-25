@@ -799,37 +799,6 @@
             "outputs": []
         },
         {
-            "name": "setLpActive",
-            "onlyOwner": true,
-            "mutability": "mutable",
-            "inputs": [],
-            "outputs": []
-        },
-        {
-            "name": "setLpInactive",
-            "onlyOwner": true,
-            "mutability": "mutable",
-            "inputs": [],
-            "outputs": []
-        },
-        {
-            "name": "getLpState",
-            "mutability": "readonly",
-            "inputs": [],
-            "outputs": [
-                {
-                    "type": "State"
-                }
-            ]
-        },
-        {
-            "name": "takeLpProfit",
-            "onlyOwner": true,
-            "mutability": "mutable",
-            "inputs": [],
-            "outputs": []
-        },
-        {
             "name": "setKnight",
             "mutability": "mutable",
             "inputs": [
