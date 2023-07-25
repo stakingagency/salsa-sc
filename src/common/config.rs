@@ -323,18 +323,6 @@ pub trait ConfigModule:
         self.wrap_sc().set(address);
     }
 
-    #[storage_mapper("egld_in_lp")]
-    fn egld_in_lp(&self) -> SingleValueMapper<BigUint>;
-
-    #[storage_mapper("legld_in_lp")]
-    fn legld_in_lp(&self) -> SingleValueMapper<BigUint>;
-
-    #[storage_mapper("excess_lp_egld")]
-    fn excess_lp_egld(&self) -> SingleValueMapper<BigUint>;
-    
-    #[storage_mapper("excess_lp_legld")]
-    fn excess_lp_legld(&self) -> SingleValueMapper<BigUint>;
-    
     // custodial liquid staking
 
     #[view(getLegldInCustody)]
