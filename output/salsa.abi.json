@@ -926,6 +926,10 @@
                     "type": "u64"
                 },
                 {
+                    "name": "undelegate_now_fee",
+                    "type": "u64"
+                },
+                {
                     "name": "token_price",
                     "type": "BigUint"
                 }
