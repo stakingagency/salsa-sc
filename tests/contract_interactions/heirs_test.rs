@@ -53,7 +53,7 @@ where
         let big_zero = rust_biguint!(0);
         self.blockchain_wrapper
             .execute_tx(sender, &self.salsa_wrapper, &big_zero, |sc| {
-                sc.remove_heir()
+                sc.cancel_heir()
             })
             .assert_ok();
     }

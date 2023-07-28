@@ -901,9 +901,20 @@
             "outputs": []
         },
         {
-            "name": "removeHeir",
+            "name": "cancelHeir",
             "mutability": "mutable",
             "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "removeHeir",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "user",
+                    "type": "Address"
+                }
+            ],
             "outputs": []
         }
     ],
@@ -943,6 +954,10 @@
                 },
                 {
                     "name": "unbond_period",
+                    "type": "u64"
+                },
+                {
+                    "name": "undelegate_now_fee",
                     "type": "u64"
                 },
                 {

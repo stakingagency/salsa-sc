@@ -44,8 +44,8 @@ pub trait HeirsModule:
         heir_users.insert(caller);
     }
 
-    #[endpoint(removeHeir)]
-    fn remove_heir(&self) {
+    #[endpoint(cancelHeir)]
+    fn cancel_heir(&self) {
         let caller = self.blockchain().get_caller();
         require!(
             self.user_has_heir(&caller),
@@ -55,6 +55,26 @@ pub trait HeirsModule:
         let heir = self.user_heir(&caller).get();
         self.user_heir(&caller).clear();
         self.heir_users(&heir.address).swap_remove(&caller);
+    }
+
+    // heir actions
+
+    #[endpoint(removeHeir)]
+    fn remove_heir(&self, user: ManagedAddress) {
+        require!(
+            self.user_has_heir(&user),
+            ERROR_NO_HEIR,
+        );
+
+        let user_heir = self.user_heir(&user).get();
+        let caller = self.blockchain().get_caller();
+        require!(
+            caller == user_heir.address,
+            ERROR_NOT_HEIR_OF_USER,
+        );
+
+        self.user_heir(&user).clear();
+        self.heir_users(&caller).swap_remove(&user);
     }
 
     fn user_has_heir(&self, user: &ManagedAddress) -> bool {
