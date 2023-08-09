@@ -3,7 +3,7 @@ multiversx_sc::imports!();
 use crate::common::config::State;
 use crate::common::storage_cache::StorageCache;
 use crate::{common::consts::*, common::errors::*};
-use crate::proxies::onedex_proxy::{self, Pair};
+use crate::proxies::onedex_proxy::{self, Pair, MAX_PERCENTAGE};
 
 use super::onedex_cache::OnedexCache;
 
@@ -81,6 +81,16 @@ pub trait OnedexModule:
         pair
     }
 
+    fn get_onedex_fee(&self) -> u64 {
+        let onedex_sc_address = self.onedex_sc().get();
+        let fee: u64 = self.onedex_proxy_obj()
+            .contract(onedex_sc_address)
+            .total_fee_percent()
+            .execute_on_dest_context();
+
+        fee
+    }
+
     fn get_onedex_amount_out(
         &self,
         is_buy: bool,
@@ -109,7 +119,7 @@ pub trait OnedexModule:
         let out_amount = self.get_salsa_amount_out(&in_amount, is_buy, storage_cache);
         let amount_to_send_to_onedex =
             self.get_optimal_quantity(
-                in_amount, out_amount, &onedex_cache.lp_info.egld_reserve, &onedex_cache.lp_info.liquid_reserve, is_buy,
+                in_amount, out_amount, &onedex_cache.lp_info.egld_reserve, &onedex_cache.lp_info.liquid_reserve, is_buy, onedex_cache.fee, MAX_PERCENTAGE
             );
         if amount_to_send_to_onedex < MIN_EGLD {
             return (BigUint::zero(), BigUint::zero())

@@ -22,34 +22,56 @@ pub trait HelpersModule:
 
     fn get_optimal_quantity(
         &self,
-        in_amount: BigUint,
-        out_amount: BigUint,
+        xs: BigUint,
+        ys: BigUint,
         egld_reserve: &BigUint,
         ls_reserve: &BigUint,
-        is_buy: bool
+        is_buy: bool,
+        f: u64,
+        max_f: u64,
     ) -> BigUint {
-        if in_amount == 0 || out_amount == 0 {
+        if xs == 0 || ys == 0 {
             return BigUint::zero()
         }
 
-        let (in_reserve, out_reserve) = if is_buy {
+        let (x, y) = if is_buy {
             (egld_reserve, ls_reserve)
         } else {
             (ls_reserve, egld_reserve)
         };
-        let mut x = in_reserve * out_reserve * &in_amount / &out_amount;
-        x = x.sqrt();
-        if &x < in_reserve {
+        if y * (max_f - f) * &xs < x * &ys * max_f {
             return BigUint::zero()
         }
 
-        x -= in_reserve;
-        x = x * 99_u64 / 100_u64;
-        if x > in_amount {
-            x = in_amount.clone();
+        let num = y * (max_f - f) * &xs - x * &ys * max_f;
+        let den = &ys * (max_f - f);
+        let x_max = num / den;
+
+        let a = &ys * (max_f - f);
+        let b = &ys * x * (2 * max_f - f);
+        if &ys * x < &xs * y {
+            return BigUint::zero()
         }
 
-        self.adjust_quantity_if_dust_remaining(in_amount, x)
+        let c = x * max_f * (&ys * x - &xs * y);
+        let sqrt_delta = (&b * &b + &a * &c * 4_u64).sqrt();
+        if sqrt_delta < b {
+            return BigUint::zero()
+        }
+
+        let x_eq = (sqrt_delta - &b) / (a * 2_u64);
+
+        let mut x_in = if x_max > x_eq {
+            x_eq
+        } else {
+            x_max
+        };
+
+        if x_in > xs {
+            x_in = xs.clone();
+        }
+
+        self.adjust_quantity_if_dust_remaining(xs, x_in)
     }
 
     fn adjust_quantity_if_dust_remaining(&self, in_amount: BigUint, quantity: BigUint) -> BigUint {

@@ -1,12 +1,10 @@
 use crate::{contract_setup::SalsaContractSetup, to_managed_biguint};
 use salsa::common::config::ConfigModule;
 
-use multiversx_sc::{
-    types::{
-        Address,
-        BigUint,
-        ManagedAddress
-    }
+use multiversx_sc::types::{
+    Address,
+    BigUint,
+    ManagedAddress
 };
 
 use multiversx_sc_scenario::{

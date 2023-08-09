@@ -12,6 +12,7 @@ where
     pub sc_address: ManagedAddress<O::Api>,
     pub lp_info: LpInfo<O::Api>,
     pub is_active: bool,
+    pub fee: u64,
 }
 
 impl<'a, O> OnedexCache<O>
@@ -31,12 +32,14 @@ where
             lp_balance,
         };
         let is_active = pair.enabled && (pair.state == State::Active);
+        let fee = sc_ref.get_onedex_fee();
         
         OnedexCache {
             pair_id: sc_ref.onedex_pair_id().get(),
             sc_address: sc_ref.onedex_sc().get(),
             lp_info,
             is_active,
+            fee,
         }
     }
 }

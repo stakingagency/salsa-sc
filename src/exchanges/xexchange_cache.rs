@@ -12,6 +12,7 @@ where
     pub wrap_sc_address: ManagedAddress<X::Api>,
     pub lp_info: LpInfo<X::Api>,
     pub is_active: bool,
+    pub fee: u64,
 }
 
 impl<'a, X> XexchangeCache<X>
@@ -34,12 +35,14 @@ where
             lp_token,
             lp_balance,
         };
+        let fee = sc_ref.get_xexchange_fee();
             
         XexchangeCache {
             sc_address: sc_ref.xexchange_sc().get(),
             wrap_sc_address: sc_ref.wrap_sc().get(),
             lp_info,
             is_active,
+            fee,
         }
     }
 }
