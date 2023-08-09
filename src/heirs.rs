@@ -1,5 +1,6 @@
 multiversx_sc::imports!();
 
+use crate::common::config::KnightState;
 use crate::common::consts::*;
 use crate::common::errors::*;
 use crate::common::config::Heir;
@@ -18,16 +19,16 @@ pub trait HeirsModule:
     ) {
         let caller = self.blockchain().get_caller();
         require!(
-            self.user_delegation(&caller).get() > 0,
-            ERROR_USER_NOT_DELEGATOR,
-        );
-        require!(
-            inheritance_epochs >= MIN_INHERITANCE_EPOCHS,
-            ERROR_LOW_INHERITANCE_EPOCHS,
+            inheritance_epochs >= MIN_INHERITANCE_EPOCHS && inheritance_epochs <= MAX_INHERITANCE_EPOCHS,
+            ERROR_WRONG_INHERITANCE_EPOCHS,
         );
         require!(
             caller != heir,
             ERROR_INHERIT_YOURSELF,
+        );
+        require!(
+            self.user_heir(&caller).is_empty(),
+            ERROR_HEIR_ALREADY_SET,
         );
 
         let current_epoch = self.blockchain().get_block_epoch();
@@ -51,6 +52,14 @@ pub trait HeirsModule:
             self.user_has_heir(&caller),
             ERROR_NO_HEIR,
         );
+
+        let knight = self.user_knight(&caller);
+        if !knight.is_empty() {
+            require!(
+                knight.get().state == KnightState::PendingConfirmation,
+                ERROR_CANCEL_HEIR_WHILE_KNIGHT_SET,
+            );
+        }
 
         let heir = self.user_heir(&caller).get();
         self.user_heir(&caller).clear();
@@ -81,10 +90,18 @@ pub trait HeirsModule:
         !self.user_heir(user).is_empty()
     }
 
+    #[endpoint(updateLastAccessed)]
     fn update_last_accessed(&self) {
         let caller = self.blockchain().get_caller();
         if !self.user_has_heir(&caller) {
             return
+        }
+
+        let knight = self.user_knight(&caller);
+        if !knight.is_empty() {
+            if knight.get().state == KnightState::ActiveKnight {
+                return
+            }
         }
 
         let current_epoch = self.blockchain().get_block_epoch();

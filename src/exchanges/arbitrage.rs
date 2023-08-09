@@ -60,27 +60,31 @@ pub trait ArbitrageModule:
         let (old_egld_balance, old_ls_balance) = self.get_sc_balances();
         if self.is_onedex_arbitrage_active() {
             let onedex_cache = OnedexCache::new(self);
-            let (sold, bought) =
-                self.do_arbitrage_on_onedex(is_buy, in_amount.clone(), storage_cache, onedex_cache);
-            sold_amount += &sold;
-            bought_amount += &bought;
+            if onedex_cache.is_active {
+                let (sold, bought) =
+                    self.do_arbitrage_on_onedex(is_buy, in_amount.clone(), storage_cache, onedex_cache);
+                sold_amount += &sold;
+                bought_amount += &bought;
+            }
         }
         if self.is_xexchange_arbitrage_active() && in_amount > sold_amount {
             let xexchange_cache = XexchangeCache::new(self);
-            let (sold, bought) =
-                self.do_arbitrage_on_xexchange(is_buy, in_amount - &sold_amount, storage_cache, xexchange_cache);
-            sold_amount += sold;
-            bought_amount += bought;
+            if xexchange_cache.is_active {
+                let (sold, bought) =
+                    self.do_arbitrage_on_xexchange(is_buy, in_amount - &sold_amount, storage_cache, xexchange_cache);
+                sold_amount += sold;
+                bought_amount += bought;
+            }
         }
 
         let (new_egld_balance, new_ls_balance) = self.get_sc_balances();
         if is_buy {
             require!(new_ls_balance >= old_ls_balance, ERROR_ARBITRAGE_ISSUE);
 
-            if new_ls_balance > old_ls_balance {
-                let swapped_amount = &new_ls_balance - &old_ls_balance;
-                require!(swapped_amount >= bought_amount, ERROR_ARBITRAGE_ISSUE);
+            let swapped_amount = &new_ls_balance - &old_ls_balance;
+            require!(swapped_amount >= bought_amount, ERROR_ARBITRAGE_ISSUE);
 
+            if swapped_amount > 0 {
                 let profit = &swapped_amount - &bought_amount;
                 if profit > 0 {
                     self.burn_liquid_token(&profit);
@@ -90,10 +94,10 @@ pub trait ArbitrageModule:
         } else {
             require!(new_egld_balance >= old_egld_balance, ERROR_ARBITRAGE_ISSUE);
 
-            if new_egld_balance > old_egld_balance {
-                let swapped_amount = &new_egld_balance - &old_egld_balance;
-                require!(swapped_amount >= bought_amount, ERROR_ARBITRAGE_ISSUE);
+            let swapped_amount = &new_egld_balance - &old_egld_balance;
+            require!(swapped_amount >= bought_amount, ERROR_ARBITRAGE_ISSUE);
 
+            if swapped_amount > 0 {
                 let profit = &swapped_amount - &bought_amount;
                 storage_cache.egld_reserve += &profit;
                 storage_cache.available_egld_reserve += profit;

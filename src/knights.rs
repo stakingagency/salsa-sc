@@ -12,8 +12,6 @@ pub trait KnightsModule:
 {
     #[endpoint(setKnight)]
     fn set_knight(&self, knight: ManagedAddress) {
-        self.check_is_custodial_delegator();
-
         let caller = self.blockchain().get_caller();
         require!(
             self.user_knight(&caller).is_empty(),
@@ -36,7 +34,13 @@ pub trait KnightsModule:
     fn cancel_knight(&self) {
         let caller = self.blockchain().get_caller();
         self.check_user_has_knight(&caller);
-        self.check_is_knight_pending(&caller);
+
+        let delegation = self.user_delegation(&caller).get();
+        let reserve = self.users_reserve_points(&caller).get();
+        let undelegations = self.luser_undelegations(&caller);
+        if delegation > 0 || reserve > 0 || !undelegations.is_empty() {
+            self.check_is_knight_pending(&caller);
+        }
 
         let knight = self.user_knight(&caller).get();
         self.user_knight(&caller).clear();
@@ -46,7 +50,6 @@ pub trait KnightsModule:
     #[endpoint(activateKnight)]
     fn activate_knight(&self) {
         let caller = self.blockchain().get_caller();
-        self.check_is_custodial_delegator();
         self.check_user_has_knight(&caller);
         require!(
             self.user_knight(&caller).get().state == KnightState::InactiveKnight,
@@ -107,17 +110,9 @@ pub trait KnightsModule:
         }
     }
 
-    fn check_knight_set(&self, caller: &ManagedAddress) {
+    fn check_no_knight_set(&self, caller: &ManagedAddress) {
         let knight = self.user_knight(caller);
         require!(knight.is_empty(), ERROR_KNIGHT_SET);
-    }
-
-    fn check_is_custodial_delegator(&self) {
-        let caller = self.blockchain().get_caller();
-        require!(
-            self.user_delegation(&caller).get() > 0,
-            ERROR_USER_NOT_DELEGATOR,
-        );
     }
 
     fn check_user_has_knight(&self, user: &ManagedAddress) {

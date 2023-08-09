@@ -8,9 +8,8 @@ use multiversx_sc_scenario::{
 };
 
 use multiversx_sc::{
-    types::{
-        Address,
-    },
+    types::Address,
+    codec::multi_types::OptionalValue
 };
 
 impl<SalsaContractObjBuilder> SalsaContractSetup<SalsaContractObjBuilder>
@@ -67,7 +66,7 @@ where
         let big_zero = rust_biguint!(0);
         self.blockchain_wrapper
             .execute_tx(heir, &self.salsa_wrapper, &big_zero, |sc| {
-                sc.undelegate_heir(managed_address!(user), to_managed_biguint(amount))
+                sc.undelegate_heir(managed_address!(user), to_managed_biguint(amount), OptionalValue::Some(false))
             })
             .assert_ok();
     }
@@ -82,7 +81,7 @@ where
         let big_zero = rust_biguint!(0);
         self.blockchain_wrapper
             .execute_tx(heir, &self.salsa_wrapper, &big_zero, |sc| {
-                sc.undelegate_heir(managed_address!(user), to_managed_biguint(amount))
+                sc.undelegate_heir(managed_address!(user), to_managed_biguint(amount), OptionalValue::Some(false))
             })
             .assert_user_error(error);
     }
@@ -97,7 +96,7 @@ where
         let big_zero = rust_biguint!(0);
         self.blockchain_wrapper
             .execute_tx(heir, &self.salsa_wrapper, &big_zero, |sc| {
-                sc.undelegate_now_heir(managed_address!(user), to_managed_biguint(min_amount), to_managed_biguint(amount))
+                sc.undelegate_now_heir(managed_address!(user), to_managed_biguint(min_amount), to_managed_biguint(amount), OptionalValue::Some(false))
             })
             .assert_ok();
     }

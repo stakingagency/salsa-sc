@@ -9,14 +9,8 @@ use multiversx_sc_scenario::{
 };
 
 use multiversx_sc::{
-    types::{
-        Address
-    },
-    codec::{
-        multi_types:: {
-            OptionalValue
-        }
-    },
+    types::Address,
+    codec::multi_types::OptionalValue
 };
 
 impl<SalsaContractObjBuilder> SalsaContractSetup<SalsaContractObjBuilder>
@@ -31,7 +25,7 @@ where
     ) {
         self.blockchain_wrapper
             .execute_tx(sender, &self.salsa_wrapper, &amount, |sc| {
-                sc.delegate(OptionalValue::Some(custodial));
+                sc.delegate(OptionalValue::Some(custodial), OptionalValue::Some(false));
             })
             .assert_ok();
     }
@@ -44,7 +38,7 @@ where
     ) {
         self.blockchain_wrapper
             .execute_esdt_transfer(sender, &self.salsa_wrapper, TOKEN_ID, 0, &amount, |sc| {
-                sc.undelegate(OptionalValue::Some(to_managed_biguint(undelegate_amount)))
+                sc.undelegate(OptionalValue::Some(to_managed_biguint(undelegate_amount)), OptionalValue::Some(false))
             })
             .assert_ok();
     }
@@ -58,7 +52,7 @@ where
     ) {
         self.blockchain_wrapper
             .execute_esdt_transfer(sender, &self.salsa_wrapper, TOKEN_ID, 0, &amount, |sc| {
-                sc.undelegate(OptionalValue::Some(to_managed_biguint(undelegate_amount)))
+                sc.undelegate(OptionalValue::Some(to_managed_biguint(undelegate_amount)), OptionalValue::Some(false))
             })
             .assert_user_error(error);
     }
@@ -148,7 +142,7 @@ where
     ) {
         self.blockchain_wrapper
             .execute_esdt_transfer(sender, &self.salsa_wrapper, TOKEN_ID, 0, &amount, |sc| {
-                sc.undelegate_now(to_managed_biguint(min_amount), OptionalValue::Some(to_managed_biguint(undelegate_amount)))
+                sc.undelegate_now(to_managed_biguint(min_amount), OptionalValue::Some(to_managed_biguint(undelegate_amount)), OptionalValue::Some(false))
             })
             .assert_ok();
     }
@@ -163,7 +157,7 @@ where
     ) {
         self.blockchain_wrapper
             .execute_esdt_transfer(sender, &self.salsa_wrapper, TOKEN_ID, 0, &amount, |sc| {
-                sc.undelegate_now(to_managed_biguint(min_amount), OptionalValue::Some(to_managed_biguint(undelegate_amount)))
+                sc.undelegate_now(to_managed_biguint(min_amount), OptionalValue::Some(to_managed_biguint(undelegate_amount)), OptionalValue::Some(false))
             })
             .assert_user_error(error);
     }

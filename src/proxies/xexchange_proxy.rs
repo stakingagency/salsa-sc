@@ -1,4 +1,5 @@
 multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 pub type SwapTokensFixedInputResultType<BigUint> = EsdtTokenPayment<BigUint>;
 
@@ -7,6 +8,13 @@ pub type AddLiquidityResultType<BigUint> =
 
 pub type RemoveLiquidityResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
+
+#[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Copy, Clone, Debug)]
+pub enum State {
+    Inactive,
+    Active,
+    PartialActive,
+}
 
 #[multiversx_sc::proxy]
 pub trait XexchangeProxy {
@@ -42,4 +50,8 @@ pub trait XexchangeProxy {
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
     ) -> RemoveLiquidityResultType<Self::Api>;
+
+    #[view(getState)]
+    #[storage_mapper("state")]
+    fn state(&self) -> SingleValueMapper<State>;
 }

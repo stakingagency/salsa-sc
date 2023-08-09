@@ -537,8 +537,6 @@ fn custodial_delegation_test() {
     sc_setup.remove_from_custody_fail_test(&delegator, exp(45, 17),
         "Can't leave dust");
     sc_setup.set_heir_test(&delegator, &heir, 365);
-    sc_setup.remove_from_custody_fail_test(&delegator, exp(5, 18),
-        "When you set a heir, you cannot remove all from custody");
     sc_setup.remove_from_custody_test(&delegator, exp(3, 18));
 
     sc_setup.check_custodial_delegation(managed_address!(&delegator), exp(2, 18));

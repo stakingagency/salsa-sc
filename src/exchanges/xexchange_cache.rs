@@ -1,6 +1,6 @@
 multiversx_sc::imports!();
 
-use crate::common::config::{LpInfo, Exchange};
+use crate::{common::config::{LpInfo, Exchange}, proxies::xexchange_proxy::State};
 
 use super::xexchange::XexchangeModule;
 
@@ -11,6 +11,7 @@ where
     pub sc_address: ManagedAddress<X::Api>,
     pub wrap_sc_address: ManagedAddress<X::Api>,
     pub lp_info: LpInfo<X::Api>,
+    pub is_active: bool,
 }
 
 impl<'a, X> XexchangeCache<X>
@@ -18,6 +19,8 @@ where
     X: XexchangeModule,
 {
     pub fn new(sc_ref: &'a X) -> Self {
+        let state = sc_ref.get_xexchange_state();
+        let is_active = state == State::Active;
         let (first_reserve, second_reserve, lp_supply) =
             sc_ref.get_xexchange_reserves();
         let lp_token = sc_ref.xexchange_lp().get();
@@ -36,6 +39,7 @@ where
             sc_address: sc_ref.xexchange_sc().get(),
             wrap_sc_address: sc_ref.wrap_sc().get(),
             lp_info,
+            is_active,
         }
     }
 }

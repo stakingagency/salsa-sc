@@ -3,7 +3,7 @@ multiversx_sc::imports!();
 use crate::common::config::State;
 use crate::common::storage_cache::StorageCache;
 use crate::{common::consts::*, common::errors::*};
-use crate::proxies::xexchange_proxy;
+use crate::proxies::xexchange_proxy::{self, State as X_State};
 use crate::proxies::wrap_proxy;
 
 use super::xexchange_cache::XexchangeCache;
@@ -71,6 +71,16 @@ pub trait XexchangeModule:
         let (ls_reserve, egld_reserve, lp_supply) = res.into_tuple();
 
         (ls_reserve, egld_reserve, lp_supply)
+    }
+
+    fn get_xexchange_state(&self) -> X_State {
+        let xexchange_sc_address = self.xexchange_sc().get();
+        let state: X_State = self.xexchange_proxy_obj()
+            .contract(xexchange_sc_address)
+            .state()
+            .execute_on_dest_context();
+
+        state
     }
 
     fn get_xexchange_amount_out(
