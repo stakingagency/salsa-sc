@@ -3,7 +3,7 @@ multiversx_sc::imports!();
 use crate::common::config::State;
 use crate::common::storage_cache::StorageCache;
 use crate::{common::consts::*, common::errors::*};
-use crate::proxies::xexchange_proxy::{self, State as X_State};
+use crate::proxies::xexchange_proxy::{self, State as X_State, MAX_PERCENTAGE};
 use crate::proxies::wrap_proxy;
 
 use super::xexchange_cache::XexchangeCache;
@@ -83,6 +83,16 @@ pub trait XexchangeModule:
         state
     }
 
+    fn get_xexchange_fee(&self) -> u64 {
+        let xexchange_sc_address = self.xexchange_sc().get();
+        let fee: u64 = self.xexchange_proxy_obj()
+            .contract(xexchange_sc_address)
+            .total_fee_percent()
+            .execute_on_dest_context();
+
+        fee
+    }
+
     fn get_xexchange_amount_out(
         &self,
         is_buy: bool,
@@ -111,7 +121,7 @@ pub trait XexchangeModule:
         let out_amount = self.get_salsa_amount_out(&in_amount, is_buy, storage_cache);
         let amount_to_send_to_xexchange =
             self.get_optimal_quantity(
-                in_amount, out_amount, &xexchange_cache.lp_info.egld_reserve, &xexchange_cache.lp_info.liquid_reserve, is_buy
+                in_amount, out_amount, &xexchange_cache.lp_info.egld_reserve, &xexchange_cache.lp_info.liquid_reserve, is_buy, xexchange_cache.fee, MAX_PERCENTAGE
             );
         if amount_to_send_to_xexchange < MIN_EGLD {
             return (BigUint::zero(), BigUint::zero())

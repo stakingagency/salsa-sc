@@ -1,6 +1,8 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
+pub const MAX_PERCENTAGE: u64 = 100_000;
+
 pub type SwapTokensFixedInputResultType<BigUint> = EsdtTokenPayment<BigUint>;
 
 pub type AddLiquidityResultType<BigUint> =
@@ -54,4 +56,8 @@ pub trait XexchangeProxy {
     #[view(getState)]
     #[storage_mapper("state")]
     fn state(&self) -> SingleValueMapper<State>;
+
+    #[view(getTotalFeePercent)]
+    #[storage_mapper("total_fee_percent")]
+    fn total_fee_percent(&self) -> SingleValueMapper<u64>;
 }

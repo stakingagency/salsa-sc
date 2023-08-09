@@ -4,18 +4,12 @@ mod consts;
 
 use consts::*;
 use contract_setup::*;
-use multiversx_sc_scenario::{
-    DebugApi
-};
+use multiversx_sc_scenario::DebugApi;
 use salsa::common::consts::{MAX_HEIR_USERS, MAX_KNIGHT_USERS};
 
 use std::ops::Mul;
 
-use multiversx_sc::{
-    types::{
-        BigUint,
-    },
-};
+use multiversx_sc::types::BigUint;
 
 use multiversx_sc_scenario::{
     rust_biguint, managed_address

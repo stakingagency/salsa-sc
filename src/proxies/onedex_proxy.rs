@@ -1,6 +1,8 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
+pub const MAX_PERCENTAGE: u64 = 10_000;
+
 #[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq)]
 pub enum State {
     Inactive,
@@ -62,4 +64,8 @@ pub trait OneDexProxy {
         second_token_amount_min: BigUint,
         unwrap_required: bool
     );
+
+    #[view(getTotalFeePercent)]
+    #[storage_mapper("total_fee_percent")]
+    fn total_fee_percent(&self) -> SingleValueMapper<u64>;
 }

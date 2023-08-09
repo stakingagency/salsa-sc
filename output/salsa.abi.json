@@ -40,11 +40,7 @@
                     "multi_arg": true
                 }
             ],
-            "outputs": [
-                {
-                    "type": "EsdtTokenPayment"
-                }
-            ]
+            "outputs": []
         },
         {
             "name": "unDelegate",
@@ -920,6 +916,12 @@
                 }
             ],
             "outputs": []
+        },
+        {
+            "name": "updateLastAccessed",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
         }
     ],
     "events": [],
@@ -966,23 +968,6 @@
                 },
                 {
                     "name": "token_price",
-                    "type": "BigUint"
-                }
-            ]
-        },
-        "EsdtTokenPayment": {
-            "type": "struct",
-            "fields": [
-                {
-                    "name": "token_identifier",
-                    "type": "TokenIdentifier"
-                },
-                {
-                    "name": "token_nonce",
-                    "type": "u64"
-                },
-                {
-                    "name": "amount",
                     "type": "BigUint"
                 }
             ]
