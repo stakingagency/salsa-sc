@@ -33,6 +33,11 @@
                     "name": "with_custody",
                     "type": "optional<bool>",
                     "multi_arg": true
+                },
+                {
+                    "name": "without_arbitrage",
+                    "type": "optional<bool>",
+                    "multi_arg": true
                 }
             ],
             "outputs": [
@@ -51,6 +56,11 @@
                 {
                     "name": "undelegate_amount",
                     "type": "optional<BigUint>",
+                    "multi_arg": true
+                },
+                {
+                    "name": "without_arbitrage",
+                    "type": "optional<bool>",
                     "multi_arg": true
                 }
             ],
@@ -117,6 +127,11 @@
                     "name": "undelegate_amount",
                     "type": "optional<BigUint>",
                     "multi_arg": true
+                },
+                {
+                    "name": "without_arbitrage",
+                    "type": "optional<bool>",
+                    "multi_arg": true
                 }
             ],
             "outputs": []
@@ -132,6 +147,11 @@
                 {
                     "name": "undelegate_amount",
                     "type": "BigUint"
+                },
+                {
+                    "name": "without_arbitrage",
+                    "type": "optional<bool>",
+                    "multi_arg": true
                 }
             ],
             "outputs": []
@@ -151,6 +171,11 @@
                 {
                     "name": "undelegate_amount",
                     "type": "BigUint"
+                },
+                {
+                    "name": "without_arbitrage",
+                    "type": "optional<bool>",
+                    "multi_arg": true
                 }
             ],
             "outputs": []
@@ -192,6 +217,11 @@
                 {
                     "name": "undelegate_amount",
                     "type": "BigUint"
+                },
+                {
+                    "name": "without_arbitrage",
+                    "type": "optional<bool>",
+                    "multi_arg": true
                 }
             ],
             "outputs": []
@@ -211,6 +241,11 @@
                 {
                     "name": "undelegate_amount",
                     "type": "BigUint"
+                },
+                {
+                    "name": "without_arbitrage",
+                    "type": "optional<bool>",
+                    "multi_arg": true
                 }
             ],
             "outputs": []

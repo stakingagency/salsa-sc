@@ -1,6 +1,6 @@
 multiversx_sc::imports!();
 
-use crate::common::config::{LpInfo, Exchange};
+use crate::{common::config::{LpInfo, Exchange}, proxies::onedex_proxy::State};
 
 use super::onedex::OnedexModule;
 
@@ -11,6 +11,7 @@ where
     pub pair_id: usize,
     pub sc_address: ManagedAddress<O::Api>,
     pub lp_info: LpInfo<O::Api>,
+    pub is_active: bool,
 }
 
 impl<'a, O> OnedexCache<O>
@@ -29,11 +30,13 @@ where
             lp_token: pair.lp_token_id,
             lp_balance,
         };
+        let is_active = pair.enabled && (pair.state == State::Active);
         
         OnedexCache {
             pair_id: sc_ref.onedex_pair_id().get(),
             sc_address: sc_ref.onedex_sc().get(),
             lp_info,
+            is_active,
         }
     }
 }

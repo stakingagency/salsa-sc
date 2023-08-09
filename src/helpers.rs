@@ -3,7 +3,7 @@ multiversx_sc::imports!();
 use crate::common::config::{Undelegation, UndelegationType};
 use crate::common::consts::MIN_EGLD;
 use crate::common::storage_cache::StorageCache;
-use crate::{common::errors::*};
+use crate::common::errors::*;
 
 #[multiversx_sc::module]
 pub trait HelpersModule:
@@ -24,8 +24,8 @@ pub trait HelpersModule:
         &self,
         in_amount: BigUint,
         out_amount: BigUint,
-        reserve1: &BigUint,
-        reserve2: &BigUint,
+        egld_reserve: &BigUint,
+        ls_reserve: &BigUint,
         is_buy: bool
     ) -> BigUint {
         if in_amount == 0 || out_amount == 0 {
@@ -33,9 +33,9 @@ pub trait HelpersModule:
         }
 
         let (in_reserve, out_reserve) = if is_buy {
-            (reserve1, reserve2)
+            (egld_reserve, ls_reserve)
         } else {
-            (reserve2, reserve1)
+            (ls_reserve, egld_reserve)
         };
         let mut x = in_reserve * out_reserve * &in_amount / &out_amount;
         x = x.sqrt();
@@ -44,6 +44,7 @@ pub trait HelpersModule:
         }
 
         x -= in_reserve;
+        x = x * 99_u64 / 100_u64;
         if x > in_amount {
             x = in_amount.clone();
         }

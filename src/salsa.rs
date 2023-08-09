@@ -36,7 +36,8 @@ pub trait SalsaContract<ContractReader>:
     fn delegate(
         &self,
         with_custody: OptionalValue<bool>,
-    ) -> EsdtTokenPayment<Self::Api> {
+        without_arbitrage: OptionalValue<bool>,
+    ) {
         self.update_last_accessed();
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
@@ -51,6 +52,10 @@ pub trait SalsaContract<ContractReader>:
             OptionalValue::Some(value) => value,
             OptionalValue::None => false
         };
+        let arbitrage = match without_arbitrage {
+            OptionalValue::Some(value) => !value,
+            OptionalValue::None => true
+        };
 
         // check if caller is non-payable sc
         // TODO: once v0.42 is out, use get_code_metadata
@@ -61,28 +66,29 @@ pub trait SalsaContract<ContractReader>:
 
         let mut storage_cache = StorageCache::new(self);
 
-        // arbitrage
-        let (sold_amount, bought_amount) =
-            self.do_arbitrage(true, delegate_amount.clone(), &mut storage_cache);
+        if arbitrage {
+            let (sold_amount, bought_amount) =
+                self.do_arbitrage(true, delegate_amount.clone(), &mut storage_cache);
 
-        if bought_amount > 0 {
-            if custodial {
-                self.user_delegation(&caller)
-                    .update(|value| *value += &bought_amount);
-                storage_cache.legld_in_custody += bought_amount;
-            } else {
-                self.send().direct_esdt(
-                    &caller,
-                    &storage_cache.liquid_token_id,
-                    0,
-                    &bought_amount,
-                );
+            if bought_amount > 0 {
+                if custodial {
+                    self.user_delegation(&caller)
+                        .update(|value| *value += &bought_amount);
+                    storage_cache.legld_in_custody += bought_amount;
+                } else {
+                    self.send().direct_esdt(
+                        &caller,
+                        &storage_cache.liquid_token_id,
+                        0,
+                        &bought_amount,
+                    );
+                }
             }
-        }
 
-        delegate_amount -= &sold_amount;
-        if delegate_amount == 0 {
-            return EsdtTokenPayment::new(storage_cache.liquid_token_id.clone(), 0, sold_amount)
+            delegate_amount -= &sold_amount;
+            if delegate_amount == 0 {
+                return
+            }
         }
 
         let ls_amount =
@@ -142,6 +148,7 @@ pub trait SalsaContract<ContractReader>:
     fn undelegate(
         &self,
         undelegate_amount: OptionalValue<BigUint>,
+        without_arbitrage: OptionalValue<bool>,
     ) {
         self.update_last_accessed();
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
@@ -152,14 +159,19 @@ pub trait SalsaContract<ContractReader>:
         };
         let caller = self.blockchain().get_caller();
         self.check_knight_activated(&caller);
-        self.do_undelegate(caller, amount);
+        self.do_undelegate(caller, amount, without_arbitrage);
     }
 
     fn do_undelegate(
         &self,
-        caller: ManagedAddress,
+        user: ManagedAddress,
         undelegate_amount: BigUint,
+        without_arbitrage: OptionalValue<bool>,
     ) {
+        let arbitrage = match without_arbitrage {
+            OptionalValue::Some(value) => !value,
+            OptionalValue::None => true
+        };
         let mut storage_cache = StorageCache::new(self);
         let (payment_token, mut payment_amount) =
             self.call_value().egld_or_single_fungible_esdt();
@@ -176,26 +188,27 @@ pub trait SalsaContract<ContractReader>:
         );
 
         if undelegate_amount > 0 {
-            let delegated_funds = self.user_delegation(&caller).get();
+            let delegated_funds = self.user_delegation(&user).get();
             require!(
                 delegated_funds >= undelegate_amount,
                 ERROR_INSUFFICIENT_FUNDS,
             );
 
-            self.user_delegation(&caller).set(&delegated_funds - &undelegate_amount);
+            self.user_delegation(&user).set(&delegated_funds - &undelegate_amount);
             storage_cache.legld_in_custody -= &undelegate_amount;
         }
 
-        // arbitrage
-        if self.user_knight(&caller).is_empty() {
-            let (sold_amount, bought_amount) =
-                self.do_arbitrage(false, payment_amount.clone(), &mut storage_cache);
-            if bought_amount > 0 {
-                self.send().direct_egld(&caller, &bought_amount);
-            }
-            payment_amount -= sold_amount;
-            if payment_amount == 0 {
-                return
+        if arbitrage {
+            if self.user_knight(&user).is_empty() {
+                let (sold_amount, bought_amount) =
+                    self.do_arbitrage(false, payment_amount.clone(), &mut storage_cache);
+                if bought_amount > 0 {
+                    self.send().direct_egld(&user, &bought_amount);
+                }
+                payment_amount -= sold_amount;
+                if payment_amount == 0 {
+                    return
+                }
             }
         }
 
@@ -206,7 +219,7 @@ pub trait SalsaContract<ContractReader>:
         storage_cache.egld_to_undelegate += &egld_to_undelegate;
         let current_epoch = self.blockchain().get_block_epoch();
         let unbond_period = current_epoch + storage_cache.unbond_period;
-        self.add_user_undelegation(caller, egld_to_undelegate, unbond_period);
+        self.add_user_undelegation(user, egld_to_undelegate, unbond_period);
     }
 
     #[endpoint(withdraw)]
@@ -239,19 +252,6 @@ pub trait SalsaContract<ContractReader>:
         let withdraw_amount = &user_withdrawn_egld - &total_user_withdrawn_egld;
         require!(withdraw_amount > 0, ERROR_NOTHING_TO_WITHDRAW);
 
-        if self.user_delegation(user).get() == 0 {
-            let knight = self.user_knight(user);
-            if !knight.is_empty() {
-                self.knight_users(&knight.get().address).swap_remove(user);
-                knight.clear();
-            }
-            let heir = self.user_heir(user);
-            if !heir.is_empty() {
-                self.heir_users(&heir.get().address).swap_remove(user);
-                heir.clear();
-            }
-        }
-
         self.user_withdrawn_egld().set(total_user_withdrawn_egld);
         self.send().direct_egld(receiver, &withdraw_amount);
     }
@@ -281,13 +281,12 @@ pub trait SalsaContract<ContractReader>:
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         let caller = self.blockchain().get_caller();
-        self.check_knight_set(&caller);
+        self.check_no_knight_set(&caller);
 
         let mut storage_cache = StorageCache::new(self);
         let delegation = self.user_delegation(&caller).take();
         require!(amount <= delegation, ERROR_INSUFFICIENT_FUNDS);
         require!(&delegation - &amount >= MIN_EGLD || delegation == amount, ERROR_DUST_REMAINING);
-        require!(delegation > amount || self.user_heir(&caller).is_empty(), ERROR_HEIR_SET);
 
         self.send().direct_esdt(
             &caller,
@@ -404,6 +403,7 @@ pub trait SalsaContract<ContractReader>:
         &self,
         min_amount_out: BigUint,
         undelegate_amount: OptionalValue<BigUint>,
+        without_arbitrage: OptionalValue<bool>,
     ) {
         self.update_last_accessed();
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
@@ -413,26 +413,31 @@ pub trait SalsaContract<ContractReader>:
             OptionalValue::None => BigUint::zero()
         };
         let caller = self.blockchain().get_caller();
-        self.check_knight_set(&caller);
-        self.do_undelegate_now(caller.clone(), caller, min_amount_out, amount);
+        self.check_no_knight_set(&caller);
+        self.do_undelegate_now(caller.clone(), caller, min_amount_out, amount, without_arbitrage);
     }
 
     fn do_undelegate_now(
         &self,
-        caller: ManagedAddress,
+        user: ManagedAddress,
         receiver: ManagedAddress,
-        min_amount_out: BigUint,
+        mut min_amount_out: BigUint,
         undelegate_amount: BigUint,
+        without_arbitrage: OptionalValue<bool>,
     ) {
+        let arbitrage = match without_arbitrage {
+            OptionalValue::Some(value) => !value,
+            OptionalValue::None => true
+        };
         let mut storage_cache = StorageCache::new(self);
         if undelegate_amount > 0 {
-            let delegated_funds = self.user_delegation(&caller).get();
+            let delegated_funds = self.user_delegation(&user).get();
             require!(
                 delegated_funds >= undelegate_amount,
                 ERROR_INSUFFICIENT_FUNDS,
             );
 
-            self.user_delegation(&caller).set(&delegated_funds - &undelegate_amount);
+            self.user_delegation(&user).set(&delegated_funds - &undelegate_amount);
             storage_cache.legld_in_custody -= &undelegate_amount;
         }
 
@@ -451,19 +456,31 @@ pub trait SalsaContract<ContractReader>:
         );
 
         let fee = self.undelegate_now_fee().get();
-        let caller = self.blockchain().get_caller();
         let total_egld_staked = storage_cache.total_stake.clone();
 
-        // arbitrage
-        let (sold_amount, bought_amount) =
-            self.do_arbitrage(false, payment_amount.clone(), &mut storage_cache);
-        if bought_amount > 0 {
-            self.send().direct_egld(&caller, &bought_amount);
+        if arbitrage {
+            let (sold_amount, bought_amount) =
+                self.do_arbitrage(false, payment_amount.clone(), &mut storage_cache);
+            if bought_amount > 0 {
+                let bought_amount_with_fee =
+                    bought_amount.clone() - bought_amount.clone() * fee / MAX_PERCENT;
+                self.send().direct_egld(&receiver, &bought_amount_with_fee);
+                let bought_fee = &bought_amount - &bought_amount_with_fee;
+                storage_cache.available_egld_reserve += &bought_fee;
+                storage_cache.egld_reserve += &bought_fee;
+                if min_amount_out >= bought_amount_with_fee {
+                    min_amount_out -= &bought_amount_with_fee;
+                } else {
+                    min_amount_out = BigUint::zero();
+                }
+            }
+            payment_amount -= sold_amount;
+            if payment_amount == 0 {
+                require!(min_amount_out == 0, ERROR_FEE_CHANGED);
+
+                return
+            }
         }
-        payment_amount -= sold_amount;
-        if payment_amount == 0 {
-            return
-        };
 
         // normal unDelegateNow
         let egld_to_undelegate =
@@ -517,12 +534,13 @@ pub trait SalsaContract<ContractReader>:
         &self,
         user: ManagedAddress,
         undelegate_amount: BigUint,
+        without_arbitrage: OptionalValue<bool>,
     ) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         self.check_knight(&user);
 
-        self.do_undelegate(user, undelegate_amount);
+        self.do_undelegate(user, undelegate_amount, without_arbitrage);
     }
 
     #[endpoint(unDelegateNowKnight)]
@@ -531,13 +549,14 @@ pub trait SalsaContract<ContractReader>:
         user: ManagedAddress,
         min_amount_out: BigUint,
         undelegate_amount: BigUint,
+        without_arbitrage: OptionalValue<bool>,
     ) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         self.check_knight(&user);
 
         let knight = self.blockchain().get_caller();
-        self.do_undelegate_now(user, knight, min_amount_out, undelegate_amount);
+        self.do_undelegate_now(user, knight, min_amount_out, undelegate_amount, without_arbitrage);
     }
 
     #[endpoint(withdrawKnight)]
@@ -571,12 +590,13 @@ pub trait SalsaContract<ContractReader>:
         &self,
         user: ManagedAddress,
         undelegate_amount: BigUint,
+        without_arbitrage: OptionalValue<bool>,
     ) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         self.check_is_heir_entitled(&user);
 
-        self.do_undelegate(user, undelegate_amount);
+        self.do_undelegate(user, undelegate_amount, without_arbitrage);
     }
 
     #[endpoint(unDelegateNowHeir)]
@@ -585,13 +605,14 @@ pub trait SalsaContract<ContractReader>:
         user: ManagedAddress,
         min_amount_out: BigUint,
         undelegate_amount: BigUint,
+        without_arbitrage: OptionalValue<bool>,
     ) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         self.check_is_heir_entitled(&user);
 
         let heir = self.blockchain().get_caller();
-        self.do_undelegate_now(user, heir, min_amount_out, undelegate_amount);
+        self.do_undelegate_now(user, heir, min_amount_out, undelegate_amount, without_arbitrage);
     }
 
     #[endpoint(withdrawHeir)]
