@@ -49,11 +49,11 @@ pub trait HelpersModule:
 
         let a = &ys * (max_f - f);
         let b = &ys * x * (2 * max_f - f);
-        if &ys * x < &xs * y {
+        if &ys * x > &xs * y {
             return BigUint::zero()
         }
 
-        let c = x * max_f * (&ys * x - &xs * y);
+        let c = x * max_f * (&xs * y - &ys * x);
         let sqrt_delta = (&b * &b + &a * &c * 4_u64).sqrt();
         if sqrt_delta < b {
             return BigUint::zero()
