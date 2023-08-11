@@ -125,6 +125,7 @@ pub trait ConfigModule:
         require!(!self.provider_address().is_empty(), ERROR_PROVIDER_NOT_SET);
         require!(!self.liquid_token_id().is_empty(), ERROR_TOKEN_NOT_SET);
         require!(!self.unbond_period().is_empty(), ERROR_UNBOND_PERIOD_NOT_SET);
+        require!(self.undelegate_now_fee().get() >= MIN_UNDELEGATE_NOW_FEE, ERROR_INCORRECT_FEE);
 
         self.state().set(State::Active);
     }
