@@ -22,13 +22,13 @@ pub trait HelpersModule:
 
     fn get_optimal_quantity(
         &self,
+        is_buy: bool,
+        f: u64,
+        max_f: u64,
         xs: BigUint,
         ys: BigUint,
         egld_reserve: &BigUint,
         ls_reserve: &BigUint,
-        is_buy: bool,
-        f: u64,
-        max_f: u64,
     ) -> BigUint {
         if xs == 0 || ys == 0 {
             return BigUint::zero()
