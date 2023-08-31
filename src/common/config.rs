@@ -351,6 +351,22 @@ pub trait ConfigModule:
     #[storage_mapper("heir_users")]
     fn heir_users(&self, heir: &ManagedAddress) -> UnorderedSetMapper<ManagedAddress>;
 
+    // LPs
+
+    #[storage_mapper("egld_in_lp")]
+    fn egld_in_lp(&self) -> SingleValueMapper<BigUint>;
+
+    #[storage_mapper("legld_in_lp")]
+    fn legld_in_lp(&self) -> SingleValueMapper<BigUint>;
+
+    #[storage_mapper("excess_lp_egld")]
+    fn excess_lp_egld(&self) -> SingleValueMapper<BigUint>;
+    
+    #[storage_mapper("excess_lp_legld")]
+    fn excess_lp_legld(&self) -> SingleValueMapper<BigUint>;
+
+    // global view functions
+
     #[view(getContractInfo)]
     fn get_contract_info(&self) -> ContractInfo<Self::Api> {
         ContractInfo{
