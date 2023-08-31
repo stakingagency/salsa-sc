@@ -3,12 +3,11 @@ use salsa::common::config::ConfigModule;
 
 use multiversx_sc::types::{
     Address,
-    BigUint,
-    ManagedAddress
+    BigUint
 };
 
 use multiversx_sc_scenario::{
-    rust_biguint, DebugApi
+    rust_biguint, DebugApi, managed_address
 };
 
 impl<SalsaContractObjBuilder> SalsaContractSetup<SalsaContractObjBuilder>
@@ -88,24 +87,24 @@ where
             ).assert_ok();
     }
 
-    pub fn check_user_reserve(&mut self, user: ManagedAddress<DebugApi>, amount: num_bigint::BigUint) {
+    pub fn check_user_reserve(&mut self, user: &Address, amount: num_bigint::BigUint) {
         self.blockchain_wrapper
             .execute_query(
                 &self.salsa_wrapper, |sc| {
                     assert_eq!(
-                        sc.get_reserve_egld_amount(&sc.users_reserve_points(&user).get()),
+                        sc.get_reserve_egld_amount(&sc.users_reserve_points(&managed_address!(user)).get()),
                         to_managed_biguint(amount)
                     );
                 }
             ).assert_ok();
     }
 
-    pub fn check_user_reserve_points(&mut self, user: ManagedAddress<DebugApi>, amount: num_bigint::BigUint) {
+    pub fn check_user_reserve_points(&mut self, user: &Address, amount: num_bigint::BigUint) {
         self.blockchain_wrapper
             .execute_query(
                 &self.salsa_wrapper, |sc| {
                     assert_eq!(
-                        sc.users_reserve_points(&user).get(),
+                        sc.users_reserve_points(&managed_address!(user)).get(),
                         to_managed_biguint(amount)
                     );
                 }
@@ -140,12 +139,12 @@ where
             ).assert_ok();
     }
 
-    pub fn check_user_undelegations_length(&mut self, user: ManagedAddress<DebugApi>, len: usize) {
+    pub fn check_user_undelegations_length(&mut self, user: &Address, len: usize) {
         self.blockchain_wrapper
             .execute_query(
                 &self.salsa_wrapper, |sc| {
                     assert_eq!(
-                        sc.luser_undelegations(&user).len() == len,
+                        sc.luser_undelegations(&managed_address!(user)).len() == len,
                         true
                     );
                 }
@@ -176,12 +175,12 @@ where
             ).assert_ok();
     }
 
-    pub fn check_user_undelegations_order(&mut self, user: ManagedAddress<DebugApi>) {
+    pub fn check_user_undelegations_order(&mut self, user: &Address) {
         self.blockchain_wrapper
             .execute_query(
                 &self.salsa_wrapper, |sc| {
                     let mut last_epoch = 0u64;
-                    let undelegations = sc.luser_undelegations(&user);
+                    let undelegations = sc.luser_undelegations(&managed_address!(user));
                     for node in undelegations.iter() {
                         let undelegation = node.into_value();
                         assert_eq!(
@@ -195,13 +194,13 @@ where
     }
 
     pub fn check_user_undelegations_amount(
-        &mut self, user: ManagedAddress<DebugApi>, amount: num_bigint::BigUint
+        &mut self, user: &Address, amount: num_bigint::BigUint
     ) {
         self.blockchain_wrapper
             .execute_query(
                 &self.salsa_wrapper, |sc| {
                     let mut total = BigUint::zero();
-                    let undelegations = sc.luser_undelegations(&user);
+                    let undelegations = sc.luser_undelegations(&managed_address!(user));
                     for node in undelegations.iter() {
                         let undelegation = node.into_value();
                         total += undelegation.amount;
@@ -273,11 +272,11 @@ where
             ).assert_ok();
     }
 
-    pub fn check_custodial_delegation(&mut self, user: ManagedAddress<DebugApi>, amount: num_bigint::BigUint) {
+    pub fn check_custodial_delegation(&mut self, user: &Address, amount: num_bigint::BigUint) {
         self.blockchain_wrapper
             .execute_query(
                 &self.salsa_wrapper, |sc| {
-                    let delegation = sc.user_delegation(&user).get();
+                    let delegation = sc.user_delegation(&managed_address!(user)).get();
                     assert_eq!(delegation == to_managed_biguint(amount), true);
                 }
             ).assert_ok();
