@@ -76,7 +76,7 @@ where
     ) {
         let big_zero = rust_biguint!(0);
         self.blockchain_wrapper
-            .execute_esdt_transfer(sender, &self.salsa_wrapper, TOKEN_ID, 0, &big_zero, |sc| {
+            .execute_tx(sender, &self.salsa_wrapper, &big_zero, |sc| {
                 sc.remove_from_custody(to_managed_biguint(amount))
             })
             .assert_ok();
@@ -90,7 +90,7 @@ where
     ) {
         let big_zero = rust_biguint!(0);
         self.blockchain_wrapper
-            .execute_esdt_transfer(sender, &self.salsa_wrapper, TOKEN_ID, 0, &big_zero, |sc| {
+            .execute_tx(sender, &self.salsa_wrapper, &big_zero, |sc| {
                 sc.remove_from_custody(to_managed_biguint(amount))
             })
             .assert_user_error(error);
@@ -102,7 +102,7 @@ where
     ) {
         let big_zero = rust_biguint!(0);
         self.blockchain_wrapper
-            .execute_esdt_transfer(sender, &self.salsa_wrapper, TOKEN_ID, 0, &big_zero, |sc| {
+            .execute_tx(sender, &self.salsa_wrapper, &big_zero, |sc| {
                 sc.withdraw()
             })
             .assert_ok();

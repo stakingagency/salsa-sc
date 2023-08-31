@@ -116,8 +116,8 @@ fn reserves_test() {
     sc_setup.remove_reserve_test(&reserver, one_plus_fee);
     sc_setup.check_egld_reserve(big_zero.clone());
     sc_setup.check_available_egld_reserve(big_zero.clone());
-    sc_setup.check_user_reserve(managed_address!(&reserver), big_zero.clone());
-    sc_setup.check_user_reserve_points(managed_address!(&reserver), big_zero.clone());
+    sc_setup.check_user_reserve(&reserver, big_zero.clone());
+    sc_setup.check_user_reserve_points(&reserver, big_zero.clone());
 }
 
 #[test]
@@ -167,8 +167,8 @@ fn reserve_to_user_undelegation_test() {
     sc_setup.check_total_egld_staked(one.clone());
     sc_setup.check_available_egld_reserve(big_zero.clone());
     sc_setup.check_egld_reserve(exp(202u64, 16));
-    sc_setup.check_user_undelegations_order(managed_address!(&reserver2));
-    sc_setup.check_user_undelegations_order(managed_address!(&delegator2));
+    sc_setup.check_user_undelegations_order(&reserver2);
+    sc_setup.check_user_undelegations_order(&delegator2);
     sc_setup.check_total_undelegations_order();
 
     // undelegate and withdraw
@@ -188,8 +188,8 @@ fn reserve_to_user_undelegation_test() {
     sc_setup.blockchain_wrapper.check_egld_balance(&reserver1, &(exp(9024u64, 15)));
     sc_setup.blockchain_wrapper.check_egld_balance(&reserver2, &(exp(9016u64, 15)));
     sc_setup.check_available_egld_reserve(exp(202u64, 16));
-    sc_setup.check_user_reserve(managed_address!(&reserver1), one.clone());
-    // sc_setup.check_user_reserve(managed_address!(&reserver2), exp(102u64, 16));
+    sc_setup.check_user_reserve(&reserver1, one.clone());
+    sc_setup.check_user_reserve(&reserver2, exp(102u64, 16) - 1_u64);
 }
 
 #[test]
@@ -221,9 +221,9 @@ fn merge_undelegations_test() {
     }
 
     // check undelegations lenghts and order
-    sc_setup.check_user_undelegations_order(managed_address!(&delegator));
+    sc_setup.check_user_undelegations_order(&delegator);
     sc_setup.check_total_undelegations_order();
-    sc_setup.check_user_undelegations_length(managed_address!(&delegator), 11);
+    sc_setup.check_user_undelegations_length(&delegator, 11);
     sc_setup.check_total_users_undelegations_lengths(11);
     sc_setup.check_reserve_undelegations_lengths(11);
 
@@ -271,9 +271,9 @@ fn user_undelegations_order_test() {
     sc_setup.undelegate_test(&delegator, one.clone(), big_zero.clone());
 
     // check undelegations orders and lengths
-    sc_setup.check_user_undelegations_order(managed_address!(&delegator));
+    sc_setup.check_user_undelegations_order(&delegator);
     sc_setup.check_total_undelegations_order();
-    sc_setup.check_user_undelegations_length(managed_address!(&delegator), 3);
+    sc_setup.check_user_undelegations_length(&delegator, 3);
     sc_setup.check_total_users_undelegations_lengths(3);
 
     // undelegate in epoch 1, 3, 5, 30 and 15
@@ -294,11 +294,11 @@ fn user_undelegations_order_test() {
     sc_setup.undelegate_test(&delegator, one.clone(), big_zero.clone());
 
     // check undelegations orders, lengths and amount
-    sc_setup.check_user_undelegations_order(managed_address!(&delegator));
+    sc_setup.check_user_undelegations_order(&delegator);
     sc_setup.check_total_undelegations_order();
-    sc_setup.check_user_undelegations_length(managed_address!(&delegator), 3);
+    sc_setup.check_user_undelegations_length(&delegator, 3);
     sc_setup.check_total_users_undelegations_lengths(3);
-    sc_setup.check_user_undelegations_amount(managed_address!(&delegator), exp(9, 18));
+    sc_setup.check_user_undelegations_amount(&delegator, exp(9, 18));
     sc_setup.check_total_users_undelegations_amount(exp(9, 18));
 }
 
@@ -354,6 +354,7 @@ fn knight_test() {
 
     let mut sc_setup = SalsaContractSetup::new(salsa::contract_obj);
     let delegator = sc_setup.setup_new_user(10u64);
+    sc_setup.blockchain_wrapper.set_esdt_balance(&delegator, TOKEN_ID, &exp(0, 18));
     let knight1 = sc_setup.setup_new_user(0u64);
     let knight2 = sc_setup.setup_new_user(0u64);
 
@@ -370,7 +371,7 @@ fn knight_test() {
 
     sc_setup.set_knight_test(&delegator, &knight1);
     sc_setup.undelegate_now_fail_test(
-        &delegator, rust_biguint!(0), exp(1, 18), exp(98, 16),
+        &delegator, rust_biguint!(0), exp(98, 16), exp(98, 16),
         "When you set a knight, unDelegateNow and removeFromCustody are disabled"
     );
     sc_setup.confirm_knight_test(&knight1, &delegator);
@@ -533,7 +534,7 @@ fn custodial_delegation_test() {
     sc_setup.set_heir_test(&delegator, &heir, 365);
     sc_setup.remove_from_custody_test(&delegator, exp(3, 18));
 
-    sc_setup.check_custodial_delegation(managed_address!(&delegator), exp(2, 18));
+    sc_setup.check_custodial_delegation(&delegator, exp(2, 18));
     sc_setup.check_total_custodial_delegation(exp(2, 18));
     sc_setup.blockchain_wrapper.check_egld_balance(&delegator, &exp(9, 18));
     sc_setup.blockchain_wrapper.check_esdt_balance(&delegator, TOKEN_ID, &exp(9, 18));
