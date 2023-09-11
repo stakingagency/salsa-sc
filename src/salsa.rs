@@ -28,9 +28,7 @@ pub trait SalsaContract<ContractReader>:
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[init]
-    fn init(&self) {
-        self.state().set(State::Inactive);
-    }
+    fn init(&self) {}
 
     // endpoints: liquid delegation
 
@@ -736,9 +734,4 @@ pub trait SalsaContract<ContractReader>:
         let heir = self.blockchain().get_caller();
         self.do_remove_reserve(user, heir, amount, without_arbitrage);
     }
-    
-    // proxy
-
-    #[proxy]
-    fn delegation_proxy_obj(&self) -> proxies::delegation_proxy::Proxy<Self::Api>;
 }
