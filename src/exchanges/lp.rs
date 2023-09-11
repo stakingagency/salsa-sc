@@ -48,7 +48,7 @@ crate::common::config::ConfigModule
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         let mut available_egld_for_lp =
-            &lp_cache.excess_lp_egld + &storage_cache.available_egld_reserve - &lp_cache.egld_in_lp;
+            &lp_cache.excess_lp_egld + &storage_cache.available_egld_reserve - &lp_cache.egld_in_lp - &storage_cache.egld_to_delegate;
         if available_egld_for_lp < MIN_EGLD {
             return
         }

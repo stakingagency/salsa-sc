@@ -774,7 +774,7 @@ pub trait SalsaContract<ContractReader>:
             &(profit - fee),
         );
     }
-    
+
     /**
      * Flash loan eGLD
      */
@@ -787,12 +787,19 @@ pub trait SalsaContract<ContractReader>:
         args: MultiValueManagedVec<ManagedBuffer>,
     ) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
+        require!(amount <= BigUint::from(MAX_LOAN), ERROR_INSUFFICIENT_FUNDS);
 
         let mut storage_cache = StorageCache::new(self);
         let mut lp_cache = LpCache::new(self);
-        self.remove_egld_lp(lp_cache.egld_in_lp.clone(), &mut storage_cache, &mut lp_cache);
-        let (old_balance, _) = self.get_sc_balances();
-        require!(amount <= BigUint::from(MAX_LOAN) && amount <= old_balance, ERROR_INSUFFICIENT_FUNDS);
+        let (mut old_balance, _) = self.get_sc_balances();
+        if old_balance < amount {
+            let egld_to_remove = &amount - &old_balance;
+            require!(egld_to_remove <= lp_cache.egld_in_lp, ERROR_INSUFFICIENT_FUNDS);
+
+            self.remove_egld_lp(egld_to_remove, &mut storage_cache, &mut lp_cache);
+            (old_balance, _) = self.get_sc_balances();
+        }
+        require!(amount <= old_balance, ERROR_INSUFFICIENT_FUNDS);
 
         let _ = self.send_raw().direct_egld_execute(
             &address,
