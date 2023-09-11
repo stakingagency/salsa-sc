@@ -6,12 +6,12 @@ use super::{onedex_cache::OnedexCache, xexchange_cache::XexchangeCache};
 
 #[multiversx_sc::module]
 pub trait LpModule:
-crate::common::config::ConfigModule
-+ crate::helpers::HelpersModule
-+ crate::exchanges::arbitrage::ArbitrageModule
-+ crate::exchanges::onedex::OnedexModule
-+ crate::exchanges::xexchange::XexchangeModule
-+ multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    crate::common::config::ConfigModule
+    + crate::helpers::HelpersModule
+    + crate::exchanges::arbitrage::ArbitrageModule
+    + crate::exchanges::onedex::OnedexModule
+    + crate::exchanges::xexchange::XexchangeModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[only_owner]
     #[endpoint(setLpActive)]
