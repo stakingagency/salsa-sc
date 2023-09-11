@@ -58,14 +58,9 @@ pub trait SalsaContract<ContractReader>:
             OptionalValue::None => true
         };
 
-        // check if caller is non-payable sc
-        // TODO: once v0.42 is out, use get_code_metadata
         let caller = self.blockchain().get_caller();
-        if self.blockchain().is_smart_contract(&caller) && !custodial {
-            self.send().direct_egld(&caller, &BigUint::zero());
-        }
-
         let mut storage_cache = StorageCache::new(self);
+        let mut ls_to_send = BigUint::zero();
 
         if arbitrage {
             let (sold_amount, bought_amount) =
@@ -77,39 +72,37 @@ pub trait SalsaContract<ContractReader>:
                         .update(|value| *value += &bought_amount);
                     storage_cache.legld_in_custody += bought_amount;
                 } else {
-                    self.send().direct_esdt(
-                        &caller,
-                        &storage_cache.liquid_token_id,
-                        0,
-                        &bought_amount,
-                    );
+                    ls_to_send += bought_amount;
                 }
             }
 
             delegate_amount -= &sold_amount;
-            if delegate_amount == 0 {
-                return
-            }
         }
 
-        let ls_amount =
-            self.add_liquidity(&delegate_amount, true, &mut storage_cache);
-        let user_payment = self.mint_liquid_token(ls_amount);
-        if custodial {
-            self.user_delegation(&caller)
-                .update(|value| *value += &user_payment.amount);
-            storage_cache.legld_in_custody += user_payment.amount;
-        } else {
+        if delegate_amount > 0 {
+            let ls_amount =
+                self.add_liquidity(&delegate_amount, true, &mut storage_cache);
+            let user_payment = self.mint_liquid_token(ls_amount);
+            if custodial {
+                self.user_delegation(&caller)
+                    .update(|value| *value += &user_payment.amount);
+                storage_cache.legld_in_custody += user_payment.amount;
+            } else {
+                ls_to_send += user_payment.amount;
+            }
+    
+            self.egld_to_delegate()
+                .update(|value| *value += delegate_amount);
+        }
+
+        if ls_to_send > 0 {
             self.send().direct_esdt(
                 &caller,
-                &user_payment.token_identifier,
+                &storage_cache.liquid_token_id,
                 0,
-                &user_payment.amount,
+                &ls_to_send,
             );
         }
-    
-        self.egld_to_delegate()
-            .update(|value| *value += delegate_amount);
     }
 
     #[payable("*")]
