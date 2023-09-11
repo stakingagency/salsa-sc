@@ -211,6 +211,9 @@ pub trait ConfigModule:
     #[storage_mapper("ltotal_user_undelegations")]
     fn ltotal_user_undelegations(&self) -> LinkedListMapper<Undelegation<Self::Api>>;
 
+    #[storage_mapper("egld_to_delegate")]
+    fn egld_to_delegate(&self) -> SingleValueMapper<BigUint>;
+
     #[storage_mapper("egld_to_undelegate")]
     fn egld_to_undelegate(&self) -> SingleValueMapper<BigUint>;
 

@@ -13,7 +13,7 @@
         },
         "framework": {
             "name": "multiversx-sc",
-            "version": "0.43.2"
+            "version": "0.43.3"
         }
     },
     "name": "SalsaContract",
@@ -698,6 +698,12 @@
             ]
         },
         {
+            "name": "delegateAll",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
             "name": "unDelegateAll",
             "mutability": "mutable",
             "inputs": [],
@@ -854,6 +860,9 @@
             ]
         },
         {
+            "docs": [
+                "\\n     * Take LPs profit\\n     "
+            ],
             "name": "takeLpProfit",
             "onlyOwner": true,
             "mutability": "mutable",
