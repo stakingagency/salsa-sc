@@ -64,7 +64,7 @@ where
     ) {
         self.blockchain_wrapper
             .execute_esdt_transfer(sender, &self.salsa_wrapper, TOKEN_ID, 0, &amount, |sc| {
-                sc.add_to_custody()
+                sc.add_to_custody(OptionalValue::Some(false))
             })
             .assert_ok();
     }
@@ -77,7 +77,7 @@ where
         let big_zero = rust_biguint!(0);
         self.blockchain_wrapper
             .execute_tx(sender, &self.salsa_wrapper, &big_zero, |sc| {
-                sc.remove_from_custody(to_managed_biguint(amount))
+                sc.remove_from_custody(to_managed_biguint(amount), OptionalValue::Some(false))
             })
             .assert_ok();
     }
@@ -91,7 +91,7 @@ where
         let big_zero = rust_biguint!(0);
         self.blockchain_wrapper
             .execute_tx(sender, &self.salsa_wrapper, &big_zero, |sc| {
-                sc.remove_from_custody(to_managed_biguint(amount))
+                sc.remove_from_custody(to_managed_biguint(amount), OptionalValue::Some(false))
             })
             .assert_user_error(error);
     }
@@ -115,7 +115,7 @@ where
     ) {
         self.blockchain_wrapper
             .execute_tx(sender, &self.salsa_wrapper, &amount, |sc| {
-                sc.add_reserve();
+                sc.add_reserve(OptionalValue::Some(false));
             })
             .assert_ok();
     }
@@ -128,7 +128,7 @@ where
         let big_zero = rust_biguint!(0);
         self.blockchain_wrapper
             .execute_tx(sender, &self.salsa_wrapper, &big_zero, |sc| {
-                sc.remove_reserve(to_managed_biguint(amount))
+                sc.remove_reserve(to_managed_biguint(amount), OptionalValue::Some(false))
             })
             .assert_ok();
     }

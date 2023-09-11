@@ -185,7 +185,7 @@ where
         let big_zero = rust_biguint!(0);
         self.blockchain_wrapper
             .execute_tx(knight, &self.salsa_wrapper, &big_zero, |sc| {
-                sc.remove_reserve_knight(managed_address!(user), to_managed_biguint(amount))
+                sc.remove_reserve_knight(managed_address!(user), to_managed_biguint(amount), OptionalValue::Some(false))
             })
             .assert_ok();
     }

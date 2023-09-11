@@ -59,15 +59,10 @@ crate::common::config::ConfigModule
         }
 
         // before adding LPs, align the exchanges price with SALSA
-        let (mut sold, mut bought) =
+        let (sold, bought) =
             self.do_arbitrage(true, available_egld_for_lp.clone(), storage_cache);
         available_egld_for_lp -= &sold;
         available_legld_for_lp += &bought;
-
-        (sold, bought) =
-            self.do_arbitrage(false, available_legld_for_lp.clone(), storage_cache);
-        available_legld_for_lp -= &sold;
-        available_egld_for_lp += &bought;
 
         // get the list of available exchanges
         let mut lps: ManagedVec<Self::Api, LpInfo<Self::Api>> = ManagedVec::new();
