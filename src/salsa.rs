@@ -32,6 +32,9 @@ pub trait SalsaContract<ContractReader>:
 
     // endpoints: liquid delegation
 
+    /**
+     * Delegate
+     */
     #[payable("EGLD")]
     #[endpoint(delegate)]
     fn delegate(
@@ -63,6 +66,8 @@ pub trait SalsaContract<ContractReader>:
         let mut ls_to_send = BigUint::zero();
 
         if arbitrage {
+            self.do_flash_loan_arbitrage(&mut storage_cache);
+
             let (sold_amount, bought_amount) =
                 self.do_arbitrage(true, delegate_amount.clone(), &mut storage_cache);
 
@@ -91,8 +96,7 @@ pub trait SalsaContract<ContractReader>:
                 ls_to_send += user_payment.amount;
             }
     
-            self.egld_to_delegate()
-                .update(|value| *value += delegate_amount);
+            storage_cache.egld_to_delegate += delegate_amount;
         }
 
         if ls_to_send > 0 {
@@ -105,6 +109,9 @@ pub trait SalsaContract<ContractReader>:
         }
     }
 
+    /**
+     * Undelegate
+     */
     #[payable("*")]
     #[endpoint(unDelegate)]
     fn undelegate(
@@ -191,6 +198,9 @@ pub trait SalsaContract<ContractReader>:
         self.add_user_undelegation(user, egld_to_undelegate, unbond_period);
     }
 
+    /**
+     * Withdraw
+     */
     #[endpoint(withdraw)]
     fn withdraw(&self) {
         self.update_last_accessed();
@@ -227,9 +237,15 @@ pub trait SalsaContract<ContractReader>:
 
     // endpoints: custody
 
+    /**
+     * Add to custody
+     */
     #[payable("*")]
     #[endpoint(addToCustody)]
-    fn add_to_custody(&self) {
+    fn add_to_custody(
+        &self,
+        without_arbitrage: OptionalValue<bool>,
+    ) {
         self.update_last_accessed();
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
@@ -243,12 +259,26 @@ pub trait SalsaContract<ContractReader>:
             .update(|value| *value += &payment_amount);
         storage_cache.legld_in_custody += payment_amount;
 
-        let mut lp_cache = LpCache::new(self);
-        self.add_lp(&mut storage_cache, &mut lp_cache);
+        let arbitrage = match without_arbitrage {
+            OptionalValue::Some(value) => !value,
+            OptionalValue::None => true
+        };
+        if arbitrage {
+            self.do_flash_loan_arbitrage(&mut storage_cache);
+            let mut lp_cache = LpCache::new(self);
+            self.add_lp(&mut storage_cache, &mut lp_cache);
+        }
     }
 
+    /**
+     * Remove from custody
+     */
     #[endpoint(removeFromCustody)]
-    fn remove_from_custody(&self, amount: BigUint) {
+    fn remove_from_custody(
+        &self,
+        amount: BigUint,
+        without_arbitrage: OptionalValue<bool>,
+    ) {
         self.update_last_accessed();
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
@@ -259,6 +289,14 @@ pub trait SalsaContract<ContractReader>:
         let delegation = self.user_delegation(&caller).take();
         require!(amount <= delegation, ERROR_INSUFFICIENT_FUNDS);
         require!(&delegation - &amount >= MIN_EGLD || delegation == amount, ERROR_DUST_REMAINING);
+
+        let arbitrage = match without_arbitrage {
+            OptionalValue::Some(value) => !value,
+            OptionalValue::None => true
+        };
+        if arbitrage {
+            self.do_flash_loan_arbitrage(&mut storage_cache);
+        }
 
         // check if there is enough LEGLD balance. remove from LP if not
         let mut lp_cache = LpCache::new(self);
@@ -281,9 +319,15 @@ pub trait SalsaContract<ContractReader>:
 
     // endpoints: reserves
 
+    /**
+     * Add reserve
+     */
     #[payable("EGLD")]
     #[endpoint(addReserve)]
-    fn add_reserve(&self) {
+    fn add_reserve(
+        &self,
+        without_arbitrage: OptionalValue<bool>,
+    ) {
         self.update_last_accessed();
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
@@ -308,18 +352,32 @@ pub trait SalsaContract<ContractReader>:
         storage_cache.egld_reserve += reserve_amount.clone_value();
         storage_cache.available_egld_reserve += reserve_amount.clone_value();
 
-        let mut lp_cache = LpCache::new(self);
-        self.add_lp(&mut storage_cache, &mut lp_cache);
+        let arbitrage = match without_arbitrage {
+            OptionalValue::Some(value) => !value,
+            OptionalValue::None => true
+        };
+        if arbitrage {
+            self.do_flash_loan_arbitrage(&mut storage_cache);
+            let mut lp_cache = LpCache::new(self);
+            self.add_lp(&mut storage_cache, &mut lp_cache);
+        }
     }
 
+    /**
+     * Remove reserve
+     */
     #[endpoint(removeReserve)]
-    fn remove_reserve(&self, amount: BigUint) {
+    fn remove_reserve(
+        &self,
+        amount: BigUint,
+        without_arbitrage: OptionalValue<bool>,
+    ) {
         self.update_last_accessed();
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         let caller = self.blockchain().get_caller();
         self.check_knight_activated(&caller);
-        self.do_remove_reserve(caller.clone(), caller, amount);
+        self.do_remove_reserve(caller.clone(), caller, amount, without_arbitrage);
     }
 
     fn do_remove_reserve(
@@ -327,6 +385,7 @@ pub trait SalsaContract<ContractReader>:
         caller: ManagedAddress,
         receiver: ManagedAddress,
         amount: BigUint,
+        without_arbitrage: OptionalValue<bool>,
     ) {
         let current_epoch = self.blockchain().get_block_epoch();
         let add_reserve_epoch = self.add_reserve_epoch(&caller).take();
@@ -357,6 +416,14 @@ pub trait SalsaContract<ContractReader>:
 
         storage_cache.egld_reserve -= &egld_to_remove;
 
+        let arbitrage = match without_arbitrage {
+            OptionalValue::Some(value) => !value,
+            OptionalValue::None => true
+        };
+        if arbitrage {
+            self.do_flash_loan_arbitrage(&mut storage_cache);
+        }
+
         // check if there is enough eGLD balance. remove from LP if not
         let mut lp_cache = LpCache::new(self);
         let available_egld = &storage_cache.available_egld_reserve - &lp_cache.egld_in_lp;
@@ -386,6 +453,9 @@ pub trait SalsaContract<ContractReader>:
         self.send().direct_egld(&receiver, &egld_to_remove);
     }
 
+    /**
+     * Undelegate now
+     */
     #[payable("*")]
     #[endpoint(unDelegateNow)]
     fn undelegate_now(
@@ -531,6 +601,7 @@ pub trait SalsaContract<ContractReader>:
 
     // endpoints: knights
 
+    // Undelegate knight
     #[endpoint(unDelegateKnight)]
     fn undelegate_knight(
         &self,
@@ -545,6 +616,9 @@ pub trait SalsaContract<ContractReader>:
         self.do_undelegate(user, undelegate_amount, without_arbitrage);
     }
 
+    /**
+     * Undelegate now knight
+     */
     #[endpoint(unDelegateNowKnight)]
     fn undelegate_now_knight(
         &self,
@@ -561,6 +635,9 @@ pub trait SalsaContract<ContractReader>:
         self.do_undelegate_now(user, knight, min_amount_out, undelegate_amount, without_arbitrage);
     }
 
+    /**
+     * Withdraw knight
+     */
     #[endpoint(withdrawKnight)]
     fn withdraw_knight(&self, user: ManagedAddress) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
@@ -571,22 +648,29 @@ pub trait SalsaContract<ContractReader>:
         self.do_withdraw(&user, &knight);
     }
 
+    /**
+     * Remove reserve knight
+     */
     #[endpoint(removeReserveKnight)]
     fn remove_reserve_knight(
         &self,
         user: ManagedAddress,
         amount: BigUint,
+        without_arbitrage: OptionalValue<bool>,
     ) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         self.check_knight(&user);
 
         let knight = self.blockchain().get_caller();
-        self.do_remove_reserve(user, knight, amount);
+        self.do_remove_reserve(user, knight, amount, without_arbitrage);
     }
 
     // endpoints: heirs
 
+    /**
+     * Undelegate heir
+     */
     #[endpoint(unDelegateHeir)]
     fn undelegate_heir(
         &self,
@@ -601,6 +685,9 @@ pub trait SalsaContract<ContractReader>:
         self.do_undelegate(user, undelegate_amount, without_arbitrage);
     }
 
+    /**
+     * Undelegate now heir
+     */
     #[endpoint(unDelegateNowHeir)]
     fn undelegate_now_heir(
         &self,
@@ -617,6 +704,9 @@ pub trait SalsaContract<ContractReader>:
         self.do_undelegate_now(user, heir, min_amount_out, undelegate_amount, without_arbitrage);
     }
 
+    /**
+     * Withdraw heir
+     */
     #[endpoint(withdrawHeir)]
     fn withdraw_heir(&self, user: ManagedAddress) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
@@ -627,18 +717,22 @@ pub trait SalsaContract<ContractReader>:
         self.do_withdraw(&user, &heir);
     }
 
+    /**
+     * Remove reserve heir
+     */
     #[endpoint(removeReserveHeir)]
     fn remove_reserve_heir(
         &self,
         user: ManagedAddress,
         amount: BigUint,
+        without_arbitrage: OptionalValue<bool>,
     ) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         self.check_is_heir_entitled(&user);
 
         let heir = self.blockchain().get_caller();
-        self.do_remove_reserve(user, heir, amount);
+        self.do_remove_reserve(user, heir, amount, without_arbitrage);
     }
 
     // proxy

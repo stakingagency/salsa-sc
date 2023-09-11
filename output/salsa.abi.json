@@ -13,7 +13,7 @@
         },
         "framework": {
             "name": "multiversx-sc",
-            "version": "0.43.3"
+            "version": "0.43.2"
         }
     },
     "name": "SalsaContract",
@@ -23,6 +23,9 @@
     },
     "endpoints": [
         {
+            "docs": [
+                "\\n     * Delegate\\n     "
+            ],
             "name": "delegate",
             "mutability": "mutable",
             "payableInTokens": [
@@ -43,6 +46,9 @@
             "outputs": []
         },
         {
+            "docs": [
+                "\\n     * Undelegate\\n     "
+            ],
             "name": "unDelegate",
             "mutability": "mutable",
             "payableInTokens": [
@@ -63,52 +69,92 @@
             "outputs": []
         },
         {
+            "docs": [
+                "\\n     * Withdraw\\n     "
+            ],
             "name": "withdraw",
             "mutability": "mutable",
             "inputs": [],
             "outputs": []
         },
         {
+            "docs": [
+                "\\n     * Add to custody\\n     "
+            ],
             "name": "addToCustody",
             "mutability": "mutable",
             "payableInTokens": [
                 "*"
             ],
-            "inputs": [],
+            "inputs": [
+                {
+                    "name": "without_arbitrage",
+                    "type": "optional<bool>",
+                    "multi_arg": true
+                }
+            ],
             "outputs": []
         },
         {
+            "docs": [
+                "\\n     * Remove from custody\\n     "
+            ],
             "name": "removeFromCustody",
             "mutability": "mutable",
             "inputs": [
                 {
                     "name": "amount",
                     "type": "BigUint"
+                },
+                {
+                    "name": "without_arbitrage",
+                    "type": "optional<bool>",
+                    "multi_arg": true
                 }
             ],
             "outputs": []
         },
         {
+            "docs": [
+                "\\n     * Add reserve\\n     "
+            ],
             "name": "addReserve",
             "mutability": "mutable",
             "payableInTokens": [
                 "EGLD"
             ],
-            "inputs": [],
+            "inputs": [
+                {
+                    "name": "without_arbitrage",
+                    "type": "optional<bool>",
+                    "multi_arg": true
+                }
+            ],
             "outputs": []
         },
         {
+            "docs": [
+                "\\n     * Remove reserve\\n     "
+            ],
             "name": "removeReserve",
             "mutability": "mutable",
             "inputs": [
                 {
                     "name": "amount",
                     "type": "BigUint"
+                },
+                {
+                    "name": "without_arbitrage",
+                    "type": "optional<bool>",
+                    "multi_arg": true
                 }
             ],
             "outputs": []
         },
         {
+            "docs": [
+                "\\n     * Undelegate now\\n     "
+            ],
             "name": "unDelegateNow",
             "mutability": "mutable",
             "payableInTokens": [
@@ -153,6 +199,9 @@
             "outputs": []
         },
         {
+            "docs": [
+                "\\n     * Undelegate now knight\\n     "
+            ],
             "name": "unDelegateNowKnight",
             "mutability": "mutable",
             "inputs": [
@@ -177,6 +226,9 @@
             "outputs": []
         },
         {
+            "docs": [
+                "\\n     * Withdraw knight\\n     "
+            ],
             "name": "withdrawKnight",
             "mutability": "mutable",
             "inputs": [
@@ -188,6 +240,9 @@
             "outputs": []
         },
         {
+            "docs": [
+                "\\n     * Remove reserve knight\\n     "
+            ],
             "name": "removeReserveKnight",
             "mutability": "mutable",
             "inputs": [
@@ -198,11 +253,19 @@
                 {
                     "name": "amount",
                     "type": "BigUint"
+                },
+                {
+                    "name": "without_arbitrage",
+                    "type": "optional<bool>",
+                    "multi_arg": true
                 }
             ],
             "outputs": []
         },
         {
+            "docs": [
+                "\\n     * Undelegate heir\\n     "
+            ],
             "name": "unDelegateHeir",
             "mutability": "mutable",
             "inputs": [
@@ -223,6 +286,9 @@
             "outputs": []
         },
         {
+            "docs": [
+                "\\n     * Undelegate now heir\\n     "
+            ],
             "name": "unDelegateNowHeir",
             "mutability": "mutable",
             "inputs": [
@@ -247,6 +313,9 @@
             "outputs": []
         },
         {
+            "docs": [
+                "\\n     * Withdraw heir\\n     "
+            ],
             "name": "withdrawHeir",
             "mutability": "mutable",
             "inputs": [
@@ -258,6 +327,9 @@
             "outputs": []
         },
         {
+            "docs": [
+                "\\n     * Remove reserve heir\\n     "
+            ],
             "name": "removeReserveHeir",
             "mutability": "mutable",
             "inputs": [
@@ -268,6 +340,11 @@
                 {
                     "name": "amount",
                     "type": "BigUint"
+                },
+                {
+                    "name": "without_arbitrage",
+                    "type": "optional<bool>",
+                    "multi_arg": true
                 }
             ],
             "outputs": []

@@ -12,6 +12,7 @@ where
     pub wegld_id: TokenIdentifier<C::Api>,
     pub legld_in_custody: BigUint<C::Api>,
     pub available_egld_reserve: BigUint<C::Api>,
+    pub egld_to_delegate: BigUint<C::Api>,
     pub egld_to_undelegate: BigUint<C::Api>,
     pub egld_reserve: BigUint<C::Api>,
     pub reserve_points: BigUint<C::Api>,
@@ -31,6 +32,7 @@ where
             wegld_id: sc_ref.wegld_id().get(),
             legld_in_custody: sc_ref.legld_in_custody().get(),
             available_egld_reserve: sc_ref.available_egld_reserve().get(),
+            egld_to_delegate: sc_ref.egld_to_delegate().get(),
             egld_to_undelegate: sc_ref.egld_to_undelegate().get(),
             egld_reserve: sc_ref.egld_reserve().get(),
             reserve_points: sc_ref.reserve_points().get(),
@@ -47,6 +49,7 @@ where
         self.sc_ref.liquid_token_supply().set(&self.liquid_supply);
         self.sc_ref.legld_in_custody().set(&self.legld_in_custody);
         self.sc_ref.available_egld_reserve().set(&self.available_egld_reserve);
+        self.sc_ref.egld_to_delegate().set(&self.egld_to_delegate);
         self.sc_ref.egld_to_undelegate().set(&self.egld_to_undelegate);
         self.sc_ref.egld_reserve().set(&self.egld_reserve);
         self.sc_ref.reserve_points().set(&self.reserve_points);
