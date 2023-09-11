@@ -58,7 +58,7 @@ crate::common::config::ConfigModule
             return
         }
 
-        // before adding LPs, align the exchanges price with SALSA
+        // before adding LPs, align the exchanges prices with SALSA
         let (sold, bought) =
             self.do_arbitrage(true, available_egld_for_lp.clone(), storage_cache);
         available_egld_for_lp -= &sold;
@@ -404,6 +404,9 @@ crate::common::config::ConfigModule
     #[endpoint(takeLpProfit)]
     fn take_lp_profit(&self) {
         let mut storage_cache = StorageCache::new(self);
+
+        self.do_flash_loan_arbitrage(&mut storage_cache);
+
         let mut lp_cache = LpCache::new(self);
         let onedex_cache = OnedexCache::new(self);
         let xexchange_cache = XexchangeCache::new(self);
