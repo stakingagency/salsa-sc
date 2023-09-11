@@ -111,6 +111,20 @@ pub trait ArbitrageModule:
         (sold_amount, bought_amount)
     }
 
+    /**
+     * Flash loan arbitrage
+     */
+    #[endpoint(flashLoanArbitrage)]
+    fn flash_loan_arbitrage(&self) {
+        require!(self.is_state_active(), ERROR_NOT_ACTIVE);
+
+        let mut storage_cache = StorageCache::new(self);
+        self.do_flash_loan_arbitrage(&mut storage_cache);
+    }
+
+    /**
+     * Do flash loan arbitrage
+     */
     fn do_flash_loan_arbitrage(&self, storage_cache: &mut StorageCache<Self>) {
         if !self.is_arbitrage_active() {
             return

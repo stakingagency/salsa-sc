@@ -829,6 +829,15 @@
             ]
         },
         {
+            "docs": [
+                "\\n     * Flash loan arbitrage\\n     "
+            ],
+            "name": "flashLoanArbitrage",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
             "name": "setOnedexArbitrageActive",
             "onlyOwner": true,
             "mutability": "mutable",
