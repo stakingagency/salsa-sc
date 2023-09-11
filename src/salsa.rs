@@ -9,6 +9,7 @@ pub mod service;
 pub mod exchanges;
 pub mod knights;
 pub mod heirs;
+pub mod flash_loans;
 
 use crate::{common::config::*, common::{consts::*, storage_cache::StorageCache}, common::errors::*, exchanges::lp_cache::LpCache};
 
@@ -21,6 +22,7 @@ pub trait SalsaContract<ContractReader>:
     + exchanges::onedex::OnedexModule
     + exchanges::xexchange::XexchangeModule
     + exchanges::lp::LpModule
+    + flash_loans::FlashLoansModule
     + knights::KnightsModule
     + heirs::HeirsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
@@ -733,93 +735,6 @@ pub trait SalsaContract<ContractReader>:
 
         let heir = self.blockchain().get_caller();
         self.do_remove_reserve(user, heir, amount, without_arbitrage);
-    }
-
-    // endpoints: flash loans
-
-    /**
-     * Flash loan LEGLD
-     */
-    #[endpoint(flashLoanLEGLD)]
-    fn flash_loan_legld(
-        &self,
-        amount: BigUint,
-        address: ManagedAddress,
-        function: ManagedBuffer,
-        args: MultiValueManagedVec<ManagedBuffer>,
-    ) {
-        require!(self.is_state_active(), ERROR_NOT_ACTIVE);
-        require!(amount <= BigUint::from(MAX_LOAN), ERROR_INSUFFICIENT_FUNDS);
-
-        self.mint_liquid_token(amount.clone());
-        let (_, old_ls_balance) = self.get_sc_balances();
-        let _ = self.send_raw().transfer_esdt_execute(
-            &address,
-            &self.liquid_token_id().get_token_id(),
-            &amount,
-            self.blockchain().get_gas_left(),
-            &function,
-            &ManagedArgBuffer::from(args.into_vec()),
-        );
-        let (_, new_ls_balance) = self.get_sc_balances();
-        require!(new_ls_balance > old_ls_balance, ERROR_LOAN_NOT_RETURNED);
-
-        let profit = new_ls_balance - old_ls_balance;
-        let fee = &profit * FLASH_LOAN_FEE / MAX_PERCENT;
-        self.burn_liquid_token(&(&amount + &fee));
-        self.send().direct_esdt(
-            &self.blockchain().get_caller(),
-            &self.liquid_token_id().get_token_id(),
-            0,
-            &(profit - fee),
-        );
-    }
-
-    /**
-     * Flash loan eGLD
-     */
-    #[endpoint(flashLoanEGLD)]
-    fn flash_loan_egld(
-        &self,
-        amount: BigUint,
-        address: ManagedAddress,
-        function: ManagedBuffer,
-        args: MultiValueManagedVec<ManagedBuffer>,
-    ) {
-        require!(self.is_state_active(), ERROR_NOT_ACTIVE);
-        require!(amount <= BigUint::from(MAX_LOAN), ERROR_INSUFFICIENT_FUNDS);
-
-        let mut storage_cache = StorageCache::new(self);
-        let mut lp_cache = LpCache::new(self);
-        let (mut old_balance, _) = self.get_sc_balances();
-        if old_balance < amount {
-            let egld_to_remove = &amount - &old_balance;
-            require!(egld_to_remove <= lp_cache.egld_in_lp, ERROR_INSUFFICIENT_FUNDS);
-
-            self.remove_egld_lp(egld_to_remove, &mut storage_cache, &mut lp_cache);
-            (old_balance, _) = self.get_sc_balances();
-        }
-        require!(amount <= old_balance, ERROR_INSUFFICIENT_FUNDS);
-
-        let _ = self.send_raw().direct_egld_execute(
-            &address,
-            &amount,
-            self.blockchain().get_gas_left(),
-            &function,
-            &ManagedArgBuffer::from(args.into_vec()),
-        );
-        let (new_balance, _) = self.get_sc_balances();
-        require!(new_balance > old_balance, ERROR_LOAN_NOT_RETURNED);
-
-        let profit = new_balance - old_balance;
-        let fee = &profit * FLASH_LOAN_FEE / MAX_PERCENT;
-        storage_cache.egld_to_delegate += &fee;
-        storage_cache.total_stake += &fee;
-        self.send().direct_egld(
-            &self.blockchain().get_caller(),
-            &(profit - fee),
-        );
-        self.add_lp(&mut storage_cache, &mut lp_cache);
     }
     
     // proxy
