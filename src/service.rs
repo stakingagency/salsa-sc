@@ -2,7 +2,7 @@ multiversx_sc::imports!();
 
 use crate::{common::consts::*, common::errors::*};
 use crate::proxies::delegation_proxy;
-use crate::common::config::{UndelegationType};
+use crate::common::config::UndelegationType;
 
 #[multiversx_sc::module]
 pub trait ServiceModule:
@@ -11,6 +11,45 @@ pub trait ServiceModule:
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     // endpoints: service
+
+    #[endpoint(delegateAll)]
+    fn delegate_all(&self) {
+        require!(self.is_state_active(), ERROR_NOT_ACTIVE);
+
+        let egld_to_delegate = self.egld_to_delegate().take();
+        require!(
+            egld_to_delegate >= MIN_EGLD,
+            ERROR_INSUFFICIENT_AMOUNT
+        );
+
+        let delegation_contract = self.provider_address().get();
+        let gas_for_async_call = self.get_gas_for_async_call();
+        self.service_delegation_proxy_obj()
+            .contract(delegation_contract)
+            .delegate()
+            .with_gas_limit(gas_for_async_call)
+            .with_egld_transfer(egld_to_delegate.clone())
+            .async_call()
+            .with_callback(
+                ServiceModule::callbacks(self).delegate_all_callback(egld_to_delegate),
+            )
+            .call_and_exit()
+    }
+
+    #[callback]
+    fn delegate_all_callback(
+        &self,
+        egld_to_delegate: BigUint,
+        #[call_result] result: ManagedAsyncCallResult<()>,
+    ) {
+        match result {
+            ManagedAsyncCallResult::Ok(()) => {}
+            ManagedAsyncCallResult::Err(_) => {
+                self.egld_to_delegate()
+                    .update(|value| *value += egld_to_delegate);
+            }
+        }
+    }
 
     #[endpoint(unDelegateAll)]
     fn undelegate_all(&self) {

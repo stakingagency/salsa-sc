@@ -162,6 +162,18 @@ where
             .assert_user_error(error);
     }
 
+    pub fn delegate_all_test(
+        &mut self,
+        sender: &Address,
+    ) {
+        let big_zero = rust_biguint!(0);
+        self.blockchain_wrapper
+            .execute_tx(sender, &self.salsa_wrapper, &big_zero, |sc| {
+                sc.delegate_all()
+            })
+            .assert_ok();
+    }
+
     pub fn undelegate_all_test(
         &mut self,
         sender: &Address,

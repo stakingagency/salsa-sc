@@ -33,6 +33,7 @@ fn delegation_test() {
 
     // delegate
     sc_setup.delegate_test(&caller, amount.clone(), false);
+    sc_setup.delegate_all_test(&caller);
     sc_setup.blockchain_wrapper.check_egld_balance(&caller, &big_zero);
     sc_setup.blockchain_wrapper.check_esdt_balance(&caller, TOKEN_ID, &amount);
     sc_setup.check_total_egld_staked(amount.clone());
@@ -80,6 +81,7 @@ fn reserves_test() {
 
     // delegate
     sc_setup.delegate_test(&caller, one.clone(), false);
+    sc_setup.delegate_all_test(&caller);
     sc_setup.blockchain_wrapper.check_egld_balance(&caller, &big_zero);
     sc_setup.blockchain_wrapper.check_esdt_balance(&caller, TOKEN_ID, &one);
     sc_setup.check_total_egld_staked(one.clone());
@@ -140,6 +142,7 @@ fn reserve_to_user_undelegation_test() {
     // delegate 5 and add reserves 5
     sc_setup.delegate_test(&delegator1, one.clone(), false);
     sc_setup.delegate_test(&delegator2, one.clone() * 4u64, false);
+    sc_setup.delegate_all_test(&caller);
     sc_setup.add_reserve_test(&reserver1, one.clone() * 2u64);
     sc_setup.add_reserve_test(&reserver2, one.clone() * 3u64);
     // stake = 5, reserve = 5, available reserve = 5
@@ -210,6 +213,7 @@ fn merge_undelegations_test() {
 
     // delegate and add reserve
     sc_setup.delegate_test(&delegator, one.clone() * 250u64, false);
+    sc_setup.delegate_all_test(&caller);
     sc_setup.add_reserve_test(&reserver, one.clone() * 125u64);
 
     // undelegate and undelegate now reserve in 15 epochs
@@ -257,6 +261,7 @@ fn user_undelegations_order_test() {
 
     // delegate
     sc_setup.delegate_test(&delegator, exp(100, 18), false);
+    sc_setup.delegate_all_test(&delegator);
 
     // undelegate in epochs 3 and 2 (3 times, 2 in the same epoch, so should be merged)
     epoch = 3u64;
@@ -318,6 +323,7 @@ fn reserve_undelegations_order_test() {
 
     // delegate and add reserve
     sc_setup.delegate_test(&reserver, exp(50, 18), false);
+    sc_setup.delegate_all_test(&reserver);
     sc_setup.add_reserve_test(&reserver, exp(50, 18));
 
     // undelegate now in epochs 3 and 2 (3 times, 2 in the same epoch, so should be merged)
@@ -359,6 +365,7 @@ fn knight_test() {
     let knight2 = sc_setup.setup_new_user(0u64);
 
     sc_setup.delegate_test(&delegator, exp(1, 18), true); // true = custodial
+    sc_setup.delegate_all_test(&delegator);
 
     sc_setup.set_knight_test(&delegator, &knight1);
     sc_setup.set_knight_fail_test(&delegator, &knight1, "Knight already set");
@@ -398,6 +405,7 @@ fn active_knigth_test() {
 
     // delegate and add reserve
     sc_setup.delegate_test(&delegator, exp(2, 18), true); // true = custodial
+    sc_setup.delegate_all_test(&delegator);
     sc_setup.add_reserve_test(&delegator, one.clone());
 
     // set knight, confirm and activate
@@ -437,10 +445,12 @@ fn too_many_knight_users_test() {
     for _ in 0..MAX_KNIGHT_USERS {
         let user = sc_setup.setup_new_user(1u64);
         sc_setup.delegate_test(&user, exp(1, 18), true);
+        sc_setup.delegate_all_test(&user);
         sc_setup.set_knight_test(&user, &knight);
     }
 
     sc_setup.delegate_test(&user11, exp(1, 18), true);
+    sc_setup.delegate_all_test(&user11);
     sc_setup.set_knight_fail_test(&user11, &knight, "Knight has too many users");
 }
 
@@ -455,10 +465,12 @@ fn too_many_heir_users_test() {
     for _ in 0..MAX_HEIR_USERS {
         let user = sc_setup.setup_new_user(1u64);
         sc_setup.delegate_test(&user, exp(1, 18), true);
+        sc_setup.delegate_all_test(&user);
         sc_setup.set_heir_test(&user, &heir, 365);
         }
 
     sc_setup.delegate_test(&user11, exp(1, 18), true);
+    sc_setup.delegate_all_test(&user11);
     sc_setup.set_heir_fail_test(&user11, &heir, 365, "Heir has too many users");
 }
 
@@ -479,6 +491,7 @@ fn entitled_heir_test() {
 
     // delegate and add reserve
     sc_setup.delegate_test(&delegator, exp(2, 18), true); // true = custodial
+    sc_setup.delegate_all_test(&delegator);
     sc_setup.add_reserve_test(&delegator, one.clone());
 
     // set heir
@@ -523,6 +536,7 @@ fn custodial_delegation_test() {
     sc_setup.blockchain_wrapper.set_esdt_balance(&delegator, TOKEN_ID, &exp(10, 18));
 
     sc_setup.delegate_test(&delegator, exp(1, 18), true);
+    sc_setup.delegate_all_test(&delegator);
     sc_setup.add_to_custody_test(&delegator, exp(4, 18));
 
     sc_setup.set_knight_test(&delegator, &knight);

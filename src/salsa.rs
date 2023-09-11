@@ -94,54 +94,22 @@ pub trait SalsaContract<ContractReader>:
 
         let ls_amount =
             self.add_liquidity(&delegate_amount, true, &mut storage_cache);
-        drop(storage_cache);
-
-        let delegation_contract = self.provider_address().get();
-        let gas_for_async_call = self.get_gas_for_async_call();
-        self.delegation_proxy_obj()
-            .contract(delegation_contract)
-            .delegate()
-            .with_gas_limit(gas_for_async_call)
-            .with_egld_transfer(delegate_amount.clone())
-            .async_call()
-            .with_callback(
-                SalsaContract::callbacks(self).delegate_callback(caller, custodial, delegate_amount, ls_amount),
-            )
-            .call_and_exit()
-    }
-
-    #[callback]
-    fn delegate_callback(
-        &self,
-        caller: ManagedAddress,
-        custodial: bool,
-        staked_tokens: BigUint,
-        liquid_tokens: BigUint,
-        #[call_result] result: ManagedAsyncCallResult<()>,
-    ) {
-        let mut storage_cache = StorageCache::new(self);
-        match result {
-            ManagedAsyncCallResult::Ok(()) => {
-                let user_payment = self.mint_liquid_token(liquid_tokens);
-                if custodial {
-                    self.user_delegation(&caller)
-                        .update(|value| *value += &user_payment.amount);
-                    storage_cache.legld_in_custody += user_payment.amount;
-                } else {
-                    self.send().direct_esdt(
-                        &caller,
-                        &user_payment.token_identifier,
-                        0,
-                        &user_payment.amount,
-                    );
-                }
-            }
-            ManagedAsyncCallResult::Err(_) => {
-                storage_cache.total_stake -= &staked_tokens;
-                storage_cache.liquid_supply -= &liquid_tokens;
-                self.send().direct_egld(&caller, &staked_tokens);
-            }
+        let user_payment = self.mint_liquid_token(ls_amount);
+        if custodial {
+            self.user_delegation(&caller)
+                .update(|value| *value += &user_payment.amount);
+            storage_cache.legld_in_custody += user_payment.amount;
+        } else {
+            self.send().direct_esdt(
+                &caller,
+                &user_payment.token_identifier,
+                0,
+                &user_payment.amount,
+            );
         }
+    
+        self.egld_to_delegate()
+            .update(|value| *value += delegate_amount);
     }
 
     #[payable("*")]
