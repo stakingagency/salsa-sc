@@ -128,7 +128,8 @@ pub trait ArbitrageModule:
             self.add_undelegation(sold_amount.clone(), unbond_epoch, self.lreserve_undelegations());
 
             let profit = &egld_amount - &sold_amount;
-            storage_cache.egld_to_delegate += profit;
+            storage_cache.egld_to_delegate += &profit;
+            storage_cache.total_stake += profit;
             self.reduce_egld_to_delegate_undelegate(storage_cache);
         }
     }
