@@ -106,7 +106,7 @@ pub trait ArbitrageModule:
 
         let old_ls_balance = self.blockchain()
             .get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(storage_cache.liquid_token_id.clone()), 0);
-        let (sold_amount, bought_amount) =
+        let (_, bought_amount) =
             self.execute_arbitrage(true, storage_cache.available_egld_reserve.clone(), storage_cache);
         let new_ls_balance = self.blockchain()
             .get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(storage_cache.liquid_token_id.clone()), 0);
@@ -117,20 +117,14 @@ pub trait ArbitrageModule:
 
         if bought_amount > 0 {
             let egld_amount =
-                self.remove_liquidity(&swapped_amount, true, storage_cache);
-            require!(egld_amount >= sold_amount, ERROR_ARBITRAGE_ISSUE);
-
+                self.remove_liquidity(&bought_amount, true, storage_cache);
             self.burn_liquid_token(&swapped_amount);
-            storage_cache.egld_to_undelegate += &sold_amount;
-            storage_cache.available_egld_reserve -= &sold_amount;
+            storage_cache.liquid_supply -= &swapped_amount - &bought_amount;
+            storage_cache.egld_to_undelegate += &egld_amount;
+            storage_cache.available_egld_reserve -= &egld_amount;
             let current_epoch = self.blockchain().get_block_epoch();
             let unbond_epoch = current_epoch + storage_cache.unbond_period;
-            self.add_undelegation(sold_amount.clone(), unbond_epoch, self.lreserve_undelegations());
-
-            let profit = &egld_amount - &sold_amount;
-            storage_cache.egld_to_delegate += &profit;
-            storage_cache.total_stake += profit;
-            self.reduce_egld_to_delegate_undelegate(storage_cache);
+            self.add_undelegation(egld_amount.clone(), unbond_epoch, self.lreserve_undelegations());
         }
     }
 

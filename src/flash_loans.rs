@@ -68,6 +68,8 @@ pub trait FlashLoansModule:
         let profit = new_ls_balance - old_ls_balance;
         let fee = &profit * FLASH_LOAN_FEE / MAX_PERCENT;
         self.burn_liquid_token(&(&amount + &fee));
+        self.liquid_token_supply()
+            .update(|value| *value -= &fee);
         self.send().direct_esdt(
             &self.blockchain().get_caller(),
             &ls_token,
