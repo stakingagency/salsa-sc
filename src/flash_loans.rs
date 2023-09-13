@@ -49,17 +49,20 @@ pub trait FlashLoansModule:
         require!(self.are_flash_loans_active(), ERROR_FLASH_LOANS_NOT_ACTIVE);
         require!(amount <= BigUint::from(MAX_LOAN), ERROR_INSUFFICIENT_FUNDS);
 
+        let ls_token = self.liquid_token_id().get_token_id();
         self.mint_liquid_token(amount.clone());
-        let (_, old_ls_balance) = self.get_sc_balances();
+        let old_ls_balance = self.blockchain()
+            .get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(ls_token.clone()), 0);
         let _ = self.send_raw().transfer_esdt_execute(
             &address,
-            &self.liquid_token_id().get_token_id(),
+            &ls_token,
             &amount,
             self.blockchain().get_gas_left(),
             &function,
             &ManagedArgBuffer::from(args.into_vec()),
         );
-        let (_, new_ls_balance) = self.get_sc_balances();
+        let new_ls_balance = self.blockchain()
+            .get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(ls_token.clone()), 0);
         require!(new_ls_balance > old_ls_balance, ERROR_LOAN_NOT_RETURNED);
 
         let profit = new_ls_balance - old_ls_balance;
@@ -67,7 +70,7 @@ pub trait FlashLoansModule:
         self.burn_liquid_token(&(&amount + &fee));
         self.send().direct_esdt(
             &self.blockchain().get_caller(),
-            &self.liquid_token_id().get_token_id(),
+            &ls_token,
             0,
             &(profit - fee),
         );
@@ -90,13 +93,15 @@ pub trait FlashLoansModule:
 
         let mut storage_cache = StorageCache::new(self);
         let mut lp_cache = LpCache::new(self);
-        let (mut old_balance, _) = self.get_sc_balances();
+        let mut old_balance = self.blockchain()
+            .get_sc_balance(&EgldOrEsdtTokenIdentifier::egld(), 0);
         if old_balance < amount {
             let egld_to_remove = &amount - &old_balance;
             require!(egld_to_remove <= lp_cache.egld_in_lp, ERROR_INSUFFICIENT_FUNDS);
 
             self.remove_egld_lp(egld_to_remove, &mut storage_cache, &mut lp_cache);
-            (old_balance, _) = self.get_sc_balances();
+            old_balance = self.blockchain()
+                .get_sc_balance(&EgldOrEsdtTokenIdentifier::egld(), 0);
         }
         require!(amount <= old_balance, ERROR_INSUFFICIENT_FUNDS);
 
@@ -107,7 +112,8 @@ pub trait FlashLoansModule:
             &function,
             &ManagedArgBuffer::from(args.into_vec()),
         );
-        let (new_balance, _) = self.get_sc_balances();
+        let new_balance = self.blockchain()
+            .get_sc_balance(&EgldOrEsdtTokenIdentifier::egld(), 0);
         require!(new_balance > old_balance, ERROR_LOAN_NOT_RETURNED);
 
         let profit = new_balance - old_balance;

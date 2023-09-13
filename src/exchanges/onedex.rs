@@ -24,7 +24,7 @@ pub trait OnedexModule:
             !self.onedex_sc().is_empty(),
             ERROR_ONEDEX_SC,
         );
-        
+
         if self.onedex_lp().is_empty() {
             let pair = self.get_onedex_pair_info();
             self.onedex_lp().set(pair.lp_token_id);
