@@ -104,14 +104,23 @@ pub trait ArbitrageModule:
             return
         }
 
+        let old_ls_balance = self.blockchain()
+            .get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(storage_cache.liquid_token_id.clone()), 0);
         let (sold_amount, bought_amount) =
             self.execute_arbitrage(true, storage_cache.available_egld_reserve.clone(), storage_cache);
+        let new_ls_balance = self.blockchain()
+            .get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(storage_cache.liquid_token_id.clone()), 0);
+        require!(new_ls_balance >= old_ls_balance, ERROR_ARBITRAGE_ISSUE);
+
+        let swapped_amount = &new_ls_balance - &old_ls_balance;
+        require!(swapped_amount >= bought_amount, ERROR_ARBITRAGE_ISSUE);
+
         if bought_amount > 0 {
             let egld_amount =
-                self.remove_liquidity(&bought_amount, true, storage_cache);
+                self.remove_liquidity(&swapped_amount, true, storage_cache);
             require!(egld_amount >= sold_amount, ERROR_ARBITRAGE_ISSUE);
 
-            self.burn_liquid_token(&bought_amount);
+            self.burn_liquid_token(&swapped_amount);
             storage_cache.egld_to_undelegate += &sold_amount;
             storage_cache.available_egld_reserve -= &sold_amount;
             let current_epoch = self.blockchain().get_block_epoch();
