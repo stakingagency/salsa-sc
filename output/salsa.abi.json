@@ -830,9 +830,9 @@
         },
         {
             "docs": [
-                "\\n     * Flash loan arbitrage\\n     "
+                "\\n     * Trigger arbitrage\\n     "
             ],
-            "name": "flashLoanArbitrage",
+            "name": "triggerArbitrage",
             "mutability": "mutable",
             "inputs": [],
             "outputs": []

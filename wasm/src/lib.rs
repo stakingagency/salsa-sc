@@ -79,7 +79,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         setArbitrageActive => set_arbitrage_active
         setArbitrageInactive => set_arbitrage_inactive
         getArbitrageState => arbitrage
-        flashLoanArbitrage => flash_loan_arbitrage
+        triggerArbitrage => trigger_arbitrage
         setOnedexArbitrageActive => set_onedex_arbitrage_active
         setOnedexArbitrageInactive => set_onedex_arbitrage_inactive
         getOnedexArbitrageState => onedex_arbitrage
