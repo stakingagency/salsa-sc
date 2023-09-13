@@ -10,4 +10,3 @@ pub const MIN_INHERITANCE_EPOCHS: u64 = 365;
 pub const MAX_INHERITANCE_EPOCHS: u64 = 3653;
 pub const MAX_KNIGHT_USERS: usize = 10;
 pub const MAX_HEIR_USERS: usize = 10;
-pub const MAX_LOAN: u128 = 1_000_000_000_000_000_000_000; // 1000
