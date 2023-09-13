@@ -830,9 +830,9 @@
         },
         {
             "docs": [
-                "\\n     * Flash loan arbitrage\\n     "
+                "\\n     * Trigger arbitrage\\n     "
             ],
-            "name": "flashLoanArbitrage",
+            "name": "triggerArbitrage",
             "mutability": "mutable",
             "inputs": [],
             "outputs": []
@@ -919,6 +919,40 @@
                     "type": "Address"
                 }
             ],
+            "outputs": []
+        },
+        {
+            "name": "setLpActive",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "setLpInactive",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "getLpState",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "State"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "\\n     * Take LPs profit\\n     "
+            ],
+            "name": "takeLpProfit",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [],
             "outputs": []
         },
         {

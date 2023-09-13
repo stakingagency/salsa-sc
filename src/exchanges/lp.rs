@@ -47,22 +47,16 @@ pub trait LpModule:
 
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
-        let mut available_egld_for_lp =
+        let available_egld_for_lp =
             &lp_cache.excess_lp_egld + &storage_cache.available_egld_reserve - &lp_cache.egld_in_lp - &storage_cache.egld_to_delegate;
         if available_egld_for_lp < MIN_EGLD {
             return
         }
-        let mut available_legld_for_lp =
+        let available_legld_for_lp =
             &lp_cache.excess_lp_legld + &storage_cache.legld_in_custody - &lp_cache.legld_in_lp;
         if available_legld_for_lp < MIN_EGLD {
             return
         }
-
-        // before adding LPs, align the exchanges prices with SALSA
-        let (sold, bought) =
-            self.do_arbitrage(true, available_egld_for_lp.clone(), storage_cache);
-        available_egld_for_lp -= &sold;
-        available_legld_for_lp += &bought;
 
         // get the list of available exchanges
         let mut lps: ManagedVec<Self::Api, LpInfo<Self::Api>> = ManagedVec::new();
@@ -404,8 +398,6 @@ pub trait LpModule:
     #[endpoint(takeLpProfit)]
     fn take_lp_profit(&self) {
         let mut storage_cache = StorageCache::new(self);
-
-        self.do_flash_loan_arbitrage(&mut storage_cache);
 
         let mut lp_cache = LpCache::new(self);
         let onedex_cache = OnedexCache::new(self);

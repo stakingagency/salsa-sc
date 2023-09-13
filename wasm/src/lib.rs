@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           79
+// Endpoints:                           83
 // Async Callback:                       1
-// Total number of exported functions:  81
+// Total number of exported functions:  85
 
 #![no_std]
 #![allow(internal_features)]
@@ -79,7 +79,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         setArbitrageActive => set_arbitrage_active
         setArbitrageInactive => set_arbitrage_inactive
         getArbitrageState => arbitrage
-        flashLoanArbitrage => flash_loan_arbitrage
+        triggerArbitrage => trigger_arbitrage
         setOnedexArbitrageActive => set_onedex_arbitrage_active
         setOnedexArbitrageInactive => set_onedex_arbitrage_inactive
         getOnedexArbitrageState => onedex_arbitrage
@@ -89,6 +89,10 @@ multiversx_sc_wasm_adapter::endpoints! {
         setXexchangeArbitrageInactive => set_xexchange_arbitrage_inactive
         getXexchangeArbitrageState => xexchange_arbitrage
         setXexchangeSC => set_xexchange_sc
+        setLpActive => set_lp_active
+        setLpInactive => set_lp_inactive
+        getLpState => lp_state
+        takeLpProfit => take_lp_profit
         setKnight => set_knight
         cancelKnight => cancel_knight
         activateKnight => activate_knight

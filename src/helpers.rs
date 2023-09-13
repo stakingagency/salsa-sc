@@ -241,4 +241,16 @@ pub trait HelpersModule:
     fn burn_liquid_token(&self, amount: &BigUint) {
         self.liquid_token_id().burn(amount);
     }
+
+    fn reduce_egld_to_delegate_undelegate(&self, storage_cache: &mut StorageCache<Self>) {
+        if storage_cache.egld_to_delegate > 0 && storage_cache.egld_to_undelegate > 0 {
+            if storage_cache.egld_to_delegate > storage_cache.egld_to_undelegate {
+                storage_cache.egld_to_delegate -= &storage_cache.egld_to_undelegate;
+                storage_cache.egld_to_undelegate = BigUint::zero();
+            } else {
+                storage_cache.egld_to_undelegate -= &storage_cache.egld_to_delegate;
+                storage_cache.egld_to_delegate = BigUint::zero();
+            }
+        }
+    }
 }
