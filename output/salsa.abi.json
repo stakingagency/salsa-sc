@@ -9,7 +9,7 @@
         },
         "contractCrate": {
             "name": "salsa",
-            "version": "0.0.3"
+            "version": "0.0.2"
         },
         "framework": {
             "name": "multiversx-sc",
