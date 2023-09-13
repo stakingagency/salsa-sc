@@ -1,6 +1,6 @@
 multiversx_sc::imports!();
 
-use crate::{common::{errors::*, consts::*, storage_cache::StorageCache}, exchanges::lp_cache::LpCache};
+use crate::{common::{errors::*, consts::*, storage_cache::StorageCache, config::State}, exchanges::lp_cache::LpCache};
 
 #[multiversx_sc::module]
 pub trait FlashLoansModule:
@@ -12,6 +12,28 @@ pub trait FlashLoansModule:
     + crate::exchanges::lp::LpModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
+    #[only_owner]
+    #[endpoint(setFlashLoansActive)]
+    fn set_flash_loans_active(&self) {
+        self.flash_loans().set(State::Active);
+    }
+
+    #[only_owner]
+    #[endpoint(setFlashLoansInactive)]
+    fn set_flash_loans_inactive(&self) {
+        self.flash_loans().set(State::Inactive);
+    }
+
+    #[inline]
+    fn are_flash_loans_active(&self) -> bool {
+        let flash_loans = self.flash_loans().get();
+        flash_loans == State::Active
+    }
+
+    #[view(getFlashLoansState)]
+    #[storage_mapper("flash_loans")]
+    fn flash_loans(&self) -> SingleValueMapper<State>;
+
     /**
      * Flash loan LEGLD
      */
@@ -24,6 +46,7 @@ pub trait FlashLoansModule:
         args: MultiValueManagedVec<ManagedBuffer>,
     ) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
+        require!(self.are_flash_loans_active(), ERROR_FLASH_LOANS_NOT_ACTIVE);
         require!(amount <= BigUint::from(MAX_LOAN), ERROR_INSUFFICIENT_FUNDS);
 
         self.mint_liquid_token(amount.clone());
@@ -62,6 +85,7 @@ pub trait FlashLoansModule:
         args: MultiValueManagedVec<ManagedBuffer>,
     ) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
+        require!(self.are_flash_loans_active(), ERROR_FLASH_LOANS_NOT_ACTIVE);
         require!(amount <= BigUint::from(MAX_LOAN), ERROR_INSUFFICIENT_FUNDS);
 
         let mut storage_cache = StorageCache::new(self);

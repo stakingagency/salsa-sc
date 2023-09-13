@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           85
+// Endpoints:                           88
 // Async Callback:                       1
-// Total number of exported functions:  87
+// Total number of exported functions:  90
 
 #![no_std]
 #![allow(internal_features)]
@@ -93,6 +93,9 @@ multiversx_sc_wasm_adapter::endpoints! {
         setLpInactive => set_lp_inactive
         getLpState => lp_state
         takeLpProfit => take_lp_profit
+        setFlashLoansActive => set_flash_loans_active
+        setFlashLoansInactive => set_flash_loans_inactive
+        getFlashLoansState => flash_loans
         flashLoanLEGLD => flash_loan_legld
         flashLoanEGLD => flash_loan_egld
         setKnight => set_knight

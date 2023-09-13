@@ -48,3 +48,4 @@ pub static ERROR_TOO_MANY_HEIR_USERS: &[u8] = b"Heir has too many users";
 pub static ERROR_CANCEL_HEIR_WHILE_KNIGHT_SET: &[u8] = b"You can't remove your heir while knight is set";
 
 pub static ERROR_LOAN_NOT_RETURNED: &[u8] = b"Loan not returned";
+pub static ERROR_FLASH_LOANS_NOT_ACTIVE: &[u8] = b"Flash loans not active";

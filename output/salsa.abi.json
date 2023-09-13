@@ -956,6 +956,30 @@
             "outputs": []
         },
         {
+            "name": "setFlashLoansActive",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "setFlashLoansInactive",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "getFlashLoansState",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "State"
+                }
+            ]
+        },
+        {
             "docs": [
                 "\\n     * Flash loan LEGLD\\n     "
             ],
