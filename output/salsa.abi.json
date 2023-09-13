@@ -13,7 +13,7 @@
         },
         "framework": {
             "name": "multiversx-sc",
-            "version": "0.43.2"
+            "version": "0.43.3"
         }
     },
     "name": "SalsaContract",
@@ -917,118 +917,6 @@
                 {
                     "name": "address",
                     "type": "Address"
-                }
-            ],
-            "outputs": []
-        },
-        {
-            "name": "setLpActive",
-            "onlyOwner": true,
-            "mutability": "mutable",
-            "inputs": [],
-            "outputs": []
-        },
-        {
-            "name": "setLpInactive",
-            "onlyOwner": true,
-            "mutability": "mutable",
-            "inputs": [],
-            "outputs": []
-        },
-        {
-            "name": "getLpState",
-            "mutability": "readonly",
-            "inputs": [],
-            "outputs": [
-                {
-                    "type": "State"
-                }
-            ]
-        },
-        {
-            "docs": [
-                "\\n     * Take LPs profit\\n     "
-            ],
-            "name": "takeLpProfit",
-            "onlyOwner": true,
-            "mutability": "mutable",
-            "inputs": [],
-            "outputs": []
-        },
-        {
-            "name": "setFlashLoansActive",
-            "onlyOwner": true,
-            "mutability": "mutable",
-            "inputs": [],
-            "outputs": []
-        },
-        {
-            "name": "setFlashLoansInactive",
-            "onlyOwner": true,
-            "mutability": "mutable",
-            "inputs": [],
-            "outputs": []
-        },
-        {
-            "name": "getFlashLoansState",
-            "mutability": "readonly",
-            "inputs": [],
-            "outputs": [
-                {
-                    "type": "State"
-                }
-            ]
-        },
-        {
-            "docs": [
-                "\\n     * Flash loan LEGLD\\n     "
-            ],
-            "name": "flashLoanLEGLD",
-            "mutability": "mutable",
-            "inputs": [
-                {
-                    "name": "amount",
-                    "type": "BigUint"
-                },
-                {
-                    "name": "address",
-                    "type": "Address"
-                },
-                {
-                    "name": "function",
-                    "type": "bytes"
-                },
-                {
-                    "name": "args",
-                    "type": "variadic<bytes>",
-                    "multi_arg": true
-                }
-            ],
-            "outputs": []
-        },
-        {
-            "docs": [
-                "\\n     * Flash loan eGLD\\n     "
-            ],
-            "name": "flashLoanEGLD",
-            "mutability": "mutable",
-            "inputs": [
-                {
-                    "name": "amount",
-                    "type": "BigUint"
-                },
-                {
-                    "name": "address",
-                    "type": "Address"
-                },
-                {
-                    "name": "function",
-                    "type": "bytes"
-                },
-                {
-                    "name": "args",
-                    "type": "variadic<bytes>",
-                    "multi_arg": true
                 }
             ],
             "outputs": []
