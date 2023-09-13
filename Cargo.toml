@@ -1,6 +1,6 @@
 [package]
 name = "salsa"
-version = "0.0.3"
+version = "0.0.2"
 authors = [ "DrDelphi" ]
 edition = "2021"
 publish = false
@@ -12,13 +12,13 @@ path = "src/salsa.rs"
 num-bigint = "0.4.3"
 
 [dependencies.multiversx-sc]
-version = "0.43.2"
+version = "0.43.3"
 
 [dependencies.multiversx-sc-modules]
-version = "0.43.2"
+version = "0.43.3"
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "0.43.2"
+version = "0.43.3"
 
 [dependencies]
 hex-literal = "0.3.1"

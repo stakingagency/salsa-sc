@@ -1,6 +1,6 @@
 [package]
 name = "salsa-meta"
-version = "0.0.3"
+version = "0.0.2"
 edition = "2021"
 publish = false
 authors = [ "DrDelphi" ]
@@ -11,7 +11,7 @@ authors = [ "DrDelphi" ]
 path = ".."
 
 [dependencies.multiversx-sc]
-version = "0.43.2"
+version = "0.43.3"
 
 [dependencies.multiversx-sc-meta]
-version = "0.43.2"
+version = "0.43.3"
