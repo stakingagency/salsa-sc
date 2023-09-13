@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           88
+// Endpoints:                           79
 // Async Callback:                       1
-// Total number of exported functions:  90
+// Total number of exported functions:  81
 
 #![no_std]
 #![allow(internal_features)]
@@ -89,15 +89,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         setXexchangeArbitrageInactive => set_xexchange_arbitrage_inactive
         getXexchangeArbitrageState => xexchange_arbitrage
         setXexchangeSC => set_xexchange_sc
-        setLpActive => set_lp_active
-        setLpInactive => set_lp_inactive
-        getLpState => lp_state
-        takeLpProfit => take_lp_profit
-        setFlashLoansActive => set_flash_loans_active
-        setFlashLoansInactive => set_flash_loans_inactive
-        getFlashLoansState => flash_loans
-        flashLoanLEGLD => flash_loan_legld
-        flashLoanEGLD => flash_loan_egld
         setKnight => set_knight
         cancelKnight => cancel_knight
         activateKnight => activate_knight

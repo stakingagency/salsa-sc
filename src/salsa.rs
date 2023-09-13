@@ -22,7 +22,6 @@ pub trait SalsaContract<ContractReader>:
     + exchanges::onedex::OnedexModule
     + exchanges::xexchange::XexchangeModule
     + exchanges::lp::LpModule
-    + flash_loans::FlashLoansModule
     + knights::KnightsModule
     + heirs::HeirsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
