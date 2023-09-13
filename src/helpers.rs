@@ -239,7 +239,9 @@ pub trait HelpersModule:
     }
 
     fn burn_liquid_token(&self, amount: &BigUint) {
-        self.liquid_token_id().burn(amount);
+        if amount > &0 {
+            self.liquid_token_id().burn(amount);
+        }
     }
 
     fn reduce_egld_to_delegate_undelegate(&self, storage_cache: &mut StorageCache<Self>) {
