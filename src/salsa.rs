@@ -45,7 +45,7 @@ pub trait SalsaContract<ContractReader>:
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         let amount = self.call_value().egld_value();
-        let mut delegate_amount = amount.clone_value();
+        let delegate_amount = amount.clone_value();
         require!(
             delegate_amount >= MIN_EGLD,
             ERROR_INSUFFICIENT_AMOUNT
@@ -62,50 +62,29 @@ pub trait SalsaContract<ContractReader>:
 
         let caller = self.blockchain().get_caller();
         let mut storage_cache = StorageCache::new(self);
-        let mut ls_to_send = BigUint::zero();
 
         if arbitrage {
-            self.do_flash_loan_arbitrage(&mut storage_cache);
-
-            let (sold_amount, bought_amount) =
-                self.do_arbitrage(true, delegate_amount.clone(), &mut storage_cache);
-
-            if bought_amount > 0 {
-                if custodial {
-                    self.user_delegation(&caller)
-                        .update(|value| *value += &bought_amount);
-                    storage_cache.legld_in_custody += bought_amount;
-                } else {
-                    ls_to_send += bought_amount;
-                }
-            }
-
-            delegate_amount -= &sold_amount;
+            self.do_arbitrage(&mut storage_cache);
         }
 
-        if delegate_amount > 0 {
-            let ls_amount =
-                self.add_liquidity(&delegate_amount, true, &mut storage_cache);
-            let user_payment = self.mint_liquid_token(ls_amount);
-            if custodial {
-                self.user_delegation(&caller)
-                    .update(|value| *value += &user_payment.amount);
-                storage_cache.legld_in_custody += user_payment.amount;
-            } else {
-                ls_to_send += user_payment.amount;
-            }
-    
-            storage_cache.egld_to_delegate += delegate_amount;
-        }
-
-        if ls_to_send > 0 {
+        let ls_amount =
+            self.add_liquidity(&delegate_amount, true, &mut storage_cache);
+        let user_payment = self.mint_liquid_token(ls_amount);
+        if custodial {
+            self.user_delegation(&caller)
+                .update(|value| *value += &user_payment.amount);
+            storage_cache.legld_in_custody += user_payment.amount;
+        } else {
             self.send().direct_esdt(
                 &caller,
                 &storage_cache.liquid_token_id,
                 0,
-                &ls_to_send,
+                &user_payment.amount,
             );
         }
+    
+        storage_cache.egld_to_delegate += delegate_amount;
+        self.reduce_egld_to_delegate_undelegate(&mut storage_cache);
     }
 
     /**
@@ -174,22 +153,13 @@ pub trait SalsaContract<ContractReader>:
         }
 
         if arbitrage {
-            if self.user_knight(&user).is_empty() {
-                let (sold_amount, bought_amount) =
-                    self.do_arbitrage(false, payment_amount.clone(), &mut storage_cache);
-                if bought_amount > 0 {
-                    self.send().direct_egld(&user, &bought_amount);
-                }
-                payment_amount -= sold_amount;
-                if payment_amount == 0 {
-                    return
-                }
-            }
+            self.do_arbitrage(&mut storage_cache);
         }
 
         // normal undelegate
         let egld_to_undelegate =
             self.remove_liquidity(&payment_amount, true, &mut storage_cache);
+        self.reduce_egld_to_delegate_undelegate(&mut storage_cache);
         self.burn_liquid_token(&payment_amount);
         storage_cache.egld_to_undelegate += &egld_to_undelegate;
         let current_epoch = self.blockchain().get_block_epoch();
@@ -263,7 +233,7 @@ pub trait SalsaContract<ContractReader>:
             OptionalValue::None => true
         };
         if arbitrage {
-            self.do_flash_loan_arbitrage(&mut storage_cache);
+            self.do_arbitrage(&mut storage_cache);
             let mut lp_cache = LpCache::new(self);
             self.add_lp(&mut storage_cache, &mut lp_cache);
         }
@@ -294,7 +264,7 @@ pub trait SalsaContract<ContractReader>:
             OptionalValue::None => true
         };
         if arbitrage {
-            self.do_flash_loan_arbitrage(&mut storage_cache);
+            self.do_arbitrage(&mut storage_cache);
         }
 
         // check if there is enough LEGLD balance. remove from LP if not
@@ -356,7 +326,7 @@ pub trait SalsaContract<ContractReader>:
             OptionalValue::None => true
         };
         if arbitrage {
-            self.do_flash_loan_arbitrage(&mut storage_cache);
+            self.do_arbitrage(&mut storage_cache);
             let mut lp_cache = LpCache::new(self);
             self.add_lp(&mut storage_cache, &mut lp_cache);
         }
@@ -420,7 +390,7 @@ pub trait SalsaContract<ContractReader>:
             OptionalValue::None => true
         };
         if arbitrage {
-            self.do_flash_loan_arbitrage(&mut storage_cache);
+            self.do_arbitrage_sell(&mut storage_cache);
         }
 
         // check if there is enough eGLD balance. remove from LP if not
@@ -479,7 +449,7 @@ pub trait SalsaContract<ContractReader>:
         &self,
         user: ManagedAddress,
         receiver: ManagedAddress,
-        mut min_amount_out: BigUint,
+        min_amount_out: BigUint,
         undelegate_amount: BigUint,
         without_arbitrage: OptionalValue<bool>,
     ) {
@@ -524,32 +494,13 @@ pub trait SalsaContract<ContractReader>:
         let total_egld_staked = storage_cache.total_stake.clone();
 
         if arbitrage {
-            let (sold_amount, bought_amount) =
-                self.do_arbitrage(false, payment_amount.clone(), &mut storage_cache);
-            if bought_amount > 0 {
-                let bought_amount_with_fee =
-                    bought_amount.clone() - bought_amount.clone() * fee / MAX_PERCENT;
-                self.send().direct_egld(&receiver, &bought_amount_with_fee);
-                let bought_fee = &bought_amount - &bought_amount_with_fee;
-                storage_cache.available_egld_reserve += &bought_fee;
-                storage_cache.egld_reserve += &bought_fee;
-                if min_amount_out >= bought_amount_with_fee {
-                    min_amount_out -= &bought_amount_with_fee;
-                } else {
-                    min_amount_out = BigUint::zero();
-                }
-            }
-            payment_amount -= sold_amount;
-            if payment_amount == 0 {
-                require!(min_amount_out == 0, ERROR_FEE_CHANGED);
-
-                return
-            }
+            self.do_arbitrage_sell(&mut storage_cache);
         }
 
         // normal unDelegateNow
         let egld_to_undelegate =
             self.remove_liquidity(&payment_amount, true, &mut storage_cache);
+        self.reduce_egld_to_delegate_undelegate(&mut storage_cache);
         self.burn_liquid_token(&payment_amount);
         require!(
             egld_to_undelegate >= MIN_EGLD,
