@@ -57,22 +57,26 @@ pub trait ArbitrageModule:
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         let mut storage_cache = StorageCache::new(self);
-        self.do_arbitrage(&mut storage_cache);
+        self.do_arbitrage(&mut storage_cache, OptionalValue::Some(true));
     }
 
     /**
      * Do arbitrage
      */
-    fn do_arbitrage(&self, storage_cache: &mut StorageCache<Self>) {
-        self.do_arbitrage_sell(storage_cache);
-        self.do_arbitrage_buy(storage_cache);
+    fn do_arbitrage(&self, storage_cache: &mut StorageCache<Self>, split_profit: OptionalValue<bool>) {
+        self.do_arbitrage_sell(storage_cache, split_profit.clone());
+        self.do_arbitrage_buy(storage_cache, split_profit);
     }
 
-    fn do_arbitrage_sell(&self, storage_cache: &mut StorageCache<Self>) {
+    fn do_arbitrage_sell(&self, storage_cache: &mut StorageCache<Self>, split_profit: OptionalValue<bool>) {
         if !self.is_arbitrage_active() {
             return
         }
 
+        let do_split_profit = match split_profit {
+            OptionalValue::Some(value) => value,
+            OptionalValue::None => false
+        };
         let (old_egld_balance, old_ls_balance) = self.get_sc_balances();
         let (_, bought_amount) =
             self.execute_arbitrage(false, storage_cache.legld_in_custody.clone(), storage_cache);
@@ -95,15 +99,31 @@ pub trait ArbitrageModule:
         require!(new_ls_balance >= old_ls_balance, ERROR_ARBITRAGE_ISSUE);
 
         let profit = &new_ls_balance - &old_ls_balance;
-        storage_cache.liquid_supply -= &profit;
-        self.burn_liquid_token(&profit);
+        if do_split_profit {
+            let half_profit = &profit / 2_u64;
+            storage_cache.liquid_supply -= &half_profit;
+            self.burn_liquid_token(&half_profit);
+            self.send().direct_esdt(
+                &self.blockchain().get_caller(),
+                &storage_cache.liquid_token_id,
+                0,
+                &(profit - half_profit),
+            );
+        } else {
+            storage_cache.liquid_supply -= &profit;
+            self.burn_liquid_token(&profit);
+        }
     }
 
-    fn do_arbitrage_buy(&self, storage_cache: &mut StorageCache<Self>) {
+    fn do_arbitrage_buy(&self, storage_cache: &mut StorageCache<Self>, split_profit: OptionalValue<bool>) {
         if !self.is_arbitrage_active() {
             return
         }
 
+        let do_split_profit = match split_profit {
+            OptionalValue::Some(value) => value,
+            OptionalValue::None => false
+        };
         let old_ls_balance = self.blockchain()
             .get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(storage_cache.liquid_token_id.clone()), 0);
         let (_, bought_amount) =
@@ -118,8 +138,21 @@ pub trait ArbitrageModule:
         if bought_amount > 0 {
             let egld_amount =
                 self.remove_liquidity(&bought_amount, true, storage_cache);
-            self.burn_liquid_token(&swapped_amount);
-            storage_cache.liquid_supply -= &swapped_amount - &bought_amount;
+            let profit = &swapped_amount - &bought_amount;
+            if do_split_profit {
+                let half_profit = &profit / 2_u64;
+                self.burn_liquid_token(&(&bought_amount + &half_profit));
+                storage_cache.liquid_supply -= &half_profit;
+                self.send().direct_esdt(
+                    &self.blockchain().get_caller(),
+                    &storage_cache.liquid_token_id,
+                    0,
+                    &(profit - half_profit),
+                );
+            } else {
+                self.burn_liquid_token(&swapped_amount);
+                storage_cache.liquid_supply -= &profit;
+            }
             storage_cache.egld_to_undelegate += &egld_amount;
             storage_cache.available_egld_reserve -= &egld_amount;
             let current_epoch = self.blockchain().get_block_epoch();
