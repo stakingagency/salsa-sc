@@ -62,7 +62,7 @@ pub trait SalsaContract<ContractReader>:
         let mut storage_cache = StorageCache::new(self);
 
         if arbitrage {
-            self.do_arbitrage(&mut storage_cache);
+            self.do_arbitrage(&mut storage_cache, OptionalValue::None);
         }
 
         let ls_amount =
@@ -144,7 +144,7 @@ pub trait SalsaContract<ContractReader>:
         }
 
         if arbitrage {
-            self.do_arbitrage(&mut storage_cache);
+            self.do_arbitrage(&mut storage_cache, OptionalValue::None);
         }
 
         // normal undelegate
@@ -224,7 +224,7 @@ pub trait SalsaContract<ContractReader>:
             OptionalValue::None => true
         };
         if arbitrage {
-            self.do_arbitrage(&mut storage_cache);
+            self.do_arbitrage(&mut storage_cache, OptionalValue::None);
         }
     }
 
@@ -253,7 +253,7 @@ pub trait SalsaContract<ContractReader>:
             OptionalValue::None => true
         };
         if arbitrage {
-            self.do_arbitrage(&mut storage_cache);
+            self.do_arbitrage(&mut storage_cache, OptionalValue::None);
         }
 
         self.send().direct_esdt(
@@ -308,7 +308,7 @@ pub trait SalsaContract<ContractReader>:
             OptionalValue::None => true
         };
         if arbitrage {
-            self.do_arbitrage(&mut storage_cache);
+            self.do_arbitrage(&mut storage_cache, OptionalValue::None);
         }
     }
 
@@ -370,7 +370,7 @@ pub trait SalsaContract<ContractReader>:
             OptionalValue::None => true
         };
         if arbitrage {
-            self.do_arbitrage_sell(&mut storage_cache);
+            self.do_arbitrage_sell(&mut storage_cache, OptionalValue::None);
         }
 
         // if there is not enough available reserve, move the reserve to user undelegation
@@ -460,7 +460,7 @@ pub trait SalsaContract<ContractReader>:
         let total_egld_staked = storage_cache.total_stake.clone();
 
         if arbitrage {
-            self.do_arbitrage_sell(&mut storage_cache);
+            self.do_arbitrage_sell(&mut storage_cache, OptionalValue::None);
         }
 
         // normal unDelegateNow
