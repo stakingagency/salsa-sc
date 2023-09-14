@@ -99,7 +99,7 @@ pub trait ArbitrageModule:
         require!(new_ls_balance >= old_ls_balance, ERROR_ARBITRAGE_ISSUE);
 
         let profit = &new_ls_balance - &old_ls_balance;
-        if do_split_profit {
+        if do_split_profit && profit > 0 {
             let half_profit = &profit / 2_u64;
             storage_cache.liquid_supply -= &half_profit;
             self.burn_liquid_token(&half_profit);
@@ -139,7 +139,7 @@ pub trait ArbitrageModule:
             let egld_amount =
                 self.remove_liquidity(&bought_amount, true, storage_cache);
             let profit = &swapped_amount - &bought_amount;
-            if do_split_profit {
+            if do_split_profit && profit > 0 {
                 let half_profit = &profit / 2_u64;
                 self.burn_liquid_token(&(&bought_amount + &half_profit));
                 storage_cache.liquid_supply -= &half_profit;
