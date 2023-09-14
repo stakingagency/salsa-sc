@@ -64,7 +64,8 @@ pub trait SalsaContract<ContractReader>:
         let mut storage_cache = StorageCache::new(self);
 
         if arbitrage {
-            self.do_arbitrage(&mut storage_cache, OptionalValue::None);
+            let mut lp_cache = LpCache::new(self);
+            self.do_arbitrage(&mut storage_cache, &mut lp_cache, OptionalValue::None);
         }
 
         let ls_amount =
@@ -134,6 +135,12 @@ pub trait SalsaContract<ContractReader>:
             ERROR_BAD_PAYMENT_AMOUNT,
         );
 
+        let mut lp_cache = LpCache::new(self);
+
+        if arbitrage {
+            self.do_arbitrage(&mut storage_cache, &mut lp_cache, OptionalValue::None);
+        }
+
         if undelegate_amount > 0 {
             let delegated_funds = self.user_delegation(&user).get();
             require!(
@@ -142,7 +149,6 @@ pub trait SalsaContract<ContractReader>:
             );
 
             // check if there is enough LEGLD balance. remove from LP if not
-            let mut lp_cache = LpCache::new(self);
             let available_legld = &storage_cache.legld_in_custody - &lp_cache.legld_in_lp;
             if available_legld < undelegate_amount {
                 self.remove_legld_lp(&undelegate_amount - &available_legld, &mut storage_cache, &mut lp_cache);
@@ -150,10 +156,6 @@ pub trait SalsaContract<ContractReader>:
 
             self.user_delegation(&user).set(&delegated_funds - &undelegate_amount);
             storage_cache.legld_in_custody -= &undelegate_amount;
-        }
-
-        if arbitrage {
-            self.do_arbitrage(&mut storage_cache, OptionalValue::None);
         }
 
         // normal undelegate
@@ -233,8 +235,8 @@ pub trait SalsaContract<ContractReader>:
             OptionalValue::None => true
         };
         if arbitrage {
-            self.do_arbitrage(&mut storage_cache, OptionalValue::None);
             let mut lp_cache = LpCache::new(self);
+            self.do_arbitrage(&mut storage_cache, &mut lp_cache, OptionalValue::None);
             self.add_lp(&mut storage_cache, &mut lp_cache);
         }
     }
@@ -259,16 +261,16 @@ pub trait SalsaContract<ContractReader>:
         require!(amount <= delegation, ERROR_INSUFFICIENT_FUNDS);
         require!(&delegation - &amount >= MIN_EGLD || delegation == amount, ERROR_DUST_REMAINING);
 
+        let mut lp_cache = LpCache::new(self);
         let arbitrage = match without_arbitrage {
             OptionalValue::Some(value) => !value,
             OptionalValue::None => true
         };
         if arbitrage {
-            self.do_arbitrage(&mut storage_cache, OptionalValue::None);
+            self.do_arbitrage(&mut storage_cache, &mut lp_cache, OptionalValue::None);
         }
 
         // check if there is enough LEGLD balance. remove from LP if not
-        let mut lp_cache = LpCache::new(self);
         let available_legld = &storage_cache.legld_in_custody - &lp_cache.legld_in_lp;
         if available_legld < amount {
             self.remove_legld_lp(&amount - &available_legld, &mut storage_cache, &mut lp_cache);
@@ -326,8 +328,8 @@ pub trait SalsaContract<ContractReader>:
             OptionalValue::None => true
         };
         if arbitrage {
-            self.do_arbitrage(&mut storage_cache, OptionalValue::None);
             let mut lp_cache = LpCache::new(self);
+            self.do_arbitrage(&mut storage_cache, &mut lp_cache, OptionalValue::None);
             self.add_lp(&mut storage_cache, &mut lp_cache);
         }
     }
@@ -459,6 +461,11 @@ pub trait SalsaContract<ContractReader>:
         };
         let mut storage_cache = StorageCache::new(self);
         let mut lp_cache = LpCache::new(self);
+
+        if arbitrage {
+            self.do_arbitrage_sell(&mut storage_cache, OptionalValue::None);
+        }
+
         if undelegate_amount > 0 {
             let delegated_funds = self.user_delegation(&user).get();
             require!(
@@ -492,10 +499,6 @@ pub trait SalsaContract<ContractReader>:
 
         let fee = self.undelegate_now_fee().get();
         let total_egld_staked = storage_cache.total_stake.clone();
-
-        if arbitrage {
-            self.do_arbitrage_sell(&mut storage_cache, OptionalValue::None);
-        }
 
         // normal unDelegateNow
         let egld_to_undelegate =

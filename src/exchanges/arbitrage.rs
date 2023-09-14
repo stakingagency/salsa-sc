@@ -1,7 +1,9 @@
 multiversx_sc::imports!();
 
+use crate::common::consts::MAX_LOAN;
 use crate::common::storage_cache::StorageCache;
 use crate::common::{errors::*, config::State};
+use crate::exchanges::lp_cache::LpCache;
 use crate::proxies::wrap_proxy;
 
 use super::onedex_cache::OnedexCache;
@@ -57,18 +59,28 @@ pub trait ArbitrageModule:
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         let mut storage_cache = StorageCache::new(self);
-        self.do_arbitrage(&mut storage_cache, OptionalValue::Some(true));
+        let mut lp_cache = LpCache::new(self);
+        self.do_arbitrage(&mut storage_cache, &mut lp_cache, OptionalValue::Some(true));
     }
 
     /**
      * Do arbitrage
      */
-    fn do_arbitrage(&self, storage_cache: &mut StorageCache<Self>, split_profit: OptionalValue<bool>) {
+    fn do_arbitrage(
+        &self,
+        storage_cache: &mut StorageCache<Self>,
+        lp_cache: &mut LpCache<Self>,
+        split_profit: OptionalValue<bool>,
+    ) {
         self.do_arbitrage_sell(storage_cache, split_profit.clone());
-        self.do_arbitrage_buy(storage_cache, split_profit);
+        self.do_arbitrage_buy(storage_cache, lp_cache, split_profit);
     }
 
-    fn do_arbitrage_sell(&self, storage_cache: &mut StorageCache<Self>, split_profit: OptionalValue<bool>) {
+    fn do_arbitrage_sell(
+        &self,
+        storage_cache: &mut StorageCache<Self>,
+        split_profit: OptionalValue<bool>,
+    ) {
         if !self.is_arbitrage_active() {
             return
         }
@@ -77,9 +89,11 @@ pub trait ArbitrageModule:
             OptionalValue::Some(value) => value,
             OptionalValue::None => false
         };
+        let in_amount = BigUint::from(MAX_LOAN);
+        self.mint_liquid_token(in_amount.clone());
         let (old_egld_balance, old_ls_balance) = self.get_sc_balances();
         let (_, bought_amount) =
-            self.execute_arbitrage(false, storage_cache.legld_in_custody.clone(), storage_cache);
+            self.execute_arbitrage(false, in_amount.clone(), storage_cache);
         let new_egld_balance = self.blockchain()
             .get_sc_balance(&EgldOrEsdtTokenIdentifier::egld(), 0);
         require!(new_egld_balance >= old_egld_balance, ERROR_ARBITRAGE_ISSUE);
@@ -102,7 +116,7 @@ pub trait ArbitrageModule:
         if do_split_profit && profit > 0 {
             let half_profit = &profit / 2_u64;
             storage_cache.liquid_supply -= &half_profit;
-            self.burn_liquid_token(&half_profit);
+            self.burn_liquid_token(&(&half_profit + &in_amount));
             self.send().direct_esdt(
                 &self.blockchain().get_caller(),
                 &storage_cache.liquid_token_id,
@@ -111,11 +125,16 @@ pub trait ArbitrageModule:
             );
         } else {
             storage_cache.liquid_supply -= &profit;
-            self.burn_liquid_token(&profit);
+            self.burn_liquid_token(&(profit + in_amount));
         }
     }
 
-    fn do_arbitrage_buy(&self, storage_cache: &mut StorageCache<Self>, split_profit: OptionalValue<bool>) {
+    fn do_arbitrage_buy(
+        &self,
+        storage_cache: &mut StorageCache<Self>,
+        lp_cache: &mut LpCache<Self>,
+        split_profit: OptionalValue<bool>,
+    ) {
         if !self.is_arbitrage_active() {
             return
         }
@@ -126,8 +145,9 @@ pub trait ArbitrageModule:
         };
         let old_ls_balance = self.blockchain()
             .get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(storage_cache.liquid_token_id.clone()), 0);
+        let in_amount = &storage_cache.available_egld_reserve + &lp_cache.excess_lp_egld - &lp_cache.egld_in_lp;
         let (_, bought_amount) =
-            self.execute_arbitrage(true, storage_cache.available_egld_reserve.clone(), storage_cache);
+            self.execute_arbitrage(true, in_amount, storage_cache);
         let new_ls_balance = self.blockchain()
             .get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(storage_cache.liquid_token_id.clone()), 0);
         require!(new_ls_balance >= old_ls_balance, ERROR_ARBITRAGE_ISSUE);
