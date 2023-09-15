@@ -19,11 +19,25 @@ pub trait LpModule:
         require!(self.is_arbitrage_active(), ERROR_ARBITRAGE_NOT_ACTIVE);
 
         self.lp_state().set(State::Active);
+
+        let mut storage_cache = StorageCache::new(self);
+        let mut lp_cache = LpCache::new(self);
+
+        self.do_arbitrage(&mut storage_cache, &mut lp_cache, OptionalValue::None);
+        self.add_lp(&mut storage_cache, &mut lp_cache);
     }
 
     #[only_owner]
     #[endpoint(setLpInactive)]
     fn set_lp_inactive(&self) {
+        if !self.is_lp_active() {
+            return
+        }
+
+        let mut storage_cache = StorageCache::new(self);
+        let mut lp_cache = LpCache::new(self);
+
+        self.remove_all_lps(&mut storage_cache, &mut lp_cache);
         self.lp_state().set(State::Inactive);
     }
 
@@ -421,58 +435,9 @@ pub trait LpModule:
     #[endpoint(takeLpProfit)]
     fn take_lp_profit(&self) {
         let mut storage_cache = StorageCache::new(self);
-
         let mut lp_cache = LpCache::new(self);
-        let onedex_cache = OnedexCache::new(self);
-        let xexchange_cache = XexchangeCache::new(self);
 
-        self.do_arbitrage(&mut storage_cache, &mut lp_cache, OptionalValue::None);
-
-        if lp_cache.egld_in_lp > 0 {
-            self.remove_egld_lp(lp_cache.egld_in_lp.clone(), &mut storage_cache, &mut lp_cache);
-        }
-        if lp_cache.legld_in_lp > 0 {
-            self.remove_legld_lp(lp_cache.legld_in_lp.clone(), &mut storage_cache, &mut lp_cache);
-        }
-
-        let mut lps: ManagedVec<Self::Api, LpInfo<Self::Api>> = ManagedVec::new();
-        if self.is_onedex_arbitrage_active() {
-            lps.push(onedex_cache.lp_info.clone());
-        }
-        if self.is_xexchange_arbitrage_active() {
-            lps.push(xexchange_cache.lp_info.clone());
-        }
-
-        if lp_cache.excess_lp_egld > 0 && lp_cache.legld_in_lp > 0 {
-            let ls_amount =
-                self.add_liquidity(&lp_cache.excess_lp_egld, true, &mut storage_cache);
-            self.mint_liquid_token(ls_amount.clone());
-            storage_cache.egld_to_delegate += &lp_cache.excess_lp_egld;
-            lp_cache.excess_lp_egld = BigUint::zero();
-            if ls_amount > lp_cache.legld_in_lp {
-                lp_cache.excess_lp_legld += &ls_amount - &lp_cache.legld_in_lp;
-                lp_cache.legld_in_lp = BigUint::zero();
-            } else {
-                lp_cache.legld_in_lp -= ls_amount;
-            }
-        }
-
-        if lp_cache.excess_lp_legld > 0 && lp_cache.egld_in_lp > 0 {
-            let mut ls_amount = 
-                self.add_liquidity(&lp_cache.egld_in_lp, false, &mut storage_cache);
-            if ls_amount > lp_cache.excess_lp_legld {
-                ls_amount = lp_cache.excess_lp_legld.clone();
-            }
-            let egld_amount =
-                self.remove_liquidity(&ls_amount, true, &mut storage_cache);
-            self.burn_liquid_token(&ls_amount);
-            storage_cache.egld_to_undelegate += &egld_amount;
-            let current_epoch = self.blockchain().get_block_epoch();
-            let unbond_epoch = current_epoch + storage_cache.unbond_period;
-            self.add_undelegation(egld_amount.clone(), unbond_epoch, self.lreserve_undelegations());
-            lp_cache.excess_lp_legld -= ls_amount;
-            lp_cache.egld_in_lp -= egld_amount;
-        }
+        self.remove_all_lps(&mut storage_cache, &mut lp_cache);
 
         let have_excess = lp_cache.excess_lp_egld > 0 || lp_cache.excess_lp_legld > 0;
         let lp_empty = lp_cache.egld_in_lp == 0 && lp_cache.legld_in_lp == 0;
@@ -490,6 +455,97 @@ pub trait LpModule:
         }
 
         self.add_lp(&mut storage_cache, &mut lp_cache);
+    }
+
+    fn remove_all_lps(&self, storage_cache: &mut StorageCache<Self>, lp_cache: &mut LpCache<Self>) {
+        let mut onedex_cache = OnedexCache::new(self);
+        let mut xexchange_cache = XexchangeCache::new(self);
+
+        self.do_arbitrage(storage_cache, lp_cache, OptionalValue::None);
+
+        let (old_balance, old_ls_balance) = self.get_sc_balances();
+        if self.is_onedex_arbitrage_active() && onedex_cache.lp_info.lp_balance > 0 {
+            let payment =
+                EsdtTokenPayment::new(onedex_cache.lp_info.lp_token.clone(), 0, onedex_cache.lp_info.lp_balance.clone());
+            onedex_cache.lp_info.lp_balance = BigUint::zero();
+            self.onedex_lp_proxy_obj()
+                .contract(onedex_cache.sc_address.clone())
+                .remove_liquidity(BigUint::from(1u64), BigUint::from(1u64), false)
+                .with_esdt_transfer(payment)
+                .execute_on_dest_context::<()>();
+        }
+        if self.is_xexchange_arbitrage_active() && xexchange_cache.lp_info.lp_balance > 0 {
+            let payment
+                = EsdtTokenPayment::new(xexchange_cache.lp_info.lp_token.clone(), 0, xexchange_cache.lp_info.lp_balance.clone());
+            xexchange_cache.lp_info.lp_balance -= BigUint::zero();
+            self.xexchange_lp_proxy_obj()
+                .contract(xexchange_cache.sc_address.clone())
+                .remove_liquidity(BigUint::from(1u64), BigUint::from(1u64))
+                .with_esdt_transfer(payment)
+                .execute_on_dest_context::<()>();
+        }
+
+        // unwrap WEGLD
+        let wegld_balance =
+            self.blockchain().get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(storage_cache.wegld_id.clone()), 0);
+        if wegld_balance > 0 {
+            let payment = EsdtTokenPayment::new(storage_cache.wegld_id.clone(), 0, wegld_balance);
+            self.wrap_lp_proxy_obj()
+                .contract(xexchange_cache.wrap_sc_address)
+                .unwrap_egld()
+                .with_esdt_transfer(payment)
+                .execute_on_dest_context::<()>();
+        }
+        let (new_balance, new_ls_balance) = self.get_sc_balances();
+
+        let removed_egld = new_balance - old_balance;
+        let removed_legld = new_ls_balance - old_ls_balance;
+
+        if removed_egld > lp_cache.egld_in_lp {
+            lp_cache.excess_lp_egld += &removed_egld - &lp_cache.egld_in_lp;
+            storage_cache.available_egld_reserve += &lp_cache.egld_in_lp;
+            lp_cache.egld_in_lp = BigUint::zero();
+        } else {
+            storage_cache.available_egld_reserve += &removed_egld;
+            lp_cache.egld_in_lp -= removed_egld;
+        }
+        if removed_legld > lp_cache.legld_in_lp {
+            lp_cache.excess_lp_legld += &removed_legld - &lp_cache.legld_in_lp;
+            lp_cache.legld_in_lp = BigUint::zero();
+        } else {
+            lp_cache.legld_in_lp -= removed_legld;
+        }
+
+        if lp_cache.excess_lp_egld > 0 && lp_cache.legld_in_lp > 0 {
+            let ls_amount =
+                self.add_liquidity(&lp_cache.excess_lp_egld, true, storage_cache);
+            self.mint_liquid_token(ls_amount.clone());
+            storage_cache.egld_to_delegate += &lp_cache.excess_lp_egld;
+            lp_cache.excess_lp_egld = BigUint::zero();
+            if ls_amount > lp_cache.legld_in_lp {
+                lp_cache.excess_lp_legld += &ls_amount - &lp_cache.legld_in_lp;
+                lp_cache.legld_in_lp = BigUint::zero();
+            } else {
+                lp_cache.legld_in_lp -= ls_amount;
+            }
+        }
+
+        if lp_cache.excess_lp_legld > 0 && lp_cache.egld_in_lp > 0 {
+            let egld_amount =
+                self.remove_liquidity(&lp_cache.excess_lp_legld, true, storage_cache);
+            self.burn_liquid_token(&lp_cache.excess_lp_legld);
+            storage_cache.egld_to_undelegate += &egld_amount;
+            let current_epoch = self.blockchain().get_block_epoch();
+            let unbond_epoch = current_epoch + storage_cache.unbond_period;
+            self.add_undelegation(egld_amount.clone(), unbond_epoch, self.lreserve_undelegations());
+            lp_cache.excess_lp_legld = BigUint::zero();
+            if lp_cache.egld_in_lp > egld_amount {
+                lp_cache.egld_in_lp -= egld_amount;
+            } else {
+                storage_cache.egld_reserve += &egld_amount - &lp_cache.egld_in_lp;
+                lp_cache.egld_in_lp = BigUint::zero();
+            }
+        }
     }
 
     // helpers
