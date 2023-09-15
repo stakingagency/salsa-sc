@@ -145,7 +145,7 @@ pub trait ArbitrageModule:
         };
         let old_ls_balance = self.blockchain()
             .get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(storage_cache.liquid_token_id.clone()), 0);
-        let in_amount = &storage_cache.available_egld_reserve + &lp_cache.excess_lp_egld - &lp_cache.egld_in_lp;
+        let in_amount = &storage_cache.available_egld_reserve + &lp_cache.excess_lp_egld;
         let (_, bought_amount) =
             self.execute_arbitrage(true, in_amount, storage_cache);
         let new_ls_balance = self.blockchain()
