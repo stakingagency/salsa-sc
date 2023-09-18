@@ -51,28 +51,6 @@ pub trait LpModule:
     #[storage_mapper("lp_state")]
     fn lp_state(&self) -> SingleValueMapper<State>;
 
-    fn compute_egld_available_for_lp(
-        &self,
-        storage_cache: &mut StorageCache<Self>,
-        lp_cache: &mut LpCache<Self>,
-    ) -> BigUint {
-        let half_reserve = &storage_cache.egld_reserve / 2_u64;
-        if lp_cache.egld_in_lp >= half_reserve {
-            return BigUint::zero()
-        }
-
-        let left_from_half = &half_reserve - &lp_cache.egld_in_lp;
-        let mut available = &storage_cache.available_egld_reserve + &lp_cache.excess_lp_egld;
-        if available > left_from_half {
-            available = left_from_half;
-        }
-        if available < MIN_EGLD {
-            return BigUint::zero()
-        }
-
-        available
-    }
-
     /**
      * Add LPs
      */
@@ -166,38 +144,12 @@ pub trait LpModule:
             }
         }
 
-        // unwrap WEGLD
-        let wegld_balance =
-            self.blockchain().get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(storage_cache.wegld_id.clone()), 0);
-        if wegld_balance > 0 {
-            let payment = EsdtTokenPayment::new(storage_cache.wegld_id.clone(), 0, wegld_balance);
-            self.wrap_lp_proxy_obj()
-                .contract(xexchange_cache.wrap_sc_address)
-                .unwrap_egld()
-                .with_esdt_transfer(payment)
-                .execute_on_dest_context::<()>();
-        }
-
+        self.unwrap_all_wegld();
         let (new_egld_balance, new_ls_balance) = self.get_sc_balances();
-        let mut added_egld = &old_egld_balance - &new_egld_balance;
-        let mut added_legld = &old_ls_balance - &new_ls_balance;
-        if added_egld >= lp_cache.excess_lp_egld {
-            added_egld -= &lp_cache.excess_lp_egld;
-            lp_cache.excess_lp_egld = BigUint::zero();
-        } else {
-            lp_cache.excess_lp_egld -= &added_egld;
-            added_egld = BigUint::zero();
-        }
-        if added_legld >= lp_cache.excess_lp_legld {
-            added_legld -= &lp_cache.excess_lp_legld;
-            lp_cache.excess_lp_legld = BigUint::zero();
-        } else {
-            lp_cache.excess_lp_legld -= &added_legld;
-            added_legld = BigUint::zero();
-        }
-        lp_cache.egld_in_lp += &added_egld;
-        lp_cache.legld_in_lp += added_legld;
-        storage_cache.available_egld_reserve -= added_egld;
+
+        let added_egld = &old_egld_balance - &new_egld_balance;
+        let added_legld = &old_ls_balance - &new_ls_balance;
+        self.add_lp_update_storage(storage_cache, lp_cache, added_egld, added_legld);
     }
 
     /**
@@ -281,37 +233,12 @@ pub trait LpModule:
             };
         }
 
-        // unwrap WEGLD
-        let wegld_balance =
-            self.blockchain().get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(storage_cache.wegld_id.clone()), 0);
-        if wegld_balance > 0 {
-            let payment = EsdtTokenPayment::new(storage_cache.wegld_id.clone(), 0, wegld_balance);
-            self.wrap_lp_proxy_obj()
-                .contract(xexchange_cache.wrap_sc_address)
-                .unwrap_egld()
-                .with_esdt_transfer(payment)
-                .execute_on_dest_context::<()>();
-        }
-
+        self.unwrap_all_wegld();
         let (new_egld_balance, new_ls_balance) = self.get_sc_balances();
+
         let removed_egld = &new_egld_balance - &old_egld_balance;
         let removed_legld = &new_ls_balance - &old_ls_balance;
-        if lp_cache.egld_in_lp >= removed_egld {
-            lp_cache.egld_in_lp -= &removed_egld;
-            storage_cache.available_egld_reserve += removed_egld;
-        } else {
-            let excess = &removed_egld - &lp_cache.egld_in_lp;
-            storage_cache.available_egld_reserve += &lp_cache.egld_in_lp;
-            lp_cache.egld_in_lp = BigUint::zero();
-            lp_cache.excess_lp_egld += excess;
-        }
-        if lp_cache.legld_in_lp >= removed_legld {
-            lp_cache.legld_in_lp -= removed_legld;
-        } else {
-            let excess = &removed_legld - &lp_cache.legld_in_lp;
-            lp_cache.legld_in_lp = BigUint::zero();
-            lp_cache.excess_lp_legld += excess;
-        }
+        self.remove_lp_update_storage(storage_cache, lp_cache, removed_egld, removed_legld);
     }
 
     /**
@@ -395,37 +322,12 @@ pub trait LpModule:
             };
         }
 
-        // unwrap WEGLD
-        let wegld_balance =
-            self.blockchain().get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(storage_cache.wegld_id.clone()), 0);
-        if wegld_balance > 0 {
-            let payment = EsdtTokenPayment::new(storage_cache.wegld_id.clone(), 0, wegld_balance);
-            self.wrap_lp_proxy_obj()
-                .contract(xexchange_cache.wrap_sc_address)
-                .unwrap_egld()
-                .with_esdt_transfer(payment)
-                .execute_on_dest_context::<()>();
-        }
-
+        self.unwrap_all_wegld();
         let (new_egld_balance, new_ls_balance) = self.get_sc_balances();
+
         let removed_egld = &new_egld_balance - &old_egld_balance;
         let removed_legld = &new_ls_balance - &old_ls_balance;
-        if lp_cache.egld_in_lp >= removed_egld {
-            lp_cache.egld_in_lp -= &removed_egld;
-            storage_cache.available_egld_reserve += removed_egld;
-        } else {
-            let excess = &removed_egld - &lp_cache.egld_in_lp;
-            storage_cache.available_egld_reserve += &lp_cache.egld_in_lp;
-            lp_cache.egld_in_lp = BigUint::zero();
-            lp_cache.excess_lp_egld += excess;
-        }
-        if lp_cache.legld_in_lp >= removed_legld {
-            lp_cache.legld_in_lp -= removed_legld;
-        } else {
-            let excess = &removed_legld - &lp_cache.legld_in_lp;
-            lp_cache.legld_in_lp = BigUint::zero();
-            lp_cache.excess_lp_legld += excess;
-        }
+        self.remove_lp_update_storage(storage_cache, lp_cache, removed_egld, removed_legld);
     }
 
     /**
@@ -457,6 +359,8 @@ pub trait LpModule:
         self.add_lp(&mut storage_cache, &mut lp_cache);
     }
 
+    // helpers
+
     fn remove_all_lps(&self, storage_cache: &mut StorageCache<Self>, lp_cache: &mut LpCache<Self>) {
         let mut onedex_cache = OnedexCache::new(self);
         let mut xexchange_cache = XexchangeCache::new(self);
@@ -485,36 +389,12 @@ pub trait LpModule:
                 .execute_on_dest_context::<()>();
         }
 
-        // unwrap WEGLD
-        let wegld_balance =
-            self.blockchain().get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(storage_cache.wegld_id.clone()), 0);
-        if wegld_balance > 0 {
-            let payment = EsdtTokenPayment::new(storage_cache.wegld_id.clone(), 0, wegld_balance);
-            self.wrap_lp_proxy_obj()
-                .contract(xexchange_cache.wrap_sc_address)
-                .unwrap_egld()
-                .with_esdt_transfer(payment)
-                .execute_on_dest_context::<()>();
-        }
+        self.unwrap_all_wegld();
         let (new_balance, new_ls_balance) = self.get_sc_balances();
 
         let removed_egld = new_balance - old_balance;
         let removed_legld = new_ls_balance - old_ls_balance;
-
-        if removed_egld > lp_cache.egld_in_lp {
-            lp_cache.excess_lp_egld += &removed_egld - &lp_cache.egld_in_lp;
-            storage_cache.available_egld_reserve += &lp_cache.egld_in_lp;
-            lp_cache.egld_in_lp = BigUint::zero();
-        } else {
-            storage_cache.available_egld_reserve += &removed_egld;
-            lp_cache.egld_in_lp -= removed_egld;
-        }
-        if removed_legld > lp_cache.legld_in_lp {
-            lp_cache.excess_lp_legld += &removed_legld - &lp_cache.legld_in_lp;
-            lp_cache.legld_in_lp = BigUint::zero();
-        } else {
-            lp_cache.legld_in_lp -= removed_legld;
-        }
+        self.remove_lp_update_storage(storage_cache, lp_cache, removed_egld, removed_legld);
 
         if lp_cache.excess_lp_egld > 0 && lp_cache.legld_in_lp > 0 {
             let ls_amount =
@@ -548,7 +428,76 @@ pub trait LpModule:
         }
     }
 
-    // helpers
+    fn add_lp_update_storage(
+        &self,
+        storage_cache: &mut StorageCache<Self>,
+        lp_cache: &mut LpCache<Self>,
+        mut added_egld: BigUint,
+        mut added_legld: BigUint,
+    ) {
+        if added_egld >= lp_cache.excess_lp_egld {
+            added_egld -= &lp_cache.excess_lp_egld;
+            lp_cache.excess_lp_egld = BigUint::zero();
+        } else {
+            lp_cache.excess_lp_egld -= &added_egld;
+            added_egld = BigUint::zero();
+        }
+        if added_legld >= lp_cache.excess_lp_legld {
+            added_legld -= &lp_cache.excess_lp_legld;
+            lp_cache.excess_lp_legld = BigUint::zero();
+        } else {
+            lp_cache.excess_lp_legld -= &added_legld;
+            added_legld = BigUint::zero();
+        }
+        lp_cache.egld_in_lp += &added_egld;
+        lp_cache.legld_in_lp += added_legld;
+        storage_cache.available_egld_reserve -= added_egld;
+    }
+
+    fn remove_lp_update_storage(
+        &self,
+        storage_cache: &mut StorageCache<Self>,
+        lp_cache: &mut LpCache<Self>,
+        removed_egld: BigUint,
+        removed_legld: BigUint,
+    ) {
+        if removed_egld > lp_cache.egld_in_lp {
+            lp_cache.excess_lp_egld += &removed_egld - &lp_cache.egld_in_lp;
+            storage_cache.available_egld_reserve += &lp_cache.egld_in_lp;
+            lp_cache.egld_in_lp = BigUint::zero();
+        } else {
+            storage_cache.available_egld_reserve += &removed_egld;
+            lp_cache.egld_in_lp -= removed_egld;
+        }
+        if removed_legld > lp_cache.legld_in_lp {
+            lp_cache.excess_lp_legld += &removed_legld - &lp_cache.legld_in_lp;
+            lp_cache.legld_in_lp = BigUint::zero();
+        } else {
+            lp_cache.legld_in_lp -= removed_legld;
+        }
+    }
+
+    fn compute_egld_available_for_lp(
+        &self,
+        storage_cache: &mut StorageCache<Self>,
+        lp_cache: &mut LpCache<Self>,
+    ) -> BigUint {
+        let half_reserve = &storage_cache.egld_reserve / 2_u64;
+        if lp_cache.egld_in_lp >= half_reserve {
+            return BigUint::zero()
+        }
+
+        let left_from_half = &half_reserve - &lp_cache.egld_in_lp;
+        let mut available = &storage_cache.available_egld_reserve + &lp_cache.excess_lp_egld;
+        if available > left_from_half {
+            available = left_from_half;
+        }
+        if available < MIN_EGLD {
+            return BigUint::zero()
+        }
+
+        available
+    }
 
     fn get_exchange_with_cheap_legld(
         &self,
@@ -592,6 +541,21 @@ pub trait LpModule:
         }
 
         (best_exchange, lp_to_remove)
+    }
+
+    fn unwrap_all_wegld(&self) {
+        let wegld_id = self.wegld_id().get();
+        let wrap_sc_address = self.wrap_sc().get();
+        let wegld_balance =
+            self.blockchain().get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(wegld_id.clone()), 0);
+        if wegld_balance > 0 {
+            let payment = EsdtTokenPayment::new(wegld_id, 0, wegld_balance);
+            self.wrap_lp_proxy_obj()
+                .contract(wrap_sc_address)
+                .unwrap_egld()
+                .with_esdt_transfer(payment)
+                .execute_on_dest_context::<()>();
+        }
     }
 
     // proxies
