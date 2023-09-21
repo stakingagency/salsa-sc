@@ -124,20 +124,19 @@ pub trait ArbitrageModule:
             OptionalValue::Some(value) => value,
             OptionalValue::None => false
         };
-        let old_ls_balance = self.blockchain()
-            .get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(storage_cache.liquid_token_id.clone()), 0);
+        let (old_balance, old_ls_balance) = self.get_sc_balances();
         let (_, bought_amount) =
             self.execute_arbitrage(true, storage_cache.available_egld_reserve.clone(), storage_cache);
-        let new_ls_balance = self.blockchain()
-            .get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(storage_cache.liquid_token_id.clone()), 0);
+        let (new_balance, new_ls_balance) = self.get_sc_balances();
         require!(new_ls_balance >= old_ls_balance, ERROR_ARBITRAGE_ISSUE);
 
         let swapped_amount = &new_ls_balance - &old_ls_balance;
         require!(swapped_amount >= bought_amount, ERROR_ARBITRAGE_ISSUE);
 
+        let sold_amount = old_balance - new_balance;
         if bought_amount > 0 {
-            let egld_amount =
-                self.remove_liquidity(&bought_amount, true, storage_cache);
+            storage_cache.total_stake -= &sold_amount;
+            storage_cache.liquid_supply -= &bought_amount;
             let profit = &swapped_amount - &bought_amount;
             if do_split_profit && profit > 0 {
                 let half_profit = &profit / 2_u64;
@@ -153,11 +152,13 @@ pub trait ArbitrageModule:
                 self.burn_liquid_token(&swapped_amount);
                 storage_cache.liquid_supply -= &profit;
             }
-            storage_cache.egld_to_undelegate += &egld_amount;
-            storage_cache.available_egld_reserve -= &egld_amount;
+            storage_cache.egld_to_undelegate += &sold_amount;
+            storage_cache.available_egld_reserve -= &sold_amount;
             let current_epoch = self.blockchain().get_block_epoch();
             let unbond_epoch = current_epoch + storage_cache.unbond_period;
-            self.add_undelegation(egld_amount.clone(), unbond_epoch, self.lreserve_undelegations());
+            self.add_undelegation(sold_amount.clone(), unbond_epoch, self.lreserve_undelegations());
+        } else {
+            require!(sold_amount == 0, ERROR_ARBITRAGE_ISSUE);
         }
     }
 
