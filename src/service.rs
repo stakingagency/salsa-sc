@@ -1,5 +1,6 @@
 multiversx_sc::imports!();
 
+use crate::common::storage_cache::StorageCache;
 use crate::{common::consts::*, common::errors::*};
 use crate::proxies::delegation_proxy;
 use crate::common::config::UndelegationType;
@@ -22,6 +23,11 @@ pub trait ServiceModule:
             ERROR_INSUFFICIENT_AMOUNT
         );
 
+        let last_delegation_block = self.last_delegation_block().get();
+        let current_block = self.blockchain().get_block_nonce();
+        require!(last_delegation_block + MIN_BLOCK_BETWEEN_DELEGATIONS <= current_block, ERROR_DELEGATE_TOO_SOON);
+
+        self.last_delegation_block().set(current_block);
         let delegation_contract = self.provider_address().get();
         let gas_for_async_call = self.get_gas_for_async_call();
         self.service_delegation_proxy_obj()
@@ -60,6 +66,9 @@ pub trait ServiceModule:
             egld_to_undelegate >= MIN_EGLD,
             ERROR_INSUFFICIENT_AMOUNT
         );
+
+        let mut storage_cache = StorageCache::new(self);
+        self.reduce_egld_to_delegate_undelegate(&mut storage_cache);
 
         let delegation_contract = self.provider_address().get();
         let gas_for_async_call = self.get_gas_for_async_call();
