@@ -69,6 +69,7 @@ pub trait ServiceModule:
 
         let mut storage_cache = StorageCache::new(self);
         self.reduce_egld_to_delegate_undelegate(&mut storage_cache);
+        drop(storage_cache);
 
         let delegation_contract = self.provider_address().get();
         let gas_for_async_call = self.get_gas_for_async_call();
