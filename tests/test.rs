@@ -572,6 +572,31 @@ fn custodial_delegation_test() {
     sc_setup.blockchain_wrapper.check_esdt_balance(&delegator, TOKEN_ID, &exp(9, 18));
 }
 
+#[test]
+fn undelegate_predelegated_test() {
+    let _ = DebugApi::dummy();
+
+    let mut sc_setup = SalsaContractSetup::new(salsa::contract_obj);
+    let big_zero = rust_biguint!(0);
+    let caller = sc_setup.setup_new_user(1u64);
+    let amount = exp(1, 18);
+    sc_setup.blockchain_wrapper.set_block_nonce(10);
+    sc_setup.blockchain_wrapper.set_block_epoch(1u64);
+
+    // delegate + undelegate
+    sc_setup.delegate_test(&caller, amount.clone(), false);
+    sc_setup.undelegate_test(&caller, amount.clone(), big_zero.clone());
+    sc_setup.reduce_egld_to_delegate_undelegate_test(&caller);
+
+    // compute withdrawn
+    sc_setup.blockchain_wrapper.set_block_epoch(11u64);
+    sc_setup.compute_withdrawn_test(&caller);
+
+    // withdraw
+    sc_setup.withdraw_test(&caller);
+    sc_setup.blockchain_wrapper.check_egld_balance(&caller, &amount);
+}
+
 pub fn exp(value: u64, e: u32) -> num_bigint::BigUint {
     value.mul(rust_biguint!(10).pow(e))
 }
