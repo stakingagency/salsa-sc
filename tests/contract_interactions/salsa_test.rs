@@ -1,4 +1,5 @@
 use salsa::SalsaContract;
+use salsa::helpers::HelpersModule;
 use salsa::service::ServiceModule;
 
 use crate::consts::*;
@@ -206,6 +207,18 @@ where
         self.blockchain_wrapper
             .execute_tx(sender, &self.salsa_wrapper, &big_zero, |sc| {
                 sc.compute_withdrawn()
+            })
+            .assert_ok();
+    }
+
+    pub fn reduce_egld_to_delegate_undelegate_test(
+        &mut self,
+        sender: &Address,
+    ) {
+        let big_zero = rust_biguint!(0);
+        self.blockchain_wrapper
+            .execute_tx(sender, &self.salsa_wrapper, &big_zero, |sc| {
+                sc.call_reduce_egld_to_delegate_undelegate()
             })
             .assert_ok();
     }
