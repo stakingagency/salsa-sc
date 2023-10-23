@@ -349,6 +349,15 @@
             "outputs": []
         },
         {
+            "docs": [
+                "\\n     * Helpers\\n     "
+            ],
+            "name": "reduceEgldToDelegateUndelegate",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
             "name": "registerLiquidToken",
             "onlyOwner": true,
             "mutability": "mutable",
