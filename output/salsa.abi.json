@@ -13,7 +13,7 @@
         },
         "framework": {
             "name": "multiversx-sc",
-            "version": "0.43.3"
+            "version": "0.43.4"
         }
     },
     "name": "SalsaContract",
@@ -34,8 +34,7 @@
             "inputs": [
                 {
                     "name": "with_custody",
-                    "type": "optional<bool>",
-                    "multi_arg": true
+                    "type": "bool"
                 },
                 {
                     "name": "without_arbitrage",
