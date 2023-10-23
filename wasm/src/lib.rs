@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           79
+// Endpoints:                           80
 // Async Callback:                       1
-// Total number of exported functions:  81
+// Total number of exported functions:  82
 
 #![no_std]
 #![allow(internal_features)]
@@ -36,6 +36,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         unDelegateNowHeir => undelegate_now_heir
         withdrawHeir => withdraw_heir
         removeReserveHeir => remove_reserve_heir
+        reduceEgldToDelegateUndelegate => call_reduce_egld_to_delegate_undelegate
         registerLiquidToken => register_liquid_token
         getLiquidTokenId => liquid_token_id
         getLiquidTokenSupply => liquid_token_supply

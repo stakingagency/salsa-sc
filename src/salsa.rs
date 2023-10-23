@@ -640,4 +640,14 @@ pub trait SalsaContract<ContractReader>:
         let heir = self.blockchain().get_caller();
         self.do_remove_reserve(user, heir, amount, without_arbitrage);
     }
+
+    /**
+     * Helpers
+     */
+
+    #[endpoint(reduceEgldToDelegateUndelegate)]
+    fn call_reduce_egld_to_delegate_undelegate(&self) {
+        let mut storage_cache = StorageCache::new(self);
+        self.reduce_egld_to_delegate_undelegate(&mut storage_cache);
+    }
 }

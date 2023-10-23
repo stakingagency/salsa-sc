@@ -216,7 +216,7 @@ pub trait ServiceModule:
             .set(&left_amount);
     }
 
-     // helpers
+    // helpers
 
      fn get_gas_for_async_call(&self) -> u64 {
         let gas_left = self.blockchain().get_gas_left();
