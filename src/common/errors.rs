@@ -19,6 +19,7 @@ pub static ERROR_DUST_REMAINING: &[u8] = b"Can't leave dust";
 pub static ERROR_REMOVE_RESERVE_TOO_SOON: &[u8] = b"You can remove reserve only 1 epoch after add";
 pub static ERROR_FEE_CHANGED: &[u8] = b"Fee changed and you would receive less";
 pub static ERROR_INSUFFICIENT_FUNDS: &[u8] = b"Insufficient funds";
+pub static ERROR_DELEGATE_TOO_SOON: &[u8] = b"Delegate called too soon";
 
 pub static ERROR_ARBITRAGE_ISSUE: &[u8] = b"Arbitrage issue";
 pub static ERROR_ARBITRAGE_NOT_ACTIVE: &[u8] = b"Arbitrage not active";

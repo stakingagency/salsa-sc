@@ -217,6 +217,9 @@ pub trait ConfigModule:
     #[storage_mapper("egld_to_undelegate")]
     fn egld_to_undelegate(&self) -> SingleValueMapper<BigUint>;
 
+    #[storage_mapper("last_delegation_block")]
+    fn last_delegation_block(&self) -> SingleValueMapper<u64>;
+
     // reserves
 
     #[view(getEgldReserve)]
