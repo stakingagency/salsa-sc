@@ -25,7 +25,7 @@ where
     ) {
         self.blockchain_wrapper
             .execute_tx(sender, &self.salsa_wrapper, &amount, |sc| {
-                sc.delegate(OptionalValue::Some(custodial), OptionalValue::Some(false));
+                sc.delegate(custodial, OptionalValue::Some(false));
             })
             .assert_ok();
     }
