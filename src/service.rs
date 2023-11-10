@@ -1,5 +1,6 @@
 multiversx_sc::imports!();
 
+use crate::common::storage_cache::StorageCache;
 use crate::{common::consts::*, common::errors::*};
 use crate::proxies::delegation_proxy;
 use crate::common::config::UndelegationType;
@@ -22,6 +23,11 @@ pub trait ServiceModule:
             ERROR_INSUFFICIENT_AMOUNT
         );
 
+        let last_delegation_block = self.last_delegation_block().get();
+        let current_block = self.blockchain().get_block_nonce();
+        require!(last_delegation_block + MIN_BLOCK_BETWEEN_DELEGATIONS <= current_block, ERROR_DELEGATE_TOO_SOON);
+
+        self.last_delegation_block().set(current_block);
         let delegation_contract = self.provider_address().get();
         let gas_for_async_call = self.get_gas_for_async_call();
         self.service_delegation_proxy_obj()
@@ -60,6 +66,10 @@ pub trait ServiceModule:
             egld_to_undelegate >= MIN_EGLD,
             ERROR_INSUFFICIENT_AMOUNT
         );
+
+        let mut storage_cache = StorageCache::new(self);
+        self.reduce_egld_to_delegate_undelegate(&mut storage_cache);
+        drop(storage_cache);
 
         let delegation_contract = self.provider_address().get();
         let gas_for_async_call = self.get_gas_for_async_call();
@@ -216,19 +226,19 @@ pub trait ServiceModule:
             .set(&left_amount);
     }
 
-     // helpers
+    // helpers
 
-     fn get_gas_for_async_call(&self) -> u64 {
-        let gas_left = self.blockchain().get_gas_left();
-        require!(
-            gas_left > MIN_GAS_FOR_ASYNC_CALL + MIN_GAS_FOR_CALLBACK,
-            ERROR_INSUFFICIENT_GAS
-        );
+    fn get_gas_for_async_call(&self) -> u64 {
+       let gas_left = self.blockchain().get_gas_left();
+       require!(
+           gas_left > MIN_GAS_FOR_ASYNC_CALL + MIN_GAS_FOR_CALLBACK,
+           ERROR_INSUFFICIENT_GAS
+       );
 
-        gas_left - MIN_GAS_FOR_CALLBACK
+       gas_left - MIN_GAS_FOR_CALLBACK
     }
 
-   // proxy
+    // proxy
 
     #[proxy]
     fn service_delegation_proxy_obj(&self) -> delegation_proxy::Proxy<Self::Api>;

@@ -38,7 +38,7 @@ pub trait SalsaContract<ContractReader>:
     #[endpoint(delegate)]
     fn delegate(
         &self,
-        with_custody: OptionalValue<bool>,
+        with_custody: bool,
         without_arbitrage: OptionalValue<bool>,
     ) {
         self.update_last_accessed();
@@ -51,10 +51,6 @@ pub trait SalsaContract<ContractReader>:
             ERROR_INSUFFICIENT_AMOUNT
         );
 
-        let custodial = match with_custody {
-            OptionalValue::Some(value) => value,
-            OptionalValue::None => false
-        };
         let arbitrage = match without_arbitrage {
             OptionalValue::Some(value) => !value,
             OptionalValue::None => true
@@ -71,7 +67,7 @@ pub trait SalsaContract<ContractReader>:
         let ls_amount =
             self.add_liquidity(&delegate_amount, true, &mut storage_cache);
         let user_payment = self.mint_liquid_token(ls_amount);
-        if custodial {
+        if with_custody {
             self.user_delegation(&caller)
                 .update(|value| *value += &user_payment.amount);
             storage_cache.legld_in_custody += user_payment.amount;
@@ -687,4 +683,15 @@ pub trait SalsaContract<ContractReader>:
         let heir = self.blockchain().get_caller();
         self.do_remove_reserve(user, heir, amount, without_arbitrage);
     }
+
+
+    /**
+     * Helpers
+     */
+
+     #[endpoint(reduceEgldToDelegateUndelegate)]
+     fn call_reduce_egld_to_delegate_undelegate(&self) {
+         let mut storage_cache = StorageCache::new(self);
+         self.reduce_egld_to_delegate_undelegate(&mut storage_cache);
+     }
 }
