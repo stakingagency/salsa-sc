@@ -248,14 +248,14 @@ pub trait HelpersModule:
         if storage_cache.egld_to_delegate > 0 && storage_cache.egld_to_undelegate > 0 {
             if storage_cache.egld_to_delegate > storage_cache.egld_to_undelegate {
                 storage_cache.egld_to_delegate -= &storage_cache.egld_to_undelegate;
-                storage_cache.egld_to_undelegate = BigUint::zero();
                 self.total_withdrawn_egld()
                     .update(|value| *value += &storage_cache.egld_to_undelegate);
+                storage_cache.egld_to_undelegate = BigUint::zero();
             } else {
                 storage_cache.egld_to_undelegate -= &storage_cache.egld_to_delegate;
-                storage_cache.egld_to_delegate = BigUint::zero();
                 self.total_withdrawn_egld()
                     .update(|value| *value += &storage_cache.egld_to_delegate);
+                storage_cache.egld_to_delegate = BigUint::zero();
             }
         }
     }

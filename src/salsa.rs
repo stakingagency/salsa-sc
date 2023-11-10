@@ -87,6 +87,7 @@ pub trait SalsaContract<ContractReader>:
     /**
      * Undelegate
      */
+    #[allow_multiple_var_args]
     #[payable("*")]
     #[endpoint(unDelegate)]
     fn undelegate(
@@ -423,6 +424,7 @@ pub trait SalsaContract<ContractReader>:
     /**
      * Undelegate now
      */
+    #[allow_multiple_var_args]
     #[payable("*")]
     #[endpoint(unDelegateNow)]
     fn undelegate_now(
