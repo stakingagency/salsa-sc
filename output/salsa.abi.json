@@ -13,7 +13,7 @@
         },
         "framework": {
             "name": "multiversx-sc",
-            "version": "0.43.3"
+            "version": "0.44.0"
         }
     },
     "name": "SalsaContract",
@@ -34,8 +34,7 @@
             "inputs": [
                 {
                     "name": "with_custody",
-                    "type": "optional<bool>",
-                    "multi_arg": true
+                    "type": "bool"
                 },
                 {
                     "name": "without_arbitrage",
@@ -66,7 +65,8 @@
                     "multi_arg": true
                 }
             ],
-            "outputs": []
+            "outputs": [],
+            "allow_multiple_var_args": true
         },
         {
             "docs": [
@@ -176,7 +176,8 @@
                     "multi_arg": true
                 }
             ],
-            "outputs": []
+            "outputs": [],
+            "allow_multiple_var_args": true
         },
         {
             "name": "unDelegateKnight",
@@ -347,6 +348,15 @@
                     "multi_arg": true
                 }
             ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "\\n     * Helpers\\n     "
+            ],
+            "name": "reduceEgldToDelegateUndelegate",
+            "mutability": "mutable",
+            "inputs": [],
             "outputs": []
         },
         {
@@ -1051,6 +1061,7 @@
         }
     ],
     "events": [],
+    "esdtAttributes": [],
     "hasCallback": true,
     "types": {
         "ContractInfo": {
