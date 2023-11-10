@@ -29,6 +29,7 @@ fn delegation_test() {
     let big_zero = rust_biguint!(0);
     let caller = sc_setup.setup_new_user(1u64);
     let amount = exp(1, 18);
+    sc_setup.blockchain_wrapper.set_block_nonce(10);
     sc_setup.blockchain_wrapper.set_block_epoch(1u64);
 
     // delegate
@@ -77,6 +78,7 @@ fn reserves_test() {
     let one_plus_fee = exp(102, 16);
     let one_minus_fee = exp(98, 16);
     let rest = exp(2, 16);
+    sc_setup.blockchain_wrapper.set_block_nonce(10);
     sc_setup.blockchain_wrapper.set_block_epoch(1u64);
 
     // delegate
@@ -137,6 +139,7 @@ fn reserve_to_user_undelegation_test() {
     let caller = sc_setup.setup_new_user(1u64);
 
     // set epoch
+    sc_setup.blockchain_wrapper.set_block_nonce(10);
     sc_setup.blockchain_wrapper.set_block_epoch(1u64);
 
     // delegate 5 and add reserves 5
@@ -209,6 +212,7 @@ fn merge_undelegations_test() {
     let caller = sc_setup.setup_new_user(1u64);
 
     // set epoch
+    sc_setup.blockchain_wrapper.set_block_nonce(10);
     sc_setup.blockchain_wrapper.set_block_epoch(epoch);
 
     // delegate and add reserve
@@ -257,6 +261,7 @@ fn user_undelegations_order_test() {
     let delegator = sc_setup.setup_new_user(100u64);
 
     // set epoch
+    sc_setup.blockchain_wrapper.set_block_nonce(10);
     sc_setup.blockchain_wrapper.set_block_epoch(epoch);
 
     // delegate
@@ -319,6 +324,7 @@ fn reserve_undelegations_order_test() {
     let reserver = sc_setup.setup_new_user(100u64);
 
     // set epoch
+    sc_setup.blockchain_wrapper.set_block_nonce(10);
     sc_setup.blockchain_wrapper.set_block_epoch(epoch);
 
     // delegate and add reserve
@@ -363,6 +369,7 @@ fn knight_test() {
     sc_setup.blockchain_wrapper.set_esdt_balance(&delegator, TOKEN_ID, &exp(0, 18));
     let knight1 = sc_setup.setup_new_user(0u64);
     let knight2 = sc_setup.setup_new_user(0u64);
+    sc_setup.blockchain_wrapper.set_block_nonce(10);
 
     sc_setup.delegate_test(&delegator, exp(1, 18), true); // true = custodial
     sc_setup.delegate_all_test(&delegator);
@@ -401,6 +408,7 @@ fn active_knigth_test() {
     let mut epoch = 1u64;
 
     // set epoch
+    sc_setup.blockchain_wrapper.set_block_nonce(10);
     sc_setup.blockchain_wrapper.set_block_epoch(epoch);
 
     // delegate and add reserve
@@ -441,15 +449,19 @@ fn too_many_knight_users_test() {
     let mut sc_setup = SalsaContractSetup::new(salsa::contract_obj);
     let knight = sc_setup.setup_new_user(0u64);
     let user11 = sc_setup.setup_new_user(1u64);
+    let mut block_nonce = 10;
 
     for _ in 0..MAX_KNIGHT_USERS {
         let user = sc_setup.setup_new_user(1u64);
         sc_setup.delegate_test(&user, exp(1, 18), true);
+        sc_setup.blockchain_wrapper.set_block_nonce(block_nonce);
+        block_nonce += 10;
         sc_setup.delegate_all_test(&user);
         sc_setup.set_knight_test(&user, &knight);
     }
 
     sc_setup.delegate_test(&user11, exp(1, 18), true);
+    sc_setup.blockchain_wrapper.set_block_nonce(block_nonce);
     sc_setup.delegate_all_test(&user11);
     sc_setup.set_knight_fail_test(&user11, &knight, "Knight has too many users");
 }
@@ -461,15 +473,19 @@ fn too_many_heir_users_test() {
     let mut sc_setup = SalsaContractSetup::new(salsa::contract_obj);
     let heir = sc_setup.setup_new_user(0u64);
     let user11 = sc_setup.setup_new_user(1u64);
+    let mut block_nonce = 10;
 
     for _ in 0..MAX_HEIR_USERS {
         let user = sc_setup.setup_new_user(1u64);
         sc_setup.delegate_test(&user, exp(1, 18), true);
+        sc_setup.blockchain_wrapper.set_block_nonce(block_nonce);
+        block_nonce += 10;
         sc_setup.delegate_all_test(&user);
         sc_setup.set_heir_test(&user, &heir, 365);
         }
 
     sc_setup.delegate_test(&user11, exp(1, 18), true);
+    sc_setup.blockchain_wrapper.set_block_nonce(block_nonce);
     sc_setup.delegate_all_test(&user11);
     sc_setup.set_heir_fail_test(&user11, &heir, 365, "Heir has too many users");
 }
@@ -487,6 +503,7 @@ fn entitled_heir_test() {
     let mut epoch = 1u64;
 
     // set epoch
+    sc_setup.blockchain_wrapper.set_block_nonce(10);
     sc_setup.blockchain_wrapper.set_block_epoch(epoch);
 
     // delegate and add reserve
@@ -534,6 +551,7 @@ fn custodial_delegation_test() {
     let knight = sc_setup.setup_new_user(0u64);
     let heir = sc_setup.setup_new_user(0u64);
     sc_setup.blockchain_wrapper.set_esdt_balance(&delegator, TOKEN_ID, &exp(10, 18));
+    sc_setup.blockchain_wrapper.set_block_nonce(10);
 
     sc_setup.delegate_test(&delegator, exp(1, 18), true);
     sc_setup.delegate_all_test(&delegator);
@@ -552,6 +570,31 @@ fn custodial_delegation_test() {
     sc_setup.check_total_custodial_delegation(exp(2, 18));
     sc_setup.blockchain_wrapper.check_egld_balance(&delegator, &exp(9, 18));
     sc_setup.blockchain_wrapper.check_esdt_balance(&delegator, TOKEN_ID, &exp(9, 18));
+}
+
+#[test]
+fn undelegate_predelegated_test() {
+    let _ = DebugApi::dummy();
+
+    let mut sc_setup = SalsaContractSetup::new(salsa::contract_obj);
+    let big_zero = rust_biguint!(0);
+    let caller = sc_setup.setup_new_user(1u64);
+    let amount = exp(1, 18);
+    sc_setup.blockchain_wrapper.set_block_nonce(10);
+    sc_setup.blockchain_wrapper.set_block_epoch(1u64);
+
+    // delegate + undelegate
+    sc_setup.delegate_test(&caller, amount.clone(), false);
+    sc_setup.undelegate_test(&caller, amount.clone(), big_zero.clone());
+    sc_setup.reduce_egld_to_delegate_undelegate_test(&caller);
+
+    // compute withdrawn
+    sc_setup.blockchain_wrapper.set_block_epoch(11u64);
+    sc_setup.compute_withdrawn_test(&caller);
+
+    // withdraw
+    sc_setup.withdraw_test(&caller);
+    sc_setup.blockchain_wrapper.check_egld_balance(&caller, &amount);
 }
 
 pub fn exp(value: u64, e: u32) -> num_bigint::BigUint {

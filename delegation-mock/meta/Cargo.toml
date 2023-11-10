@@ -11,7 +11,7 @@ authors = [ "Sorin Petreasca <sorin.petreasca@multiversx.com>",]
 path = ".."
 
 [dependencies.multiversx-sc]
-version = "0.43.3"
+version = "0.44.0"
 
 [dependencies.multiversx-sc-meta]
-version = "0.43.3"
+version = "0.44.0"

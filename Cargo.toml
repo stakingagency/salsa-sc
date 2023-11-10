@@ -12,13 +12,13 @@ path = "src/salsa.rs"
 num-bigint = "0.4.3"
 
 [dependencies.multiversx-sc]
-version = "0.43.3"
+version = "0.44.0"
 
 [dependencies.multiversx-sc-modules]
-version = "0.43.3"
+version = "0.44.0"
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "0.43.3"
+version = "0.44.0"
 
 [dependencies]
 hex-literal = "0.3.1"
