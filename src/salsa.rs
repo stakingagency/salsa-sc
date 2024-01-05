@@ -29,6 +29,9 @@ pub trait SalsaContract<ContractReader>:
     #[init]
     fn init(&self) {}
 
+    #[upgrade]
+    fn upgrade(&self) {}
+
     // endpoints: liquid delegation
 
     /**
