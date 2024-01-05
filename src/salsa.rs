@@ -27,6 +27,9 @@ pub trait SalsaContract<ContractReader>:
     #[init]
     fn init(&self) {}
 
+    #[upgrade]
+    fn upgrade(&self) {}
+
     // endpoints: liquid delegation
 
     /**
@@ -85,6 +88,7 @@ pub trait SalsaContract<ContractReader>:
      * Undelegate
      */
     #[payable("*")]
+    #[allow_multiple_var_args]
     #[endpoint(unDelegate)]
     fn undelegate(
         &self,
@@ -395,6 +399,7 @@ pub trait SalsaContract<ContractReader>:
      * Undelegate now
      */
     #[payable("*")]
+    #[allow_multiple_var_args]
     #[endpoint(unDelegateNow)]
     fn undelegate_now(
         &self,

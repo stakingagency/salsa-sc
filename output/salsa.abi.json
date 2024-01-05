@@ -13,7 +13,7 @@
         },
         "framework": {
             "name": "multiversx-sc",
-            "version": "0.43.4"
+            "version": "0.45.2"
         }
     },
     "name": "SalsaContract",
@@ -23,8 +23,14 @@
     },
     "endpoints": [
         {
+            "name": "upgrade",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
             "docs": [
-                "\\n     * Delegate\\n     "
+                "    * Delegate\\n     "
             ],
             "name": "delegate",
             "mutability": "mutable",
@@ -46,7 +52,7 @@
         },
         {
             "docs": [
-                "\\n     * Undelegate\\n     "
+                "    * Undelegate\\n     "
             ],
             "name": "unDelegate",
             "mutability": "mutable",
@@ -65,11 +71,12 @@
                     "multi_arg": true
                 }
             ],
-            "outputs": []
+            "outputs": [],
+            "allow_multiple_var_args": true
         },
         {
             "docs": [
-                "\\n     * Withdraw\\n     "
+                "    * Withdraw\\n     "
             ],
             "name": "withdraw",
             "mutability": "mutable",
@@ -78,7 +85,7 @@
         },
         {
             "docs": [
-                "\\n     * Add to custody\\n     "
+                "    * Add to custody\\n     "
             ],
             "name": "addToCustody",
             "mutability": "mutable",
@@ -96,7 +103,7 @@
         },
         {
             "docs": [
-                "\\n     * Remove from custody\\n     "
+                "    * Remove from custody\\n     "
             ],
             "name": "removeFromCustody",
             "mutability": "mutable",
@@ -115,7 +122,7 @@
         },
         {
             "docs": [
-                "\\n     * Add reserve\\n     "
+                "    * Add reserve\\n     "
             ],
             "name": "addReserve",
             "mutability": "mutable",
@@ -133,7 +140,7 @@
         },
         {
             "docs": [
-                "\\n     * Remove reserve\\n     "
+                "    * Remove reserve\\n     "
             ],
             "name": "removeReserve",
             "mutability": "mutable",
@@ -152,7 +159,7 @@
         },
         {
             "docs": [
-                "\\n     * Undelegate now\\n     "
+                "    * Undelegate now\\n     "
             ],
             "name": "unDelegateNow",
             "mutability": "mutable",
@@ -175,7 +182,8 @@
                     "multi_arg": true
                 }
             ],
-            "outputs": []
+            "outputs": [],
+            "allow_multiple_var_args": true
         },
         {
             "name": "unDelegateKnight",
@@ -199,7 +207,7 @@
         },
         {
             "docs": [
-                "\\n     * Undelegate now knight\\n     "
+                "    * Undelegate now knight\\n     "
             ],
             "name": "unDelegateNowKnight",
             "mutability": "mutable",
@@ -226,7 +234,7 @@
         },
         {
             "docs": [
-                "\\n     * Withdraw knight\\n     "
+                "    * Withdraw knight\\n     "
             ],
             "name": "withdrawKnight",
             "mutability": "mutable",
@@ -240,7 +248,7 @@
         },
         {
             "docs": [
-                "\\n     * Remove reserve knight\\n     "
+                "    * Remove reserve knight\\n     "
             ],
             "name": "removeReserveKnight",
             "mutability": "mutable",
@@ -263,7 +271,7 @@
         },
         {
             "docs": [
-                "\\n     * Undelegate heir\\n     "
+                "    * Undelegate heir\\n     "
             ],
             "name": "unDelegateHeir",
             "mutability": "mutable",
@@ -286,7 +294,7 @@
         },
         {
             "docs": [
-                "\\n     * Undelegate now heir\\n     "
+                "    * Undelegate now heir\\n     "
             ],
             "name": "unDelegateNowHeir",
             "mutability": "mutable",
@@ -313,7 +321,7 @@
         },
         {
             "docs": [
-                "\\n     * Withdraw heir\\n     "
+                "    * Withdraw heir\\n     "
             ],
             "name": "withdrawHeir",
             "mutability": "mutable",
@@ -327,7 +335,7 @@
         },
         {
             "docs": [
-                "\\n     * Remove reserve heir\\n     "
+                "    * Remove reserve heir\\n     "
             ],
             "name": "removeReserveHeir",
             "mutability": "mutable",
@@ -350,7 +358,7 @@
         },
         {
             "docs": [
-                "\\n     * Helpers\\n     "
+                "    * Helpers\\n     "
             ],
             "name": "reduceEgldToDelegateUndelegate",
             "mutability": "mutable",
@@ -838,7 +846,7 @@
         },
         {
             "docs": [
-                "\\n     * Trigger arbitrage\\n     "
+                "    * Trigger arbitrage\\n     "
             ],
             "name": "triggerArbitrage",
             "mutability": "mutable",
@@ -1024,7 +1032,7 @@
             "outputs": []
         }
     ],
-    "events": [],
+    "esdtAttributes": [],
     "hasCallback": true,
     "types": {
         "ContractInfo": {
