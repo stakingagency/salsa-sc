@@ -1,11 +1,11 @@
 {
     "buildInfo": {
         "rustc": {
-            "version": "1.74.0-nightly",
-            "commitHash": "4e78abb437a0478d1f42115198ee45888e5330fd",
-            "commitDate": "2023-08-28",
+            "version": "1.76.0-nightly",
+            "commitHash": "d86d65bbc19b928387f68427fcc3a0da498d8a19",
+            "commitDate": "2023-12-10",
             "channel": "Nightly",
-            "short": "rustc 1.74.0-nightly (4e78abb43 2023-08-28)"
+            "short": "rustc 1.76.0-nightly (d86d65bbc 2023-12-10)"
         },
         "contractCrate": {
             "name": "salsa",
@@ -13,7 +13,7 @@
         },
         "framework": {
             "name": "multiversx-sc",
-            "version": "0.45.2"
+            "version": "0.47.4"
         }
     },
     "name": "SalsaContract",
