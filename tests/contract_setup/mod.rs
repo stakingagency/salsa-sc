@@ -1,3 +1,4 @@
+use salsa::providers::ProvidersModule;
 use salsa::{*};
 use salsa::common::config::ConfigModule;
 
@@ -104,7 +105,7 @@ where
         blockchain_wrapper
             .execute_tx(&owner_address, &salsa_wrapper, &big_zero, |sc|{
                 let provider_address = managed_address!(&provider);
-                sc.set_provider_address(provider_address)
+                sc.add_provider(provider_address)
             })
             .assert_ok();
 

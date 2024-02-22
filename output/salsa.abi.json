@@ -433,24 +433,13 @@
             ]
         },
         {
-            "name": "setProviderAddress",
-            "onlyOwner": true,
-            "mutability": "mutable",
-            "inputs": [
-                {
-                    "name": "address",
-                    "type": "Address"
-                }
-            ],
-            "outputs": []
-        },
-        {
-            "name": "getProviderAddress",
+            "name": "getProviders",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
                 {
-                    "type": "Address"
+                    "type": "variadic<multi<Address,ProviderConfig>>",
+                    "multi_result": true
                 }
             ]
         },
@@ -471,6 +460,28 @@
             "inputs": [
                 {
                     "name": "period",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "getServiceFee",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "setServiceFee",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "new_fee",
                     "type": "u64"
                 }
             ],
@@ -803,7 +814,7 @@
             "outputs": []
         },
         {
-            "name": "compound",
+            "name": "claimRewards",
             "mutability": "mutable",
             "inputs": [],
             "outputs": []
@@ -1064,7 +1075,55 @@
             "mutability": "mutable",
             "inputs": [],
             "outputs": []
+        },
+        {
+            "name": "addProvider",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "address",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "removeProvider",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "address",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "setProviderState",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "address",
+                    "type": "Address"
+                },
+                {
+                    "name": "new_state",
+                    "type": "State"
+                }
+            ],
+            "outputs": []
         }
+    ],
+    "promisesCallbackNames": [
+        "claim_rewards_callback",
+        "withdraw_all_callback",
+        "get_contract_config_callback",
+        "get_total_active_stake_callback",
+        "get_all_nodes_states_callback",
+        "get_delegator_funds_data_callback"
     ],
     "esdtAttributes": [],
     "hasCallback": true,
@@ -1089,8 +1148,8 @@
                     "type": "BigUint"
                 },
                 {
-                    "name": "provider_address",
-                    "type": "Address"
+                    "name": "providers",
+                    "type": "List<ProviderConfig>"
                 },
                 {
                     "name": "egld_reserve",
@@ -1162,6 +1221,75 @@
                 {
                     "name": "ActiveKnight",
                     "discriminant": 3
+                }
+            ]
+        },
+        "ProviderConfig": {
+            "type": "struct",
+            "fields": [
+                {
+                    "name": "state",
+                    "type": "State"
+                },
+                {
+                    "name": "address",
+                    "type": "Address"
+                },
+                {
+                    "name": "staked_nodes",
+                    "type": "u32"
+                },
+                {
+                    "name": "total_stake",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "max_cap",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "has_cap",
+                    "type": "bool"
+                },
+                {
+                    "name": "fee",
+                    "type": "u64"
+                },
+                {
+                    "name": "salsa_stake",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "salsa_undelegated",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "salsa_withdrawable",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "salsa_rewards",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "config_last_update_nonce",
+                    "type": "u64"
+                },
+                {
+                    "name": "stake_last_update_nonce",
+                    "type": "u64"
+                },
+                {
+                    "name": "nodes_last_update_nonce",
+                    "type": "u64"
+                },
+                {
+                    "name": "funds_last_update_nonce",
+                    "type": "u64"
+                },
+                {
+                    "name": "funds_last_update_epoch",
+                    "type": "u64"
                 }
             ]
         },

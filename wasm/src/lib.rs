@@ -5,9 +5,10 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           85
+// Endpoints:                           89
 // Async Callback:                       1
-// Total number of exported functions:  87
+// Promise callbacks:                    6
+// Total number of exported functions:  97
 
 #![no_std]
 #![allow(internal_features)]
@@ -44,10 +45,11 @@ multiversx_sc_wasm_adapter::endpoints! {
         setStateActive => set_state_active
         setStateInactive => set_state_inactive
         getState => state
-        setProviderAddress => set_provider_address
-        getProviderAddress => provider_address
+        getProviders => providers
         getUnbondPeriod => unbond_period
         setUnbondPeriod => set_unbond_period
+        getServiceFee => service_fee
+        setServiceFee => set_service_fee
         getUserUndelegations => luser_undelegations
         getTotalEgldStaked => total_egld_staked
         getUserWithdrawnEgld => user_withdrawn_egld
@@ -75,7 +77,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         getUserInfo => get_user_info
         delegateAll => delegate_all
         unDelegateAll => undelegate_all
-        compound => compound
+        claimRewards => claim_rewards
         withdrawAll => withdraw_all
         computeWithdrawn => compute_withdrawn
         setArbitrageActive => set_arbitrage_active
@@ -105,6 +107,15 @@ multiversx_sc_wasm_adapter::endpoints! {
         cancelHeir => cancel_heir
         removeHeir => remove_heir
         updateLastAccessed => update_last_accessed
+        addProvider => add_provider
+        removeProvider => remove_provider
+        setProviderState => set_provider_state
+        claim_rewards_callback => claim_rewards_callback
+        withdraw_all_callback => withdraw_all_callback
+        get_contract_config_callback => get_contract_config_callback
+        get_total_active_stake_callback => get_total_active_stake_callback
+        get_all_nodes_states_callback => get_all_nodes_states_callback
+        get_delegator_funds_data_callback => get_delegator_funds_data_callback
     )
 }
 
