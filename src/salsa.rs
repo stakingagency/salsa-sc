@@ -23,6 +23,7 @@ pub trait SalsaContract<ContractReader>:
     + exchanges::onedex::OnedexModule
     + exchanges::xexchange::XexchangeModule
     + exchanges::lp::LpModule
+    + exchanges::xstake::XStakeModule
     + knights::KnightsModule
     + heirs::HeirsModule
     + providers::ProvidersModule
