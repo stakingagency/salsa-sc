@@ -20,7 +20,7 @@ pub trait ArbitrageModule:
     #[only_owner]
     #[endpoint(setArbitrageActive)]
     fn set_arbitrage_active(&self) {
-        require!(!self.provider_address().is_empty(), ERROR_PROVIDER_NOT_SET);
+        require!(!self.providers().is_empty(), ERROR_PROVIDERS_NOT_SET);
         require!(!self.liquid_token_id().is_empty(), ERROR_TOKEN_NOT_SET);
         require!(!self.wrap_sc().is_empty(), ERROR_WRAP_SC);
 
