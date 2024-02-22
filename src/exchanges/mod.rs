@@ -5,3 +5,4 @@ pub mod xexchange;
 pub mod xexchange_cache;
 pub mod lp;
 pub mod lp_cache;
+pub mod xstake;

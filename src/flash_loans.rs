@@ -10,6 +10,7 @@ pub trait FlashLoansModule:
     + crate::exchanges::onedex::OnedexModule
     + crate::exchanges::xexchange::XexchangeModule
     + crate::exchanges::lp::LpModule
+    + crate::exchanges::xstake::XStakeModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[only_owner]
