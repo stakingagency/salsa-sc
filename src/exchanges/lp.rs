@@ -213,7 +213,7 @@ pub trait LpModule:
                     let payment =
                         EsdtTokenPayment::new(onedex_cache.lp_info.lp_token.clone(), 0, lp_to_remove.clone());
                     onedex_cache.lp_info.lp_balance -= &lp_to_remove;
-                    self.remove_xstake(1, lp_to_remove, onedex_cache.lp_info.lp_token.clone());
+                    self.remove_xstake(self.xstake_onedex_id().get(), lp_to_remove, onedex_cache.lp_info.lp_token.clone());
                     self.onedex_lp_proxy_obj()
                         .contract(onedex_cache.sc_address.clone())
                         .remove_liquidity(BigUint::from(1u64), BigUint::from(1u64), false)
@@ -228,7 +228,7 @@ pub trait LpModule:
                     let payment
                         = EsdtTokenPayment::new(xexchange_cache.lp_info.lp_token.clone(), 0, lp_to_remove.clone());
                     xexchange_cache.lp_info.lp_balance -= &lp_to_remove;
-                    self.remove_xstake(2, lp_to_remove, xexchange_cache.lp_info.lp_token.clone());
+                    self.remove_xstake(self.xstake_xexchange_id().get(), lp_to_remove, xexchange_cache.lp_info.lp_token.clone());
                     self.xexchange_lp_proxy_obj()
                         .contract(xexchange_cache.sc_address.clone())
                         .remove_liquidity(BigUint::from(1u64), BigUint::from(1u64))
@@ -304,7 +304,7 @@ pub trait LpModule:
                     let payment =
                         EsdtTokenPayment::new(onedex_cache.lp_info.lp_token.clone(), 0, lp_to_remove.clone());
                     onedex_cache.lp_info.lp_balance -= &lp_to_remove;
-                    self.remove_xstake(1, lp_to_remove, onedex_cache.lp_info.lp_token.clone());
+                    self.remove_xstake(self.xstake_onedex_id().get(), lp_to_remove, onedex_cache.lp_info.lp_token.clone());
                     self.onedex_lp_proxy_obj()
                         .contract(onedex_cache.sc_address.clone())
                         .remove_liquidity(BigUint::from(1u64), BigUint::from(1u64), false)
@@ -319,7 +319,7 @@ pub trait LpModule:
                     let payment
                         = EsdtTokenPayment::new(xexchange_cache.lp_info.lp_token.clone(), 0, lp_to_remove.clone());
                     xexchange_cache.lp_info.lp_balance -= &lp_to_remove;
-                    self.remove_xstake(2, lp_to_remove, xexchange_cache.lp_info.lp_token.clone());
+                    self.remove_xstake(self.xstake_xexchange_id().get(), lp_to_remove, xexchange_cache.lp_info.lp_token.clone());
                     self.xexchange_lp_proxy_obj()
                         .contract(xexchange_cache.sc_address.clone())
                         .remove_liquidity(BigUint::from(1u64), BigUint::from(1u64))

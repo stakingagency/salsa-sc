@@ -66,6 +66,7 @@ pub struct ContractInfo<M: ManagedTypeApi + multiversx_sc::api::StorageMapperApi
     pub available_egld_reserve: BigUint<M>,
     pub unbond_period: u64,
     pub undelegate_now_fee: u64,
+    pub service_fee: u64,
     pub token_price: BigUint<M>,
 }
 
@@ -436,6 +437,7 @@ pub trait ConfigModule:
             available_egld_reserve: self.available_egld_reserve().get(),
             unbond_period: self.unbond_period().get(),
             undelegate_now_fee: self.undelegate_now_fee().get(),
+            service_fee: self.service_fee().get(),
             token_price: self.token_price(),
         }
     }
