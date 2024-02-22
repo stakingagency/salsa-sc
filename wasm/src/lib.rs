@@ -5,10 +5,10 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           89
+// Endpoints:                           93
 // Async Callback:                       1
 // Promise callbacks:                    6
-// Total number of exported functions:  97
+// Total number of exported functions: 101
 
 #![no_std]
 #![allow(internal_features)]
@@ -97,6 +97,10 @@ multiversx_sc_wasm_adapter::endpoints! {
         setLpInactive => set_lp_inactive
         getLpState => lp_state
         takeLpProfit => take_lp_profit
+        setXStakeActive => set_xstake_active
+        setXStakeInactive => set_xstake_inactive
+        getXStakeState => xstake_state
+        setXStakeSC => set_xstake_sc
         setKnight => set_knight
         cancelKnight => cancel_knight
         activateKnight => activate_knight

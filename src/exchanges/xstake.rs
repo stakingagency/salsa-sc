@@ -43,6 +43,24 @@ pub trait XStakeModule:
         self.xstake_sc().set(address);
     }
 
+    #[storage_mapper("xstake_onedex_id")]
+    fn xstake_onedex_id(&self) -> SingleValueMapper<usize>;
+
+    #[only_owner]
+    #[endpoint(setXStakeOnedexId)]
+    fn set_xstake_onedex_id(&self, id: usize) {
+        self.xstake_onedex_id().set(id);
+    }
+
+    #[storage_mapper("xstake_xexchange_id")]
+    fn xstake_xexchange_id(&self) -> SingleValueMapper<usize>;
+
+    #[only_owner]
+    #[endpoint(setXStakeXexchangeId)]
+    fn set_xstake_xexchange_id(&self, id: usize) {
+        self.xstake_xexchange_id().set(id);
+    }
+
     fn add_xstake(&self, stake_id: usize, amount: BigUint, token: TokenIdentifier) {
         let payment =
             EsdtTokenPayment::new(token, 0, amount);
