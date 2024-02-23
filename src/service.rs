@@ -61,6 +61,7 @@ pub trait ServiceModule:
         let mut provider = self.get_provider(&provider_address);
         provider.funds_last_update_nonce = 0;
         provider.funds_last_update_epoch = 0;
+        provider.stake_last_update_nonce = 0;
         match result {
             ManagedAsyncCallResult::Ok(()) => {
                 provider.stake_last_update_nonce = 0;
@@ -115,6 +116,7 @@ pub trait ServiceModule:
         let mut provider = self.get_provider(&provider_address);
         provider.funds_last_update_nonce = 0;
         provider.funds_last_update_epoch = 0;
+        provider.stake_last_update_nonce = 0;
         match result {
             ManagedAsyncCallResult::Ok(()) => {
                 provider.stake_last_update_nonce = 0;
@@ -342,8 +344,7 @@ pub trait ServiceModule:
             }
             if provider_to_undelegate.salsa_stake < undelegate_amount {
                 undelegate_amount = provider_to_undelegate.salsa_stake.clone();
-            }
-            if provider_to_undelegate.salsa_stake < &undelegate_amount + MIN_EGLD {
+            } else if provider_to_undelegate.salsa_stake < &undelegate_amount + MIN_EGLD {
                 undelegate_amount = provider_to_undelegate.salsa_stake - MIN_EGLD;
             }
             if undelegate_amount < MIN_EGLD {
