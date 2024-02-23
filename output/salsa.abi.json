@@ -777,6 +777,16 @@
             ]
         },
         {
+            "name": "getLpState",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "State"
+                }
+            ]
+        },
+        {
             "name": "getContractInfo",
             "mutability": "readonly",
             "inputs": [],
@@ -963,16 +973,6 @@
             "outputs": []
         },
         {
-            "name": "getLpState",
-            "mutability": "readonly",
-            "inputs": [],
-            "outputs": [
-                {
-                    "type": "State"
-                }
-            ]
-        },
-        {
             "docs": [
                 "    * Take LPs profit\\n     "
             ],
@@ -1014,6 +1014,30 @@
                 {
                     "name": "address",
                     "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "setXStakeOnedexId",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "id",
+                    "type": "u32"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "setXStakeXexchangeId",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "id",
+                    "type": "u32"
                 }
             ],
             "outputs": []
@@ -1201,6 +1225,10 @@
                 },
                 {
                     "name": "undelegate_now_fee",
+                    "type": "u64"
+                },
+                {
+                    "name": "service_fee",
                     "type": "u64"
                 },
                 {

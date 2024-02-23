@@ -55,4 +55,8 @@ pub static ERROR_CANCEL_HEIR_WHILE_KNIGHT_SET: &[u8] = b"You can't remove your h
 pub static ERROR_LOAN_NOT_RETURNED: &[u8] = b"Loan not returned";
 pub static ERROR_FLASH_LOANS_NOT_ACTIVE: &[u8] = b"Flash loans not active";
 
+pub static ERROR_LP_MODULE_INACTIVE: &[u8] = b"LP module is not active";
 pub static ERROR_XSTAKE_SC: &[u8] = b"xStake SC address not set";
+pub static ERROR_WRONG_XSTAKE_SC: &[u8] = b"Wrong xStake SC address or inactive";
+pub static ERROR_XSTAKE_IDS_NOT_SET: &[u8] = b"xStake IDs not set";
+pub static ERROR_INVALID_XSTAKE: &[u8] = b"Invalid xStake";
