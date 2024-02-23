@@ -1,3 +1,11 @@
-pub const SALSA_WASM_PATH: &str = "output/salsa.wasm";
-
-pub static TOKEN_ID:&[u8] = b"TEST-123456";
+pub const SALSA_ADDRESS_EXPR: &str = "sc:salsa";
+pub const SALSA_PATH_EXPR: &str = "mxsc:output/salsa.mxsc.json";
+pub const OWNER_ADDRESS_EXPR: &str = "address:owner";
+pub const TOKEN_NAME: &str = "LiquidEGLD";
+pub const TOKEN_TICKER: &str = "LEGLD";
+pub const TOKEN_DECIMALS: usize = 18;
+pub const UNBOND_PERIOD: u64 = 10;
+pub const SERVICE_FEE: u64 = 1000;
+pub const UNDELEGATE_NOW_FEE: u64 = 100;
+pub const FIRST_USER_ADDRESS_EXPR: &str = "address:first-user";
+pub const SECOND_USER_ADDRESS_EXPR: &str = "address:second-user";
