@@ -289,7 +289,7 @@ pub trait ServiceModule:
                 min_topup = topup.clone();
                 provider_to_delegate = provider.clone();
             }
-            if topup > max_topup || max_topup == 0 {
+            if (topup > max_topup || max_topup == 0) && (provider_to_undelegate.salsa_stake > 0) {
                 max_topup = topup;
                 provider_to_undelegate = provider;
             }
@@ -325,6 +325,9 @@ pub trait ServiceModule:
                 if amount > &max_amount {
                     undelegate_amount = max_amount;
                 }
+            }
+            if provider_to_undelegate.salsa_stake < undelegate_amount {
+                undelegate_amount = provider_to_undelegate.salsa_stake;
             }
         }
 
