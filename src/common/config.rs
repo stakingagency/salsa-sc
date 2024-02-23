@@ -96,7 +96,8 @@ where M: ManagedTypeApi
     pub fn is_active(&self) -> bool {
         self.state == State::Active &&
         self.staked_nodes > 0 &&
-        self.fee <= MAX_PROVIDER_FEE
+        self.fee <= MAX_PROVIDER_FEE &&
+        (!self.has_cap || (self.max_cap > &self.total_stake + ONE_EGLD))
     }
 
     pub fn is_config_up_to_date(&self, current_nonce: u64) -> bool {
