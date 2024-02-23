@@ -65,8 +65,8 @@ pub trait SalsaContract<ContractReader>:
         let caller = self.blockchain().get_caller();
         let mut storage_cache = StorageCache::new(self);
 
+        let mut lp_cache = LpCache::new(self);
         if arbitrage {
-            let mut lp_cache = LpCache::new(self);
             self.do_arbitrage(&mut storage_cache, &mut lp_cache, OptionalValue::None);
         }
 
@@ -77,6 +77,9 @@ pub trait SalsaContract<ContractReader>:
             self.user_delegation(&caller)
                 .update(|value| *value += &user_payment.amount);
             storage_cache.legld_in_custody += user_payment.amount;
+            if arbitrage {
+                self.add_lp(&mut storage_cache, &mut lp_cache);
+            }
         } else {
             self.send().direct_esdt(
                 &caller,
@@ -139,7 +142,6 @@ pub trait SalsaContract<ContractReader>:
         );
 
         let mut lp_cache = LpCache::new(self);
-
         if arbitrage {
             self.do_arbitrage(&mut storage_cache, &mut lp_cache, OptionalValue::None);
         }
