@@ -23,6 +23,12 @@ pub trait ProvidersModule:
         provider.address = address.clone();
         self.providers().insert(address.clone(), provider);
 
+        self.refresh_provider(address);
+    }
+
+    #[only_owner]
+    #[endpoint(refreshProvider)]
+    fn refresh_provider(&self, address: ManagedAddress) {
         self.refresh_provider_config(&address);
         self.refresh_provider_stake(&address);
         self.refresh_provider_nodes(&address);
@@ -246,6 +252,8 @@ pub trait ProvidersModule:
         #[call_result] result: ManagedAsyncCallResult<MultiValueEncoded<ManagedBuffer>>,
     ) {
         let mut provider = self.get_provider(address);
+        provider.funds_last_update_nonce = self.blockchain().get_block_nonce();
+        provider.funds_last_update_epoch = self.blockchain().get_block_epoch();
         match result {
             ManagedAsyncCallResult::Ok(delegator_funds_data) => {
                 require!(delegator_funds_data.len() == 4, ERROR_INVALID_SC_RESPONSE);
@@ -255,12 +263,12 @@ pub trait ProvidersModule:
                 provider.salsa_rewards = BigUint::from(funds_data.get(PROVIDER_FUNDS_REWARDS_INDEX).clone_value());
                 provider.salsa_undelegated = BigUint::from(funds_data.get(PROVIDER_FUNDS_UNDELEGATED_INDEX).clone_value());
                 provider.salsa_withdrawable = BigUint::from(funds_data.get(PROVIDER_FUNDS_WITHDRAWABLE_INDEX).clone_value());
-                provider.funds_last_update_nonce = self.blockchain().get_block_nonce();
-                provider.funds_last_update_epoch = self.blockchain().get_block_epoch();
             }
             ManagedAsyncCallResult::Err(_) => {
-                provider.funds_last_update_nonce = 0;
-                provider.funds_last_update_epoch = 0;
+                provider.salsa_stake = BigUint::zero();
+                provider.salsa_rewards = BigUint::zero();
+                provider.salsa_undelegated = BigUint::zero();
+                provider.salsa_withdrawable = BigUint::zero();
             }
         }
         self.providers().insert(address.clone(), provider);
