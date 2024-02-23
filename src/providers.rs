@@ -21,7 +21,12 @@ pub trait ProvidersModule:
 
         let mut provider = self.empty_provider();
         provider.address = address.clone();
-        self.providers().insert(address, provider);
+        self.providers().insert(address.clone(), provider);
+
+        self.refresh_provider_config(&address);
+        self.refresh_provider_stake(&address);
+        self.refresh_provider_nodes(&address);
+        self.refresh_provider_funds_data(&address);
     }
 
     fn get_provider(&self, address: &ManagedAddress) -> ProviderConfig<Self::Api> {
@@ -40,10 +45,12 @@ pub trait ProvidersModule:
 
         let current_nonce = self.blockchain().get_block_nonce();
         let current_epoch = self.blockchain().get_block_epoch();
-        require!(
-            provider.are_funds_up_to_date(current_nonce, current_epoch),
-            ERROR_PROVIDER_NOT_UP_TO_DATE
-        );
+        if provider.is_active() {
+            require!(
+                provider.are_funds_up_to_date(current_nonce, current_epoch),
+                ERROR_PROVIDER_NOT_UP_TO_DATE
+            );
+        }
 
         require!(
             provider.salsa_stake == 0 &&
