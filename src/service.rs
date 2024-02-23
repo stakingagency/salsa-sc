@@ -58,17 +58,19 @@ pub trait ServiceModule:
         egld_to_delegate: BigUint,
         #[call_result] result: ManagedAsyncCallResult<()>,
     ) {
+        let mut provider = self.get_provider(&provider_address);
+        provider.funds_last_update_nonce = 0;
+        provider.funds_last_update_epoch = 0;
         match result {
             ManagedAsyncCallResult::Ok(()) => {
-                let mut provider = self.get_provider(&provider_address);
                 provider.stake_last_update_nonce = 0;
-                self.providers().insert(provider_address, provider);
             }
             ManagedAsyncCallResult::Err(_) => {
                 self.egld_to_delegate()
                     .update(|value| *value += egld_to_delegate);
             }
         }
+        self.providers().insert(provider_address, provider);
     }
 
     #[endpoint(unDelegateAll)]
@@ -110,17 +112,19 @@ pub trait ServiceModule:
         egld_to_undelegate: BigUint,
         #[call_result] result: ManagedAsyncCallResult<()>,
     ) {
+        let mut provider = self.get_provider(&provider_address);
+        provider.funds_last_update_nonce = 0;
+        provider.funds_last_update_epoch = 0;
         match result {
             ManagedAsyncCallResult::Ok(()) => {
-                let mut provider = self.get_provider(&provider_address);
                 provider.stake_last_update_nonce = 0;
-                self.providers().insert(provider_address, provider);
             }
             ManagedAsyncCallResult::Err(_) => {
                 self.egld_to_undelegate()
                     .update(|value| *value += egld_to_undelegate);
             }
         }
+        self.providers().insert(provider_address, provider);
     }
 
     #[endpoint(claimRewards)]
@@ -156,6 +160,9 @@ pub trait ServiceModule:
         provider_address: ManagedAddress,
         #[call_result] result: ManagedAsyncCallResult<()>,
     ) {
+        let mut provider = self.get_provider(&provider_address);
+        provider.funds_last_update_nonce = 0;
+        provider.funds_last_update_epoch = 0;
         match result {
             ManagedAsyncCallResult::Ok(()) => {
                 let claimed_amount = self.call_value().egld_value().clone_value();
@@ -166,12 +173,11 @@ pub trait ServiceModule:
                 self.egld_to_delegate()
                     .update(|value| *value += left_amount);
                 self.send().direct_egld(&self.blockchain().get_owner_address(), &commission);
-                let mut provider = self.get_provider(&provider_address);
                 provider.salsa_rewards = BigUint::zero();
-                self.providers().insert(provider_address, provider);
             }
             ManagedAsyncCallResult::Err(_) => {}
         }
+        self.providers().insert(provider_address, provider);
     }
 
     #[endpoint(withdrawAll)]
@@ -207,17 +213,19 @@ pub trait ServiceModule:
         provider_address: ManagedAddress,
         #[call_result] result: ManagedAsyncCallResult<()>,
     ) {
+        let mut provider = self.get_provider(&provider_address);
+        provider.funds_last_update_nonce = 0;
+        provider.funds_last_update_epoch = 0;
         match result {
             ManagedAsyncCallResult::Ok(()) => {
                 let withdrawn_amount = self.call_value().egld_value();
                 self.total_withdrawn_egld()
                     .update(|value| *value += withdrawn_amount.clone_value());
-                let mut provider = self.get_provider(&provider_address);
                 provider.salsa_withdrawable = BigUint::zero();
-                self.providers().insert(provider_address, provider);
             }
             ManagedAsyncCallResult::Err(_) => {}
         }
+        self.providers().insert(provider_address, provider);
     }
 
     #[endpoint(computeWithdrawn)]
@@ -289,10 +297,13 @@ pub trait ServiceModule:
                 min_topup = topup.clone();
                 provider_to_delegate = provider.clone();
             }
-            if (topup > max_topup || max_topup == 0) && (provider_to_undelegate.salsa_stake > 0) {
+            if (topup > max_topup || max_topup == 0) && (provider.salsa_stake > 0) {
                 max_topup = topup;
-                provider_to_undelegate = provider;
+                provider_to_undelegate = provider.clone();
             }
+        }
+        if max_topup < min_topup {
+            max_topup = min_topup.clone();
         }
         let dif_topup = &max_topup - &min_topup;
         let mut delegate_amount = BigUint::zero();
@@ -313,6 +324,9 @@ pub trait ServiceModule:
                     delegate_amount = max_amount;
                 }
             }
+            if delegate_amount < MIN_EGLD {
+                delegate_amount = BigUint::zero();
+            }
         }
         let mut undelegate_amount = BigUint::zero();
         if provider_to_undelegate.staked_nodes > 0 {
@@ -327,7 +341,13 @@ pub trait ServiceModule:
                 }
             }
             if provider_to_undelegate.salsa_stake < undelegate_amount {
-                undelegate_amount = provider_to_undelegate.salsa_stake;
+                undelegate_amount = provider_to_undelegate.salsa_stake.clone();
+            }
+            if provider_to_undelegate.salsa_stake < &undelegate_amount + MIN_EGLD {
+                undelegate_amount = provider_to_undelegate.salsa_stake - MIN_EGLD;
+            }
+            if undelegate_amount < MIN_EGLD {
+                undelegate_amount = BigUint::zero();
             }
         }
 
