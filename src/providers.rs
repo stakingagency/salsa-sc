@@ -19,24 +19,9 @@ pub trait ProvidersModule:
             ERROR_PROVIDER_ALREADY_ADDED
         );
 
-        self.providers().insert(address.clone(), ProviderConfig{
-            state: State::Active,
-            address,
-            staked_nodes: 0,
-            total_stake: BigUint::zero(),
-            max_cap: BigUint::zero(),
-            has_cap: false,
-            fee: 0,
-            salsa_stake: BigUint::zero(),
-            salsa_undelegated: BigUint::zero(),
-            salsa_withdrawable: BigUint::zero(),
-            salsa_rewards: BigUint::zero(),
-            config_last_update_nonce: 0,
-            stake_last_update_nonce: 0,
-            nodes_last_update_nonce: 0,
-            funds_last_update_nonce: 0,
-            funds_last_update_epoch: 0,
-        });
+        let mut provider = self.empty_provider();
+        provider.address = address.clone();
+        self.providers().insert(address, provider);
     }
 
     fn get_provider(&self, address: &ManagedAddress) -> ProviderConfig<Self::Api> {
@@ -272,6 +257,29 @@ pub trait ProvidersModule:
             }
         }
         self.providers().insert(address.clone(), provider);
+    }
+
+    // helpers
+
+    fn empty_provider(&self) -> ProviderConfig<Self::Api> {
+        ProviderConfig{
+            state: State::Active,
+            address: ManagedAddress::from(&[0u8; 32]),
+            staked_nodes: 0,
+            total_stake: BigUint::zero(),
+            max_cap: BigUint::zero(),
+            has_cap: false,
+            fee: 0,
+            salsa_stake: BigUint::zero(),
+            salsa_undelegated: BigUint::zero(),
+            salsa_withdrawable: BigUint::zero(),
+            salsa_rewards: BigUint::zero(),
+            config_last_update_nonce: 0,
+            stake_last_update_nonce: 0,
+            nodes_last_update_nonce: 0,
+            funds_last_update_nonce: 0,
+            funds_last_update_epoch: 0,
+        }
     }
 
     // proxy
