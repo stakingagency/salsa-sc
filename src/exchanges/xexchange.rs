@@ -22,13 +22,13 @@ pub trait XexchangeModule:
             ERROR_XEXCHANGE_SC,
         );
 
-        if self.xexchange_lp().is_empty() {
+        if self.xexchange_lp_token().is_empty() {
             let xexchange_sc_address = self.xexchange_sc().get();
             let lp: TokenIdentifier = self.xexchange_proxy_obj()
                 .contract(xexchange_sc_address)
                 .get_lp_token_identifier()
                 .execute_on_dest_context();
-            self.xexchange_lp().set(lp);
+            self.xexchange_lp_token().set(lp);
         }
 
         self.xexchange_arbitrage().set(State::Active);
@@ -53,8 +53,8 @@ pub trait XexchangeModule:
     #[storage_mapper("xexchange_sc")]
     fn xexchange_sc(&self) -> SingleValueMapper<ManagedAddress>;
 
-    #[storage_mapper("xexchange_lp")]
-    fn xexchange_lp(&self) -> SingleValueMapper<TokenIdentifier>;
+    #[storage_mapper("xexchange_lp_token")]
+    fn xexchange_lp_token(&self) -> SingleValueMapper<TokenIdentifier>;
 
     #[only_owner]
     #[endpoint(setXexchangeSC)]

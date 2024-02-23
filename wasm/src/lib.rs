@@ -5,10 +5,10 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           93
+// Endpoints:                           95
 // Async Callback:                       1
 // Promise callbacks:                    6
-// Total number of exported functions: 101
+// Total number of exported functions: 103
 
 #![no_std]
 #![allow(internal_features)]
@@ -73,6 +73,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         getKnightUsers => knight_users
         getUserHeir => user_heir
         getHeirUsers => heir_users
+        getLpState => lp_state
         getContractInfo => get_contract_info
         getUserInfo => get_user_info
         delegateAll => delegate_all
@@ -95,12 +96,13 @@ multiversx_sc_wasm_adapter::endpoints! {
         setXexchangeSC => set_xexchange_sc
         setLpActive => set_lp_active
         setLpInactive => set_lp_inactive
-        getLpState => lp_state
         takeLpProfit => take_lp_profit
         setXStakeActive => set_xstake_active
         setXStakeInactive => set_xstake_inactive
         getXStakeState => xstake_state
         setXStakeSC => set_xstake_sc
+        setXStakeOnedexId => set_xstake_onedex_id
+        setXStakeXexchangeId => set_xstake_xexchange_id
         setKnight => set_knight
         cancelKnight => cancel_knight
         activateKnight => activate_knight

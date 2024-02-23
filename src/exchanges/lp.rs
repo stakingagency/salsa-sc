@@ -2,13 +2,18 @@ multiversx_sc::imports!();
 
 use crate::{
     common::{
-        storage_cache::StorageCache,
-        errors::*,
         config::*,
-        consts::*
+        consts::*,
+        errors::*,
+        storage_cache::StorageCache
     },
-    proxies::{onedex_proxy, xexchange_proxy, wrap_proxy},
-    exchanges::lp_cache::LpCache};
+    exchanges::lp_cache::LpCache,
+    proxies::{
+        onedex_proxy::ProxyTrait as _,
+        xexchange_proxy::ProxyTrait as _,
+        wrap_proxy::ProxyTrait as _
+    }
+};
 
 use super::{onedex_cache::OnedexCache, xexchange_cache::XexchangeCache};
 
@@ -47,6 +52,11 @@ pub trait LpModule:
         let mut lp_cache = LpCache::new(self);
 
         self.remove_all_lps(&mut storage_cache, &mut lp_cache);
+
+        if self.is_xstake_active() {
+            self.set_xstake_inactive();
+        }
+
         self.lp_state().set(State::Inactive);
     }
 
@@ -55,10 +65,6 @@ pub trait LpModule:
         let lp = self.lp_state().get();
         lp == State::Active
     }
-
-    #[view(getLpState)]
-    #[storage_mapper("lp_state")]
-    fn lp_state(&self) -> SingleValueMapper<State>;
 
     /**
      * Add LPs
@@ -85,13 +91,13 @@ pub trait LpModule:
 
         // get the list of available exchanges
         let mut lps: ManagedVec<Self::Api, LpInfo<Self::Api>> = ManagedVec::new();
-        let onedex_cache = OnedexCache::new(self);
-        let xexchange_cache = XexchangeCache::new(self);
+        let mut onedex_cache = OnedexCache::new(self);
+        let mut xexchange_cache = XexchangeCache::new(self);
         if self.is_onedex_arbitrage_active() && onedex_cache.lp_info.liquid_reserve > 0 {
-            lps.push(onedex_cache.lp_info);
+            lps.push(onedex_cache.lp_info.clone());
         }
         if self.is_xexchange_arbitrage_active() && xexchange_cache.lp_info.liquid_reserve > 0 {
-            lps.push(xexchange_cache.lp_info);
+            lps.push(xexchange_cache.lp_info.clone());
         }
 
         let num_exchanges = BigUint::from(lps.len());
@@ -127,7 +133,7 @@ pub trait LpModule:
             payments.push(EsdtTokenPayment::new(storage_cache.wegld_id.clone(), 0, egld_to_lp.clone()));
 
             // wrap eGLD
-            self.wrap_lp_proxy_obj()
+            self.wrap_proxy_obj()
                 .contract(xexchange_cache.wrap_sc_address.clone())
                 .wrap_egld()
                 .with_egld_transfer(egld_to_lp)
@@ -136,18 +142,32 @@ pub trait LpModule:
             // add to LP
             match lp.exchange {
                 Exchange::Onedex => {
-                    self.onedex_lp_proxy_obj()
+                    let old_lp_balance = self.blockchain()
+                        .get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(onedex_cache.lp_info.lp_token.clone()), 0);
+                    self.onedex_proxy_obj()
                         .contract(onedex_cache.sc_address.clone())
                         .add_liquidity(BigUint::from(1u64), BigUint::from(1u64))
                         .with_multi_token_transfer(payments)
                         .execute_on_dest_context::<()>();
+                    let new_lp_balance = self.blockchain()
+                        .get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(onedex_cache.lp_info.lp_token.clone()), 0);
+                    let added_lp = &new_lp_balance - &old_lp_balance;
+                    onedex_cache.lp_info.lp_balance += &added_lp;
+                    self.add_xstake(self.xstake_onedex_id().get(), new_lp_balance, onedex_cache.lp_info.lp_token.clone());
                 }
                 Exchange::Xexchange => {
-                    self.xexchange_lp_proxy_obj()
+                    let old_lp_balance = self.blockchain()
+                        .get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(xexchange_cache.lp_info.lp_token.clone()), 0);
+                    self.xexchange_proxy_obj()
                         .contract(xexchange_cache.sc_address.clone())
                         .add_liquidity(BigUint::from(1u64), BigUint::from(1u64))
                         .with_multi_token_transfer(payments)
                         .execute_on_dest_context::<()>();
+                    let new_lp_balance = self.blockchain()
+                        .get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(xexchange_cache.lp_info.lp_token.clone()), 0);
+                    let added_lp = &new_lp_balance - &old_lp_balance;
+                    xexchange_cache.lp_info.lp_balance += &added_lp;
+                    self.add_xstake(self.xstake_xexchange_id().get(), new_lp_balance, xexchange_cache.lp_info.lp_token.clone());
                 }
                 Exchange::None => {}
             }
@@ -210,30 +230,14 @@ pub trait LpModule:
                         lp_to_remove = onedex_cache.lp_info.lp_balance.clone();
                         egld_to_remove = &onedex_cache.lp_info.egld_reserve * &lp_to_remove / &onedex_cache.lp_info.lp_supply;
                     }
-                    let payment =
-                        EsdtTokenPayment::new(onedex_cache.lp_info.lp_token.clone(), 0, lp_to_remove.clone());
-                    onedex_cache.lp_info.lp_balance -= &lp_to_remove;
-                    self.remove_xstake(self.xstake_onedex_id().get(), lp_to_remove, onedex_cache.lp_info.lp_token.clone());
-                    self.onedex_lp_proxy_obj()
-                        .contract(onedex_cache.sc_address.clone())
-                        .remove_liquidity(BigUint::from(1u64), BigUint::from(1u64), false)
-                        .with_esdt_transfer(payment)
-                        .execute_on_dest_context::<()>();
+                    self.remove_onedex_lp(lp_to_remove, &mut onedex_cache);
                 }
                 Exchange::Xexchange => {
                     if lp_to_remove > xexchange_cache.lp_info.lp_balance {
                         lp_to_remove = xexchange_cache.lp_info.lp_balance.clone();
                         egld_to_remove = &xexchange_cache.lp_info.egld_reserve * &lp_to_remove / &xexchange_cache.lp_info.lp_supply;
                     }
-                    let payment
-                        = EsdtTokenPayment::new(xexchange_cache.lp_info.lp_token.clone(), 0, lp_to_remove.clone());
-                    xexchange_cache.lp_info.lp_balance -= &lp_to_remove;
-                    self.remove_xstake(self.xstake_xexchange_id().get(), lp_to_remove, xexchange_cache.lp_info.lp_token.clone());
-                    self.xexchange_lp_proxy_obj()
-                        .contract(xexchange_cache.sc_address.clone())
-                        .remove_liquidity(BigUint::from(1u64), BigUint::from(1u64))
-                        .with_esdt_transfer(payment)
-                        .execute_on_dest_context::<()>();
+                    self.remove_xexchange_lp(lp_to_remove, &mut xexchange_cache);
                 }
                 Exchange::None => {}
             }
@@ -301,30 +305,14 @@ pub trait LpModule:
                         lp_to_remove = onedex_cache.lp_info.lp_balance.clone();
                         legld_to_remove = &onedex_cache.lp_info.liquid_reserve * &lp_to_remove / &onedex_cache.lp_info.lp_supply;
                     }
-                    let payment =
-                        EsdtTokenPayment::new(onedex_cache.lp_info.lp_token.clone(), 0, lp_to_remove.clone());
-                    onedex_cache.lp_info.lp_balance -= &lp_to_remove;
-                    self.remove_xstake(self.xstake_onedex_id().get(), lp_to_remove, onedex_cache.lp_info.lp_token.clone());
-                    self.onedex_lp_proxy_obj()
-                        .contract(onedex_cache.sc_address.clone())
-                        .remove_liquidity(BigUint::from(1u64), BigUint::from(1u64), false)
-                        .with_esdt_transfer(payment)
-                        .execute_on_dest_context::<()>();
+                    self.remove_onedex_lp(lp_to_remove, &mut onedex_cache);
                 }
                 Exchange::Xexchange => {
                     if lp_to_remove > xexchange_cache.lp_info.lp_balance {
                         lp_to_remove = xexchange_cache.lp_info.lp_balance.clone();
                         legld_to_remove = &xexchange_cache.lp_info.liquid_reserve * &lp_to_remove / &xexchange_cache.lp_info.lp_supply;
                     }
-                    let payment
-                        = EsdtTokenPayment::new(xexchange_cache.lp_info.lp_token.clone(), 0, lp_to_remove.clone());
-                    xexchange_cache.lp_info.lp_balance -= &lp_to_remove;
-                    self.remove_xstake(self.xstake_xexchange_id().get(), lp_to_remove, xexchange_cache.lp_info.lp_token.clone());
-                    self.xexchange_lp_proxy_obj()
-                        .contract(xexchange_cache.sc_address.clone())
-                        .remove_liquidity(BigUint::from(1u64), BigUint::from(1u64))
-                        .with_esdt_transfer(payment)
-                        .execute_on_dest_context::<()>();
+                    self.remove_xexchange_lp(lp_to_remove, &mut xexchange_cache);
                 }
                 Exchange::None => {}
             }
@@ -374,6 +362,32 @@ pub trait LpModule:
 
     // helpers
 
+    fn remove_onedex_lp(&self, lp_to_remove: BigUint, onedex_cache: &mut OnedexCache<Self>) {
+        let payment =
+            EsdtTokenPayment::new(onedex_cache.lp_info.lp_token.clone(), 0, lp_to_remove.clone());
+        onedex_cache.lp_info.lp_balance -= &lp_to_remove;
+        self.remove_xstake(self.xstake_onedex_id().get(), lp_to_remove, onedex_cache.lp_info.lp_token.clone());
+        self.take_xstake_profit(self.xstake_onedex_id().get());
+        self.onedex_proxy_obj()
+            .contract(onedex_cache.sc_address.clone())
+            .remove_liquidity(BigUint::from(1u64), BigUint::from(1u64), false)
+            .with_esdt_transfer(payment)
+            .execute_on_dest_context::<()>();
+    }
+
+    fn remove_xexchange_lp(&self, lp_to_remove: BigUint, xexchange_cache: &mut XexchangeCache<Self>) {
+        let payment
+            = EsdtTokenPayment::new(xexchange_cache.lp_info.lp_token.clone(), 0, lp_to_remove.clone());
+        xexchange_cache.lp_info.lp_balance -= &lp_to_remove;
+        self.remove_xstake(self.xstake_xexchange_id().get(), lp_to_remove, xexchange_cache.lp_info.lp_token.clone());
+        self.take_xstake_profit(self.xstake_xexchange_id().get());
+        self.xexchange_proxy_obj()
+            .contract(xexchange_cache.sc_address.clone())
+            .remove_liquidity(BigUint::from(1u64), BigUint::from(1u64))
+            .with_esdt_transfer(payment)
+            .execute_on_dest_context::<()>();
+    }
+
     fn remove_all_lps(&self, storage_cache: &mut StorageCache<Self>, lp_cache: &mut LpCache<Self>) {
         let mut onedex_cache = OnedexCache::new(self);
         let mut xexchange_cache = XexchangeCache::new(self);
@@ -382,24 +396,10 @@ pub trait LpModule:
 
         let (old_balance, old_ls_balance) = self.get_sc_balances();
         if self.is_onedex_arbitrage_active() && onedex_cache.lp_info.lp_balance > 0 {
-            let payment =
-                EsdtTokenPayment::new(onedex_cache.lp_info.lp_token.clone(), 0, onedex_cache.lp_info.lp_balance.clone());
-            onedex_cache.lp_info.lp_balance = BigUint::zero();
-            self.onedex_lp_proxy_obj()
-                .contract(onedex_cache.sc_address.clone())
-                .remove_liquidity(BigUint::from(1u64), BigUint::from(1u64), false)
-                .with_esdt_transfer(payment)
-                .execute_on_dest_context::<()>();
+            self.remove_onedex_lp(onedex_cache.lp_info.lp_balance.clone(), &mut onedex_cache);
         }
         if self.is_xexchange_arbitrage_active() && xexchange_cache.lp_info.lp_balance > 0 {
-            let payment
-                = EsdtTokenPayment::new(xexchange_cache.lp_info.lp_token.clone(), 0, xexchange_cache.lp_info.lp_balance.clone());
-            xexchange_cache.lp_info.lp_balance -= BigUint::zero();
-            self.xexchange_lp_proxy_obj()
-                .contract(xexchange_cache.sc_address.clone())
-                .remove_liquidity(BigUint::from(1u64), BigUint::from(1u64))
-                .with_esdt_transfer(payment)
-                .execute_on_dest_context::<()>();
+            self.remove_xexchange_lp(xexchange_cache.lp_info.lp_balance.clone(), &mut xexchange_cache);
         }
 
         self.unwrap_all_wegld();
@@ -563,22 +563,11 @@ pub trait LpModule:
             self.blockchain().get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(wegld_id.clone()), 0);
         if wegld_balance > 0 {
             let payment = EsdtTokenPayment::new(wegld_id, 0, wegld_balance);
-            self.wrap_lp_proxy_obj()
+            self.wrap_proxy_obj()
                 .contract(wrap_sc_address)
                 .unwrap_egld()
                 .with_esdt_transfer(payment)
                 .execute_on_dest_context::<()>();
         }
     }
-
-    // proxies
-
-    #[proxy]
-    fn onedex_lp_proxy_obj(&self) -> onedex_proxy::Proxy<Self::Api>;
-
-    #[proxy]
-    fn xexchange_lp_proxy_obj(&self) -> xexchange_proxy::Proxy<Self::Api>;
-
-    #[proxy]
-    fn wrap_lp_proxy_obj(&self) -> wrap_proxy::Proxy<Self::Api>;
 }

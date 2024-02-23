@@ -408,6 +408,10 @@ pub trait ConfigModule:
 
     // LPs
 
+    #[view(getLpState)]
+    #[storage_mapper("lp_state")]
+    fn lp_state(&self) -> SingleValueMapper<State>;
+
     #[storage_mapper("egld_in_lp")]
     fn egld_in_lp(&self) -> SingleValueMapper<BigUint>;
 
@@ -419,6 +423,12 @@ pub trait ConfigModule:
     
     #[storage_mapper("excess_lp_legld")]
     fn excess_lp_legld(&self) -> SingleValueMapper<BigUint>;
+
+    #[storage_mapper("onedex_lp_balance")]
+    fn onedex_lp_balance(&self) -> SingleValueMapper<BigUint>;
+
+    #[storage_mapper("xexchange_lp_balance")]
+    fn xexchange_lp_balance(&self) -> SingleValueMapper<BigUint>;
 
     // global view functions
 

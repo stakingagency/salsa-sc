@@ -25,9 +25,9 @@ pub trait OnedexModule:
             ERROR_ONEDEX_SC,
         );
 
-        if self.onedex_lp().is_empty() {
+        if self.onedex_lp_token().is_empty() {
             let pair = self.get_onedex_pair_info();
-            self.onedex_lp().set(pair.lp_token_id);
+            self.onedex_lp_token().set(pair.lp_token_id);
         }
 
         self.onedex_arbitrage().set(State::Active);
@@ -55,8 +55,8 @@ pub trait OnedexModule:
     #[storage_mapper("onedex_pair_id")]
     fn onedex_pair_id(&self) -> SingleValueMapper<usize>;
 
-    #[storage_mapper("onedex_lp")]
-    fn onedex_lp(&self) -> SingleValueMapper<TokenIdentifier>;
+    #[storage_mapper("onedex_lp_token")]
+    fn onedex_lp_token(&self) -> SingleValueMapper<TokenIdentifier>;
 
     #[only_owner]
     #[endpoint(setOnedexSC)]

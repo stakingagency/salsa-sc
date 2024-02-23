@@ -26,8 +26,19 @@ pub struct Stake<M: ManagedTypeApi> {
     pub remaining_nonces: u64,
 }
 
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
+pub struct UserStake<M: ManagedTypeApi> {
+    pub staked: ManagedVec<M, BigUint<M>>,
+    pub rewards: ManagedVec<M, BigUint<M>>,
+    pub rps: ManagedVec<M, BigUint<M>>,
+}
+
 #[multiversx_sc::proxy]
 pub trait XStakeProxy {
+    #[view(getState)]
+    #[storage_mapper("state")]
+    fn state(&self) -> SingleValueMapper<State>;
+
     #[payable("*")]
     #[endpoint(userStake)]
     fn user_stake(&self, stake_id: usize);
@@ -40,4 +51,7 @@ pub trait XStakeProxy {
 
     #[view(getStake)]
     fn get_stake(&self, id: usize) -> Stake<Self::Api>;
+
+    #[view(getUserStake)]
+    fn get_user_stake(&self, id: usize, user: &ManagedAddress) -> UserStake<Self::Api>;
 }
