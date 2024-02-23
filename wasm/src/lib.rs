@@ -5,10 +5,10 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           95
+// Endpoints:                           96
 // Async Callback:                       1
 // Promise callbacks:                    6
-// Total number of exported functions: 103
+// Total number of exported functions: 104
 
 #![no_std]
 #![allow(internal_features)]
@@ -114,6 +114,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         removeHeir => remove_heir
         updateLastAccessed => update_last_accessed
         addProvider => add_provider
+        refreshProvider => refresh_provider
         removeProvider => remove_provider
         setProviderState => set_provider_state
         claim_rewards_callback => claim_rewards_callback
