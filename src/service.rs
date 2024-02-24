@@ -133,6 +133,10 @@ pub trait ServiceModule:
     fn claim_rewards(&self) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
+        if !self.are_providers_updated() {
+            return
+        }
+
         let current_nonce = self.blockchain().get_block_nonce();
         let current_epoch = self.blockchain().get_block_epoch();
         for (address, provider) in self.providers().iter() {
@@ -185,6 +189,10 @@ pub trait ServiceModule:
     #[endpoint(withdrawAll)]
     fn withdraw_all(&self) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
+
+        if !self.are_providers_updated() {
+            return
+        }
 
         let current_nonce = self.blockchain().get_block_nonce();
         let current_epoch = self.blockchain().get_block_epoch();
