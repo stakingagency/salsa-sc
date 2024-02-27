@@ -51,6 +51,18 @@ where
             ).assert_ok();
     }
 
+    pub fn check_egld_to_delegate(&mut self, amount: num_bigint::BigUint) {
+        self.blockchain_wrapper
+            .execute_query(
+                &self.salsa_wrapper, |sc| {
+                    assert_eq!(
+                        sc.egld_to_delegate().get(),
+                        to_managed_biguint(amount)
+                    );
+                }
+            ).assert_ok();
+    }
+
     pub fn check_egld_to_undelegate(&mut self, amount: num_bigint::BigUint) {
         self.blockchain_wrapper
             .execute_query(

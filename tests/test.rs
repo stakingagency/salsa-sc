@@ -27,31 +27,40 @@ fn delegation_test() {
 
     let mut sc_setup = SalsaContractSetup::new(salsa::contract_obj);
     let big_zero = rust_biguint!(0);
-    let caller = sc_setup.setup_new_user(1u64);
-    let amount = exp(1, 18);
-    sc_setup.blockchain_wrapper.set_block_nonce(10);
-    sc_setup.blockchain_wrapper.set_block_epoch(1u64);
+    let provider_address = sc_setup.provider_address.clone();
+    let caller = sc_setup.setup_new_user(2u64);
+    let amount = exp(2, 18);
 
     // delegate
+    sc_setup.blockchain_wrapper.set_block_nonce(10);
+    sc_setup.blockchain_wrapper.set_block_epoch(1u64);
     sc_setup.delegate_test(&caller, amount.clone(), false);
+    sc_setup.check_egld_to_delegate(amount.clone());
+    sc_setup.refresh_provider_test(&caller, &provider_address);
     sc_setup.delegate_all_test(&caller);
+    sc_setup.check_egld_to_delegate(big_zero.clone());
     sc_setup.blockchain_wrapper.check_egld_balance(&caller, &big_zero);
     sc_setup.blockchain_wrapper.check_esdt_balance(&caller, TOKEN_ID, &amount);
     sc_setup.check_total_egld_staked(amount.clone());
     sc_setup.check_liquid_supply(amount.clone());
 
     // undelegate
+    sc_setup.blockchain_wrapper.set_block_nonce(20);
+    sc_setup.blockchain_wrapper.set_block_epoch(2u64);
     sc_setup.undelegate_test(&caller, amount.clone(), big_zero.clone());
     sc_setup.blockchain_wrapper.check_esdt_balance(&caller, TOKEN_ID, &big_zero);
     sc_setup.check_total_egld_staked(big_zero.clone());
     sc_setup.check_egld_to_undelegate(amount.clone());
 
     // undelegate all
+    sc_setup.refresh_provider_test(&caller, &provider_address);
     sc_setup.undelegate_all_test(&caller);
     sc_setup.check_egld_to_undelegate(big_zero.clone());
 
     // withdraw all
-    sc_setup.blockchain_wrapper.set_block_epoch(11u64);
+    sc_setup.blockchain_wrapper.set_block_nonce(120);
+    sc_setup.blockchain_wrapper.set_block_epoch(12u64);
+    sc_setup.refresh_provider_test(&caller, &provider_address);
     sc_setup.withdraw_all_test(&caller);
     sc_setup.check_total_withdrawn_egld(amount.clone());
 
@@ -71,6 +80,7 @@ fn reserves_test() {
     let _ = DebugApi::dummy();
 
     let mut sc_setup = SalsaContractSetup::new(salsa::contract_obj);
+    let provider_address = sc_setup.provider_address.clone();
     let big_zero = rust_biguint!(0);
     let reserver = sc_setup.setup_new_user(1u64);
     let caller = sc_setup.setup_new_user(1u64);
@@ -83,7 +93,10 @@ fn reserves_test() {
 
     // delegate
     sc_setup.delegate_test(&caller, one.clone(), false);
+    sc_setup.check_egld_to_delegate(one.clone());
+    sc_setup.refresh_provider_test(&caller, &provider_address);
     sc_setup.delegate_all_test(&caller);
+    sc_setup.check_egld_to_delegate(big_zero.clone());
     sc_setup.blockchain_wrapper.check_egld_balance(&caller, &big_zero);
     sc_setup.blockchain_wrapper.check_esdt_balance(&caller, TOKEN_ID, &one);
     sc_setup.check_total_egld_staked(one.clone());
@@ -102,12 +115,14 @@ fn reserves_test() {
 
     // undelegate all
     sc_setup.check_egld_to_undelegate(one.clone());
+    sc_setup.refresh_provider_test(&caller, &provider_address);
     sc_setup.undelegate_all_test(&caller);
     sc_setup.check_egld_to_undelegate(big_zero.clone());
     sc_setup.check_reserve_undelegations_amount(one.clone());
 
     // withdraw all
     sc_setup.blockchain_wrapper.set_block_epoch(11u64);
+    sc_setup.refresh_provider_test(&caller, &provider_address);
     sc_setup.withdraw_all_test(&caller);
     sc_setup.check_total_withdrawn_egld(one.clone());
 
@@ -129,6 +144,7 @@ fn reserve_to_user_undelegation_test() {
     let _ = DebugApi::dummy();
 
     let mut sc_setup = SalsaContractSetup::new(salsa::contract_obj);
+    let provider_address = sc_setup.provider_address.clone();
     let big_zero = rust_biguint!(0);
     let one = exp(1, 18);
 
@@ -144,21 +160,28 @@ fn reserve_to_user_undelegation_test() {
 
     // delegate 5 and add reserves 5
     sc_setup.delegate_test(&delegator1, one.clone(), false);
-    sc_setup.delegate_test(&delegator2, one.clone() * 4u64, false);
+    sc_setup.delegate_test(&delegator2, &one * 4u64, false);
+    sc_setup.refresh_provider_test(&caller, &provider_address);
+    sc_setup.check_egld_to_delegate(&one * 5u64);
     sc_setup.delegate_all_test(&caller);
-    sc_setup.add_reserve_test(&reserver1, one.clone() * 2u64);
-    sc_setup.add_reserve_test(&reserver2, one.clone() * 3u64);
+    sc_setup.check_egld_to_delegate(big_zero.clone());
+    sc_setup.add_reserve_test(&reserver1, &one * 2u64);
+    sc_setup.add_reserve_test(&reserver2, &one * 3u64);
     // stake = 5, reserve = 5, available reserve = 5
 
     // undelegate: 1, undelegate now 3
+    sc_setup.blockchain_wrapper.set_block_nonce(20);
+    sc_setup.blockchain_wrapper.set_block_epoch(2u64);
     sc_setup.undelegate_now_test(&delegator1, one.clone(), exp(98u64, 16), big_zero.clone());
+    sc_setup.refresh_provider_test(&caller, &provider_address);
     sc_setup.undelegate_all_test(&caller);
-    sc_setup.undelegate_now_test(&delegator2, one.clone() * 2u64, exp(196u64, 16), big_zero.clone());
+    sc_setup.undelegate_now_test(&delegator2, &one * 2u64, exp(196u64, 16), big_zero.clone());
     sc_setup.undelegate_test(&delegator2, one.clone(), big_zero.clone());
     // stake = 1, reserve = 5.06, available reserve = 2.06
 
     // remove reserves 3.04
-    sc_setup.blockchain_wrapper.set_block_epoch(2u64);
+    sc_setup.blockchain_wrapper.set_block_nonce(30);
+    sc_setup.blockchain_wrapper.set_block_epoch(3u64);
     sc_setup.remove_reserve_test(&reserver1, exp(1024u64, 15));
     sc_setup.remove_reserve_test(&reserver2, exp(2016u64, 15));
     // stake = 1, reserve = 2.02, available reserve = 0
@@ -178,12 +201,18 @@ fn reserve_to_user_undelegation_test() {
     sc_setup.check_total_undelegations_order();
 
     // undelegate and withdraw
-    sc_setup.blockchain_wrapper.set_block_epoch(3u64);
+    sc_setup.blockchain_wrapper.set_block_nonce(40);
+    sc_setup.blockchain_wrapper.set_block_epoch(4u64);
+    sc_setup.refresh_provider_test(&caller, &provider_address);
     sc_setup.undelegate_all_test(&caller);
-    sc_setup.blockchain_wrapper.set_block_epoch(12u64);
+    sc_setup.blockchain_wrapper.set_block_nonce(130);
+    sc_setup.blockchain_wrapper.set_block_epoch(13u64);
+    sc_setup.refresh_provider_test(&caller, &provider_address);
     sc_setup.withdraw_all_test(&caller);
     sc_setup.compute_withdrawn_test(&caller);
-    sc_setup.blockchain_wrapper.set_block_epoch(13u64);
+    sc_setup.blockchain_wrapper.set_block_nonce(140);
+    sc_setup.blockchain_wrapper.set_block_epoch(14u64);
+    sc_setup.refresh_provider_test(&caller, &provider_address);
     sc_setup.withdraw_all_test(&caller);
     sc_setup.compute_withdrawn_test(&caller);
     sc_setup.withdraw_test(&delegator2);
@@ -203,6 +232,7 @@ fn merge_undelegations_test() {
     let _ = DebugApi::dummy();
 
     let mut sc_setup = SalsaContractSetup::new(salsa::contract_obj);
+    let provider_address = sc_setup.provider_address.clone();
     let big_zero = rust_biguint!(0);
     let one = exp(1, 18);
     let mut epoch = 1u64;
@@ -217,6 +247,7 @@ fn merge_undelegations_test() {
 
     // delegate and add reserve
     sc_setup.delegate_test(&delegator, one.clone() * 250u64, false);
+    sc_setup.refresh_provider_test(&caller, &provider_address);
     sc_setup.delegate_all_test(&caller);
     sc_setup.add_reserve_test(&reserver, one.clone() * 125u64);
 
@@ -236,9 +267,11 @@ fn merge_undelegations_test() {
     sc_setup.check_reserve_undelegations_lengths(11);
 
     // undelegate all
+    sc_setup.refresh_provider_test(&caller, &provider_address);
     sc_setup.undelegate_all_test(&caller);
     epoch += 10u64;
     sc_setup.blockchain_wrapper.set_block_epoch(epoch);
+    sc_setup.refresh_provider_test(&caller, &provider_address);
     sc_setup.withdraw_all_test(&caller);
     sc_setup.compute_withdrawn_test(&caller);
     sc_setup.withdraw_test(&delegator);
@@ -255,6 +288,7 @@ fn user_undelegations_order_test() {
     let _ = DebugApi::dummy();
 
     let mut sc_setup = SalsaContractSetup::new(salsa::contract_obj);
+    let provider_address = sc_setup.provider_address.clone();
     let big_zero = rust_biguint!(0);
     let one = exp(1, 18);
     let mut epoch = 1u64;
@@ -266,6 +300,7 @@ fn user_undelegations_order_test() {
 
     // delegate
     sc_setup.delegate_test(&delegator, exp(100, 18), false);
+    sc_setup.refresh_provider_test(&delegator, &provider_address);
     sc_setup.delegate_all_test(&delegator);
 
     // undelegate in epochs 3 and 2 (3 times, 2 in the same epoch, so should be merged)
@@ -317,6 +352,7 @@ fn reserve_undelegations_order_test() {
     let _ = DebugApi::dummy();
 
     let mut sc_setup = SalsaContractSetup::new(salsa::contract_obj);
+    let provider_address = sc_setup.provider_address.clone();
     let big_zero = rust_biguint!(0);
     let one = exp(1, 18);
     let one_with_fee = exp(98, 16);
@@ -329,6 +365,7 @@ fn reserve_undelegations_order_test() {
 
     // delegate and add reserve
     sc_setup.delegate_test(&reserver, exp(50, 18), false);
+    sc_setup.refresh_provider_test(&reserver, &provider_address);
     sc_setup.delegate_all_test(&reserver);
     sc_setup.add_reserve_test(&reserver, exp(50, 18));
 
@@ -365,6 +402,7 @@ fn knight_test() {
     let _ = DebugApi::dummy();
 
     let mut sc_setup = SalsaContractSetup::new(salsa::contract_obj);
+    let provider_address = sc_setup.provider_address.clone();
     let delegator = sc_setup.setup_new_user(10u64);
     sc_setup.blockchain_wrapper.set_esdt_balance(&delegator, TOKEN_ID, &exp(0, 18));
     let knight1 = sc_setup.setup_new_user(0u64);
@@ -372,6 +410,7 @@ fn knight_test() {
     sc_setup.blockchain_wrapper.set_block_nonce(10);
 
     sc_setup.delegate_test(&delegator, exp(1, 18), true); // true = custodial
+    sc_setup.refresh_provider_test(&delegator, &provider_address);
     sc_setup.delegate_all_test(&delegator);
 
     sc_setup.set_knight_test(&delegator, &knight1);
@@ -401,6 +440,7 @@ fn active_knigth_test() {
     let _ = DebugApi::dummy();
 
     let mut sc_setup = SalsaContractSetup::new(salsa::contract_obj);
+    let provider_address = sc_setup.provider_address.clone();
     let one = exp(1, 18);
     let one_with_fee = exp(98, 16);
     let delegator = sc_setup.setup_new_user(10u64);
@@ -413,6 +453,7 @@ fn active_knigth_test() {
 
     // delegate and add reserve
     sc_setup.delegate_test(&delegator, exp(2, 18), true); // true = custodial
+    sc_setup.refresh_provider_test(&delegator, &provider_address);
     sc_setup.delegate_all_test(&delegator);
     sc_setup.add_reserve_test(&delegator, one.clone());
 
@@ -425,6 +466,7 @@ fn active_knigth_test() {
     // undelegate knight, undelegate now knight and remove reserve knight
     sc_setup.undelegate_knight_test(&knight, &delegator, one.clone());
     sc_setup.undelegate_now_knight_test(&knight, &delegator, one_with_fee, one.clone());
+    sc_setup.refresh_provider_test(&delegator, &provider_address);
     sc_setup.undelegate_all_test(&delegator);
     epoch += 1;
     sc_setup.blockchain_wrapper.set_block_epoch(epoch);
@@ -433,6 +475,7 @@ fn active_knigth_test() {
     // withdraw
     epoch += 9;
     sc_setup.blockchain_wrapper.set_block_epoch(epoch);
+    sc_setup.refresh_provider_test(&delegator, &provider_address);
     sc_setup.withdraw_all_test(&delegator);
     sc_setup.compute_withdrawn_test(&delegator);
     sc_setup.withdraw_knight_test(&knight, &delegator);
@@ -447,6 +490,7 @@ fn too_many_knight_users_test() {
     let _ = DebugApi::dummy();
 
     let mut sc_setup = SalsaContractSetup::new(salsa::contract_obj);
+    let provider_address = sc_setup.provider_address.clone();
     let knight = sc_setup.setup_new_user(0u64);
     let user11 = sc_setup.setup_new_user(1u64);
     let mut block_nonce = 10;
@@ -456,12 +500,14 @@ fn too_many_knight_users_test() {
         sc_setup.delegate_test(&user, exp(1, 18), true);
         sc_setup.blockchain_wrapper.set_block_nonce(block_nonce);
         block_nonce += 10;
+        sc_setup.refresh_provider_test(&knight, &provider_address);
         sc_setup.delegate_all_test(&user);
         sc_setup.set_knight_test(&user, &knight);
     }
 
     sc_setup.delegate_test(&user11, exp(1, 18), true);
     sc_setup.blockchain_wrapper.set_block_nonce(block_nonce);
+    sc_setup.refresh_provider_test(&knight, &provider_address);
     sc_setup.delegate_all_test(&user11);
     sc_setup.set_knight_fail_test(&user11, &knight, "Knight has too many users");
 }
@@ -471,6 +517,7 @@ fn too_many_heir_users_test() {
     let _ = DebugApi::dummy();
 
     let mut sc_setup = SalsaContractSetup::new(salsa::contract_obj);
+    let provider_address = sc_setup.provider_address.clone();
     let heir = sc_setup.setup_new_user(0u64);
     let user11 = sc_setup.setup_new_user(1u64);
     let mut block_nonce = 10;
@@ -480,12 +527,14 @@ fn too_many_heir_users_test() {
         sc_setup.delegate_test(&user, exp(1, 18), true);
         sc_setup.blockchain_wrapper.set_block_nonce(block_nonce);
         block_nonce += 10;
+        sc_setup.refresh_provider_test(&heir, &provider_address);
         sc_setup.delegate_all_test(&user);
         sc_setup.set_heir_test(&user, &heir, 365);
         }
 
     sc_setup.delegate_test(&user11, exp(1, 18), true);
     sc_setup.blockchain_wrapper.set_block_nonce(block_nonce);
+    sc_setup.refresh_provider_test(&heir, &provider_address);
     sc_setup.delegate_all_test(&user11);
     sc_setup.set_heir_fail_test(&user11, &heir, 365, "Heir has too many users");
 }
@@ -495,6 +544,7 @@ fn entitled_heir_test() {
     let _ = DebugApi::dummy();
 
     let mut sc_setup = SalsaContractSetup::new(salsa::contract_obj);
+    let provider_address = sc_setup.provider_address.clone();
     let one = exp(1, 18);
     let one_with_fee = exp(98, 16);
     let delegator = sc_setup.setup_new_user(10u64);
@@ -508,6 +558,7 @@ fn entitled_heir_test() {
 
     // delegate and add reserve
     sc_setup.delegate_test(&delegator, exp(2, 18), true); // true = custodial
+    sc_setup.refresh_provider_test(&heir, &provider_address);
     sc_setup.delegate_all_test(&delegator);
     sc_setup.add_reserve_test(&delegator, one.clone());
 
@@ -525,6 +576,7 @@ fn entitled_heir_test() {
     sc_setup.blockchain_wrapper.set_block_epoch(epoch);
     sc_setup.undelegate_heir_test(&heir, &delegator, one.clone());
     sc_setup.undelegate_now_heir_test(&heir, &delegator, one_with_fee, one.clone());
+    sc_setup.refresh_provider_test(&heir, &provider_address);
     sc_setup.undelegate_all_test(&delegator);
     epoch += 1;
     sc_setup.blockchain_wrapper.set_block_epoch(epoch);
@@ -533,6 +585,7 @@ fn entitled_heir_test() {
     // withdraw
     epoch += 9;
     sc_setup.blockchain_wrapper.set_block_epoch(epoch);
+    sc_setup.refresh_provider_test(&heir, &provider_address);
     sc_setup.withdraw_all_test(&delegator);
     sc_setup.compute_withdrawn_test(&delegator);
     sc_setup.withdraw_heir_test(&heir, &delegator);
