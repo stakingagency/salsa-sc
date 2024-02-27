@@ -17,9 +17,9 @@ pub trait ServiceModule:
     fn delegate_all(&self) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
-        let egld_to_delegate = self.egld_to_delegate().get();
+        let mut storage_cache = StorageCache::new(self);
         require!(
-            egld_to_delegate >= MIN_EGLD,
+            storage_cache.egld_to_delegate >= MIN_EGLD,
             ERROR_INSUFFICIENT_AMOUNT
         );
 
@@ -32,12 +32,22 @@ pub trait ServiceModule:
 
         self.last_delegation_block().set(current_block);
 
-        let (provider_address, amount, _, _) = self.get_provider_to_delegate_and_amount(&egld_to_delegate);
-        if amount == 0 {
+        self.reduce_egld_to_delegate_undelegate(&mut storage_cache);
+        if storage_cache.egld_to_delegate == 0 {
+            drop(storage_cache);
             return
         }
 
-        self.egld_to_delegate().set(&egld_to_delegate - &amount);
+        let (provider_address, amount, _, _) =
+            self.get_provider_to_delegate_and_amount(&storage_cache.egld_to_delegate);
+        if amount == 0 {
+            drop(storage_cache);
+            return
+        }
+
+        storage_cache.egld_to_delegate -= &amount;
+        drop(storage_cache);
+
         let gas_for_async_call = self.get_gas_for_async_call();
         self.service_delegation_proxy_obj()
             .contract(provider_address.clone())
@@ -79,22 +89,27 @@ pub trait ServiceModule:
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         let mut storage_cache = StorageCache::new(self);
-        sc_print!("egld to undelegate {}", storage_cache.egld_to_undelegate);
         require!(
             storage_cache.egld_to_undelegate >= MIN_EGLD,
             ERROR_INSUFFICIENT_AMOUNT
         );
 
         self.reduce_egld_to_delegate_undelegate(&mut storage_cache);
+        if storage_cache.egld_to_undelegate == 0 {
+            drop(storage_cache);
+            return
+        }
 
         let (_, _, provider_address, amount) =
             self.get_provider_to_delegate_and_amount(&storage_cache.egld_to_undelegate);
         if amount == 0 {
+            drop(storage_cache);
             return
         }
 
         storage_cache.egld_to_undelegate -= &amount;
         drop(storage_cache);
+
         let gas_for_async_call = self.get_gas_for_async_call();
         self.service_delegation_proxy_obj()
             .contract(provider_address.clone())
