@@ -93,28 +93,49 @@ pub trait ProvidersModule:
     fn are_providers_updated(&self) -> bool {
         let current_nonce = self.blockchain().get_block_nonce();
         let current_epoch = self.blockchain().get_block_epoch();
+        let mut result = false;
         for (address, provider) in self.providers().iter() {
-            if !provider.is_active() || provider.is_up_to_date(current_nonce, current_epoch) {
+            if provider.is_up_to_date(current_nonce, current_epoch) {
+                result = true;
                 continue
             }
 
+            if !provider.is_active() {
+                continue
+            }
+
+            result = false;
+
             if !provider.is_config_up_to_date(current_nonce) {
+                if !self.enough_gas_left_for_callback() {
+                    break
+                }
                 self.refresh_provider_config(&address);
             }
+
             if !provider.is_stake_up_to_date(current_nonce) {
+                if !self.enough_gas_left_for_callback() {
+                    break
+                }
                 self.refresh_provider_stake(&address);
             }
+
             if !provider.are_nodes_up_to_date(current_nonce) {
+                if !self.enough_gas_left_for_callback() {
+                    break
+                }
                 self.refresh_provider_nodes(&address);
             }
+
             if !provider.are_funds_up_to_date(current_nonce, current_epoch) {
+                if !self.enough_gas_left_for_callback() {
+                    break
+                }
                 self.refresh_provider_funds_data(&address);
             }
-
-            return false
         }
 
-        true
+        result
     }
 
     // refresh provider data functions
@@ -275,6 +296,10 @@ pub trait ProvidersModule:
     }
 
     // helpers
+
+    fn enough_gas_left_for_callback(&self) -> bool {
+        self.blockchain().get_gas_left() > MIN_GAS_FOR_ASYNC_CALL + MIN_GAS_FOR_CALLBACK
+    }
 
     fn empty_provider(&self) -> ProviderConfig<Self::Api> {
         ProviderConfig{

@@ -78,22 +78,23 @@ pub trait ServiceModule:
     fn undelegate_all(&self) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
-        let egld_to_undelegate = self.egld_to_undelegate().get();
+        let mut storage_cache = StorageCache::new(self);
+        sc_print!("egld to undelegate {}", storage_cache.egld_to_undelegate);
         require!(
-            egld_to_undelegate >= MIN_EGLD,
+            storage_cache.egld_to_undelegate >= MIN_EGLD,
             ERROR_INSUFFICIENT_AMOUNT
         );
 
-        let mut storage_cache = StorageCache::new(self);
         self.reduce_egld_to_delegate_undelegate(&mut storage_cache);
-        drop(storage_cache);
 
-        let (_, _, provider_address, amount) = self.get_provider_to_delegate_and_amount(&egld_to_undelegate);
+        let (_, _, provider_address, amount) =
+            self.get_provider_to_delegate_and_amount(&storage_cache.egld_to_undelegate);
         if amount == 0 {
             return
         }
 
-        self.egld_to_undelegate().set(&egld_to_undelegate - &amount);
+        storage_cache.egld_to_undelegate -= &amount;
+        drop(storage_cache);
         let gas_for_async_call = self.get_gas_for_async_call();
         self.service_delegation_proxy_obj()
             .contract(provider_address.clone())
@@ -146,8 +147,7 @@ pub trait ServiceModule:
                 continue
             }
 
-            let gas_left = self.blockchain().get_gas_left();
-            if gas_left < MIN_GAS_FOR_ASYNC_CALL + MIN_GAS_FOR_CALLBACK {
+            if !self.enough_gas_left_for_callback() {
                 break
             }
 
@@ -203,8 +203,7 @@ pub trait ServiceModule:
                 continue
             }
 
-            let gas_left = self.blockchain().get_gas_left();
-            if gas_left < MIN_GAS_FOR_ASYNC_CALL + MIN_GAS_FOR_CALLBACK {
+            if !self.enough_gas_left_for_callback() {
                 break
             }
 
@@ -354,7 +353,9 @@ pub trait ServiceModule:
             }
             if provider_to_undelegate.salsa_stake < undelegate_amount {
                 undelegate_amount = provider_to_undelegate.salsa_stake.clone();
-            } else if provider_to_undelegate.salsa_stake < &undelegate_amount + MIN_EGLD {
+            }
+            let diff = &provider_to_undelegate.salsa_stake - &undelegate_amount;
+            if diff < MIN_EGLD && diff > 0 {
                 undelegate_amount = provider_to_undelegate.salsa_stake - MIN_EGLD;
             }
             if undelegate_amount < MIN_EGLD {
