@@ -48,20 +48,20 @@ pub trait ServiceModule:
         storage_cache.egld_to_delegate -= &amount;
         drop(storage_cache);
 
-        let gas_for_async_call = self.get_gas_for_async_call();
         self.service_delegation_proxy_obj()
             .contract(provider_address.clone())
             .delegate()
-            .with_gas_limit(gas_for_async_call)
+            .with_gas_limit(MIN_GAS_FOR_ASYNC_CALL)
             .with_egld_transfer(amount.clone())
-            .async_call()
+            .async_call_promise()
             .with_callback(
                 ServiceModule::callbacks(self).delegate_all_callback(provider_address, amount),
             )
-            .call_and_exit()
+            .with_extra_gas_for_callback(MIN_GAS_FOR_CALLBACK)
+            .register_promise();
     }
 
-    #[callback]
+    #[promises_callback]
     fn delegate_all_callback(
         &self,
         provider_address: ManagedAddress,
@@ -110,19 +110,19 @@ pub trait ServiceModule:
         storage_cache.egld_to_undelegate -= &amount;
         drop(storage_cache);
 
-        let gas_for_async_call = self.get_gas_for_async_call();
         self.service_delegation_proxy_obj()
             .contract(provider_address.clone())
             .undelegate(amount.clone())
-            .with_gas_limit(gas_for_async_call)
-            .async_call()
+            .with_gas_limit(MIN_GAS_FOR_ASYNC_CALL)
+            .async_call_promise()
             .with_callback(
                 ServiceModule::callbacks(self).undelegate_all_callback(provider_address, amount),
             )
-            .call_and_exit()
+            .with_extra_gas_for_callback(MIN_GAS_FOR_CALLBACK)
+            .register_promise();
     }
 
-    #[callback]
+    #[promises_callback]
     fn undelegate_all_callback(
         &self,
         provider_address: ManagedAddress,
@@ -134,9 +134,7 @@ pub trait ServiceModule:
         provider.funds_last_update_epoch = 0;
         provider.stake_last_update_nonce = 0;
         match result {
-            ManagedAsyncCallResult::Ok(()) => {
-                provider.stake_last_update_nonce = 0;
-            }
+            ManagedAsyncCallResult::Ok(()) => {}
             ManagedAsyncCallResult::Err(_) => {
                 self.egld_to_undelegate()
                     .update(|value| *value += egld_to_undelegate);
@@ -379,16 +377,6 @@ pub trait ServiceModule:
         }
 
         (provider_to_delegate.address, delegate_amount, provider_to_undelegate.address, undelegate_amount)
-    }
-
-    fn get_gas_for_async_call(&self) -> u64 {
-       let gas_left = self.blockchain().get_gas_left();
-       require!(
-           gas_left > MIN_GAS_FOR_ASYNC_CALL + MIN_GAS_FOR_CALLBACK,
-           ERROR_INSUFFICIENT_GAS
-       );
-
-       gas_left - MIN_GAS_FOR_CALLBACK
     }
 
     // proxy
