@@ -7,8 +7,8 @@
 // Init:                                 1
 // Endpoints:                           96
 // Async Callback:                       1
-// Promise callbacks:                    6
-// Total number of exported functions: 104
+// Promise callbacks:                    8
+// Total number of exported functions: 106
 
 #![no_std]
 #![allow(internal_features)]
@@ -117,6 +117,8 @@ multiversx_sc_wasm_adapter::endpoints! {
         refreshProvider => refresh_provider
         removeProvider => remove_provider
         setProviderState => set_provider_state
+        delegate_all_callback => delegate_all_callback
+        undelegate_all_callback => undelegate_all_callback
         claim_rewards_callback => claim_rewards_callback
         withdraw_all_callback => withdraw_all_callback
         get_contract_config_callback => get_contract_config_callback

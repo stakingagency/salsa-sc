@@ -1190,6 +1190,8 @@
         }
     ],
     "promisesCallbackNames": [
+        "delegate_all_callback",
+        "undelegate_all_callback",
         "claim_rewards_callback",
         "withdraw_all_callback",
         "get_contract_config_callback",
