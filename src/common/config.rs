@@ -366,6 +366,27 @@ pub trait ConfigModule:
         }
     }
 
+    #[view(areProvidersUpToDate)]
+    fn view_providers_updated(&self) -> bool {
+        let current_nonce = self.blockchain().get_block_nonce();
+        let current_epoch = self.blockchain().get_block_epoch();
+        let mut result = false;
+        for (_, provider) in self.providers().iter() {
+            if provider.is_up_to_date(current_nonce, current_epoch) {
+                result = true;
+                continue
+            }
+
+            if !provider.is_active() {
+                continue
+            }
+
+            return false
+        }
+
+        result
+    }
+
     // arbitrage
 
     #[storage_mapper("wegld_id")]

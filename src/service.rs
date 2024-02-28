@@ -23,14 +23,13 @@ pub trait ServiceModule:
             ERROR_INSUFFICIENT_AMOUNT
         );
 
-        let last_delegation_block = self.last_delegation_block().get();
         let current_block = self.blockchain().get_block_nonce();
         require!(
-            last_delegation_block + MIN_BLOCK_BETWEEN_DELEGATIONS <= current_block,
+            storage_cache.last_delegation_block + MIN_BLOCK_BETWEEN_DELEGATIONS <= current_block,
             ERROR_DELEGATE_TOO_SOON
         );
 
-        self.last_delegation_block().set(current_block);
+        storage_cache.last_delegation_block = current_block;
 
         self.reduce_egld_to_delegate_undelegate(&mut storage_cache);
         if storage_cache.egld_to_delegate == 0 {
@@ -73,9 +72,7 @@ pub trait ServiceModule:
         provider.funds_last_update_epoch = 0;
         provider.stake_last_update_nonce = 0;
         match result {
-            ManagedAsyncCallResult::Ok(()) => {
-                provider.stake_last_update_nonce = 0;
-            }
+            ManagedAsyncCallResult::Ok(()) => {}
             ManagedAsyncCallResult::Err(_) => {
                 self.egld_to_delegate()
                     .update(|value| *value += egld_to_delegate);
@@ -147,7 +144,7 @@ pub trait ServiceModule:
     fn claim_rewards(&self) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
-        if !self.are_providers_updated() {
+        if !self.refresh_providers() {
             return
         }
 
@@ -205,7 +202,7 @@ pub trait ServiceModule:
     fn withdraw_all(&self) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
-        if !self.are_providers_updated() {
+        if !self.refresh_providers() {
             return
         }
 
@@ -299,7 +296,7 @@ pub trait ServiceModule:
     ) {
         let mut provider_to_delegate = self.empty_provider();
         let mut provider_to_undelegate = self.empty_provider();
-        if !self.are_providers_updated() {
+        if !self.refresh_providers() {
             return (ManagedAddress::from(&[0u8; 32]), BigUint::zero(), ManagedAddress::from(&[0u8; 32]), BigUint::zero())
         }
 

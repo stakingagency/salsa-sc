@@ -5,10 +5,10 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           96
+// Endpoints:                           98
 // Async Callback:                       1
 // Promise callbacks:                    8
-// Total number of exported functions: 106
+// Total number of exported functions: 108
 
 #![no_std]
 #![allow(internal_features)]
@@ -66,6 +66,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         getReserveEgldAmount => get_reserve_egld_amount
         getUserReserve => get_user_reserve
         getTokenPrice => token_price
+        areProvidersUpToDate => view_providers_updated
         setWrapSC => set_wrap_sc
         getLegldInCustody => legld_in_custody
         getUserDelegation => user_delegation
@@ -117,6 +118,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         refreshProvider => refresh_provider
         removeProvider => remove_provider
         setProviderState => set_provider_state
+        refreshProviders => refresh_providers
         delegate_all_callback => delegate_all_callback
         undelegate_all_callback => undelegate_all_callback
         claim_rewards_callback => claim_rewards_callback
