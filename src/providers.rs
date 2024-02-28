@@ -26,7 +26,6 @@ pub trait ProvidersModule:
         self.refresh_provider(address);
     }
 
-    #[only_owner]
     #[endpoint(refreshProvider)]
     fn refresh_provider(&self, address: ManagedAddress) {
         self.refresh_provider_config(&address);
@@ -88,9 +87,10 @@ pub trait ProvidersModule:
     }
 
     /**
-     * Are Providers Updated - updates all providers infos and returns true if all are up to date and false otherwise
+     * Refresh Providers - updates all providers infos and returns true if all are up to date and false otherwise
      */
-    fn are_providers_updated(&self) -> bool {
+    #[endpoint(refreshProviders)]
+    fn refresh_providers(&self) -> bool {
         let current_nonce = self.blockchain().get_block_nonce();
         let current_epoch = self.blockchain().get_block_epoch();
         let mut result = false;
@@ -133,6 +133,7 @@ pub trait ProvidersModule:
 
             if !provider.are_funds_up_to_date(current_nonce, current_epoch) {
                 if !self.enough_gas_left_for_callback() {
+                    sc_print!("out of gas {}", self.blockchain().get_gas_left());
                     break
                 }
                 self.refresh_provider_funds_data(&address);

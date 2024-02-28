@@ -678,6 +678,16 @@
             ]
         },
         {
+            "name": "areProvidersUpToDate",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
             "name": "setWrapSC",
             "onlyOwner": true,
             "mutability": "mutable",
@@ -1150,7 +1160,6 @@
         },
         {
             "name": "refreshProvider",
-            "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [
                 {
@@ -1187,6 +1196,19 @@
                 }
             ],
             "outputs": []
+        },
+        {
+            "docs": [
+                "    * Refresh Providers - updates all providers infos and returns true if all are up to date and false otherwise\\n     "
+            ],
+            "name": "refreshProviders",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
         }
     ],
     "promisesCallbackNames": [
