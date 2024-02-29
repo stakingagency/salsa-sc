@@ -169,6 +169,37 @@ pub fn check_reserve_undelegations(
     );
 }
 
+pub fn check_user_undelegations(world: &mut ScenarioWorld, user: &str, amount: &num_bigint::BigUint) {
+    let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
+    world.whitebox_query(
+        &salsa_whitebox, |sc| {
+                let mut total = BigUint::zero();
+                let undelegations =
+                    sc.luser_undelegations(&managed_address!(&AddressValue::from(user).to_address()));
+                for node in undelegations.iter() {
+                    let undelegation = node.into_value();
+                    total += undelegation.amount;
+                }
+                assert_eq!(total, to_managed_biguint(amount));
+            }
+        );
+}
+
+pub fn check_total_users_undelegations(world: &mut ScenarioWorld, amount: &num_bigint::BigUint) {
+    let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
+    world.whitebox_query(
+        &salsa_whitebox, |sc| {
+                let mut total = BigUint::zero();
+                let undelegations = sc.ltotal_user_undelegations();
+                for node in undelegations.iter() {
+                    let undelegation = node.into_value();
+                    total += undelegation.amount;
+                }
+                assert_eq!(total, to_managed_biguint(amount));
+            }
+        );
+}
+
 pub fn check_user_undelegations_order(
     world: &mut ScenarioWorld,
     user: &str
@@ -215,6 +246,54 @@ pub fn check_total_undelegations_order(world: &mut ScenarioWorld) {
                 );
                 last_epoch = undelegation.unbond_epoch;
             }
+        }
+    );
+}
+
+pub fn check_user_undelegations_length(world: &mut ScenarioWorld, user: &str, len: usize) {
+    let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
+    world.whitebox_query(
+        &salsa_whitebox, |sc| {
+            assert_eq!(sc.luser_undelegations(&managed_address!(&AddressValue::from(user).to_address())).len(), len);
+        }
+    );
+}
+
+pub fn check_total_users_undelegations_lengths(world: &mut ScenarioWorld, len: usize) {
+    let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
+    world.whitebox_query(
+        &salsa_whitebox, |sc| {
+            assert_eq!(sc.ltotal_user_undelegations().len(), len);
+        }
+    );
+}
+
+pub fn check_reserve_undelegations_lengths(world: &mut ScenarioWorld, len: usize) {
+    let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
+    world.whitebox_query(
+        &salsa_whitebox, |sc| {
+            assert_eq!(sc.lreserve_undelegations().len(), len,);
+        }
+    );
+}
+
+pub fn check_custodial_delegation(world: &mut ScenarioWorld, user: &str, amount: &num_bigint::BigUint) {
+    let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
+    world.whitebox_query(
+        &salsa_whitebox, |sc| {
+            let delegation =
+                sc.user_delegation(&managed_address!(&AddressValue::from(user).to_address())).get();
+            assert_eq!(delegation == to_managed_biguint(amount), true);
+        }
+    );
+}
+
+pub fn check_total_custodial_delegation(world: &mut ScenarioWorld, amount: &num_bigint::BigUint) {
+    let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
+    world.whitebox_query(
+        &salsa_whitebox, |sc| {
+            let delegation = sc.legld_in_custody().get();
+            assert_eq!(delegation == to_managed_biguint(amount), true);
         }
     );
 }

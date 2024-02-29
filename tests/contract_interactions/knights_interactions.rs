@@ -11,21 +11,26 @@ pub fn undelegate_knight_test(
     caller: &str,
     user: &str,
     amount: &num_bigint::BigUint,
-    without_arbitrage: bool
+    without_arbitrage: bool,
+    error: &[u8]
 ) {
     let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
-    world.whitebox_call(
+    world.whitebox_call_check(
         &salsa_whitebox,
         ScCallStep::new()
-            .from(caller),
+            .from(caller)
+            .no_expect(),
         |sc| {
             sc.undelegate_knight(
                 managed_address!(&AddressValue::from(user).to_address()),
                 to_managed_biguint(amount),
                 OptionalValue::Some(without_arbitrage)
             );
+        },
+        |r| {
+            assert!(r.result_message.as_bytes() == error);
         }
-    );
+);
 }
 
 pub fn undelegate_now_knight_test(
@@ -96,16 +101,21 @@ pub fn set_knight_test(
     world: &mut ScenarioWorld,
     caller: &str,
     knight: &str,
+    error: &[u8]
 ) {
     let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
-    world.whitebox_call(
+    world.whitebox_call_check(
         &salsa_whitebox,
         ScCallStep::new()
-            .from(caller),
+            .from(caller)
+            .no_expect(),
         |sc| {
             sc.set_knight(
                 managed_address!(&AddressValue::from(knight).to_address()),
             );
+        },
+        |r| {
+            assert!(r.result_message.as_bytes() == error);
         }
     );
 }
@@ -113,14 +123,19 @@ pub fn set_knight_test(
 pub fn cancel_knight_test(
     world: &mut ScenarioWorld,
     caller: &str,
+    error: &[u8]
 ) {
     let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
-    world.whitebox_call(
+    world.whitebox_call_check(
         &salsa_whitebox,
         ScCallStep::new()
-            .from(caller),
+            .from(caller)
+            .no_expect(),
         |sc| {
             sc.cancel_knight();
+        },
+        |r| {
+            assert!(r.result_message.as_bytes() == error);
         }
     );
 }

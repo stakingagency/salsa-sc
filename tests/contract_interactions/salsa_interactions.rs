@@ -38,19 +38,24 @@ pub fn undelegate_test(
     from_custody: bool,
     caller: &str,
     amount: &num_bigint::BigUint,
-    without_arbitrage: bool
+    without_arbitrage: bool,
+    error: &[u8]
 ) {
     let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
     if from_custody {
-        world.whitebox_call(
+        world.whitebox_call_check(
             &salsa_whitebox,
             ScCallStep::new()
-                .from(caller),
+                .from(caller)
+                .no_expect(),
             |sc| {
                 sc.undelegate(
                     OptionalValue::Some(to_managed_biguint(amount)),
                     OptionalValue::Some(without_arbitrage)
                 );
+            },
+            |r| {
+                assert!(r.result_message.as_bytes() == error);
             }
         );
     } else {
@@ -75,22 +80,27 @@ pub fn undelegate_now_test(
     caller: &str,
     min_amount_out: &num_bigint::BigUint,
     amount: &num_bigint::BigUint,
-    without_arbitrage: bool
+    without_arbitrage: bool,
+    error: &[u8]
 ) {
     let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
     if from_custody {
-        world.whitebox_call(
+        world.whitebox_call_check(
             &salsa_whitebox,
             ScCallStep::new()
-                .from(caller),
+                .from(caller)
+                .no_expect(),
             |sc| {
                 sc.undelegate_now(
                     to_managed_biguint(min_amount_out),
                     OptionalValue::Some(to_managed_biguint(amount)),
                     OptionalValue::Some(without_arbitrage)
                 );
+            },
+            |r| {
+                assert!(r.result_message.as_bytes() == error);
             }
-        );
+            );
     } else {
         world.whitebox_call(
             &salsa_whitebox,
@@ -126,7 +136,7 @@ pub fn withdraw_test(
 pub fn add_to_custody_test(
     world: &mut ScenarioWorld,
     caller: &str,
-    amount: num_bigint::BigUint,
+    amount: &num_bigint::BigUint,
     without_arbitrage: bool
 ) {
     let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
@@ -145,15 +155,20 @@ pub fn remove_from_custody_test(
     world: &mut ScenarioWorld,
     caller: &str,
     amount: &num_bigint::BigUint,
-    without_arbitrage: bool
+    without_arbitrage: bool,
+    error: &[u8]
 ) {
     let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
-    world.whitebox_call(
+    world.whitebox_call_check(
         &salsa_whitebox,
         ScCallStep::new()
-            .from(caller),
+            .from(caller)
+            .no_expect(),
         |sc| {
             sc.remove_from_custody(to_managed_biguint(amount), OptionalValue::Some(without_arbitrage));
+        },
+        |r| {
+            assert!(r.result_message.as_bytes() == error);
         }
     );
 }
@@ -195,13 +210,12 @@ pub fn remove_reserve_test(
 
 pub fn reduce_egld_to_delegate_undelegate_test(
     world: &mut ScenarioWorld,
-    caller: &str,
 ) {
     let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
     world.whitebox_call(
         &salsa_whitebox,
         ScCallStep::new()
-            .from(caller),
+            .from(CALLER_ADDRESS_EXPR),
         |sc| {
             sc.call_reduce_egld_to_delegate_undelegate();
         }
