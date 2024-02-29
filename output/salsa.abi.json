@@ -678,6 +678,21 @@
             ]
         },
         {
+            "name": "isProviderUpToDate",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "provider_address",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
             "name": "areProvidersUpToDate",
             "mutability": "readonly",
             "inputs": [],
@@ -825,13 +840,21 @@
             "name": "delegateAll",
             "mutability": "mutable",
             "inputs": [],
-            "outputs": []
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
         },
         {
             "name": "unDelegateAll",
             "mutability": "mutable",
             "inputs": [],
-            "outputs": []
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
         },
         {
             "name": "claimRewards",

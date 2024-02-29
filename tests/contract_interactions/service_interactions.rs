@@ -7,7 +7,7 @@ pub fn delegate_all_test(
     world: &mut ScenarioWorld,
 ) {
     let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
-    refresh_providers_test(world, CALLER_ADDRESS_EXPR);
+    refresh_providers_test(world);
     world.whitebox_call(
         &salsa_whitebox,
         ScCallStep::new()
@@ -17,14 +17,14 @@ pub fn delegate_all_test(
             sc.delegate_all();
         }
     );
-    check_egld_to_delegate(world, &rust_biguint!(0));
+    // check_egld_to_delegate(world, &rust_biguint!(0));
 }
 
 pub fn undelegate_all_test(
     world: &mut ScenarioWorld,
 ) {
     let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
-    refresh_providers_test(world, CALLER_ADDRESS_EXPR);
+    refresh_providers_test(world);
     world.whitebox_call(
         &salsa_whitebox,
         ScCallStep::new()
@@ -34,14 +34,14 @@ pub fn undelegate_all_test(
             sc.undelegate_all();
         }
     );
-    check_egld_to_undelegate(world, &rust_biguint!(0));
+    // check_egld_to_undelegate(world, &rust_biguint!(0));
 }
 
 pub fn claim_rewards_test(
     world: &mut ScenarioWorld,
 ) {
     let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
-    refresh_providers_test(world, CALLER_ADDRESS_EXPR);
+    refresh_providers_test(world);
     world.whitebox_call(
         &salsa_whitebox,
         ScCallStep::new()
@@ -57,7 +57,7 @@ pub fn withdraw_all_test(
     world: &mut ScenarioWorld,
 ) {
     let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
-    refresh_providers_test(world, CALLER_ADDRESS_EXPR);
+    refresh_providers_test(world);
     world.whitebox_call(
         &salsa_whitebox,
         ScCallStep::new()

@@ -7,16 +7,21 @@ pub fn add_provider_test(
     world: &mut ScenarioWorld,
     caller: &str,
     provider: &str,
+    error: &[u8]
 ) {
     let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
-    world.whitebox_call(
+    world.whitebox_call_check(
         &salsa_whitebox,
         ScCallStep::new()
-            .from(caller),
+            .from(caller)
+            .no_expect(),
         |sc| {
             sc.add_provider(
                 managed_address!(&AddressValue::from(provider).to_address())
             );
+        },
+        |r| {
+            assert!(r.result_message.as_bytes() == error);
         }
     );
 }
@@ -25,30 +30,34 @@ pub fn remove_provider_test(
     world: &mut ScenarioWorld,
     caller: &str,
     provider: &str,
+    error: &[u8]
 ) {
     let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
-    world.whitebox_call(
+    world.whitebox_call_check(
         &salsa_whitebox,
         ScCallStep::new()
-            .from(caller),
+            .from(caller)
+            .no_expect(),
         |sc| {
             sc.remove_provider(
                 &managed_address!(&AddressValue::from(provider).to_address())
             );
+        },
+        |r| {
+            assert!(r.result_message.as_bytes() == error);
         }
     );
 }
 
 pub fn refresh_provider_test(
     world: &mut ScenarioWorld,
-    caller: &str,
     provider: &str,
 ) {
     let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
     world.whitebox_call(
         &salsa_whitebox,
         ScCallStep::new()
-            .from(caller)
+            .from(CALLER_ADDRESS_EXPR)
             .gas_limit(GAS_LIMIT_REFRESH_PROVIDER),
             |sc| {
             sc.refresh_provider(
@@ -59,8 +68,7 @@ pub fn refresh_provider_test(
 }
 
 pub fn refresh_providers_test(
-    world: &mut ScenarioWorld,
-    caller: &str
+    world: &mut ScenarioWorld
 ) {
     let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
     let mut up_to_date = false;
@@ -68,7 +76,7 @@ pub fn refresh_providers_test(
         world.whitebox_call(
             &salsa_whitebox,
             ScCallStep::new()
-                .from(caller)
+                .from(CALLER_ADDRESS_EXPR)
                 .gas_limit(GAS_LIMIT_REFRESH_PROVIDERS),
             |sc| {
                 up_to_date = sc.refresh_providers();

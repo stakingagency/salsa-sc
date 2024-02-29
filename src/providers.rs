@@ -133,7 +133,6 @@ pub trait ProvidersModule:
 
             if !provider.are_funds_up_to_date(current_nonce, current_epoch) {
                 if !self.enough_gas_left_for_callback() {
-                    sc_print!("out of gas {}", self.blockchain().get_gas_left());
                     break
                 }
                 self.refresh_provider_funds_data(&address);

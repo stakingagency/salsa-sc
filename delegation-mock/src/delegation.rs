@@ -37,20 +37,24 @@ pub trait DelegationMock<ContractReader> {
     }
 
     #[endpoint(unDelegate)]
-    fn undelegate(&self, egld_to_undelegate: BigUint) {
+    fn undelegate(&self, egld_to_undelegate: &BigUint) {
         let caller = self.blockchain().get_caller();
         let current_epoch = self.blockchain().get_block_epoch();
         let total_deposit = self.address_deposit(&caller).get();
         require!(
-            egld_to_undelegate > 0 && egld_to_undelegate <= total_deposit,
+            egld_to_undelegate > &0 && egld_to_undelegate <= &total_deposit,
             "Invalid undelegate amount"
         );
         self.address_deposit(&caller)
-            .update(|value| *value -= &egld_to_undelegate);
+            .update(|value| *value -= egld_to_undelegate);
         self.address_undelegate_amount(&caller)
-            .update(|value| *value += &egld_to_undelegate);
+            .update(|value| *value += egld_to_undelegate);
         self.address_undelegate_epoch(&caller)
             .set(current_epoch + UNBOND_PERIOD);
+        self.total_undelegated()
+            .update(|value| *value += egld_to_undelegate);
+        self.egld_token_supply()
+            .update(|value| *value -= egld_to_undelegate);
     }
 
     #[endpoint(withdraw)]
@@ -66,7 +70,7 @@ pub trait DelegationMock<ContractReader> {
             "Cannot withdraw yet"
         );
 
-        self.egld_token_supply()
+        self.total_undelegated()
             .update(|value| *value -= &withdraw_amount);
         self.address_undelegate_epoch(&caller).clear();
         self.address_undelegate_amount(&caller).clear();
@@ -77,26 +81,6 @@ pub trait DelegationMock<ContractReader> {
             &ManagedBuffer::new(),
             &ManagedArgBuffer::new(),
         );
-    }
-
-    #[endpoint(reDelegateRewards)]
-    fn redelegate_rewards(&self) {
-        let caller = self.blockchain().get_caller();
-        let current_epoch = self.blockchain().get_block_epoch();
-        let last_claim_epoch = self.address_last_claim_epoch(&caller).get();
-        let total_deposit = self.address_deposit(&caller).get();
-
-        if current_epoch > last_claim_epoch {
-            let rewards = (total_deposit * self.apr().get() / MAX_PERCENTAGE)
-                * (current_epoch - last_claim_epoch) / EPOCHS_IN_YEAR;
-            if rewards > 0u64 {
-                self.address_deposit(&caller)
-                    .update(|value| *value += &rewards);
-                // self.egld_token_supply()
-                //     .update(|value| *value += payment_amount.clone_value());
-                self.address_last_claim_epoch(&caller).set(current_epoch);
-            }
-        }
     }
 
     #[endpoint(claimRewards)]
@@ -200,6 +184,9 @@ pub trait DelegationMock<ContractReader> {
 
     #[storage_mapper("egldTokenSupply")]
     fn egld_token_supply(&self) -> SingleValueMapper<BigUint>;
+
+    #[storage_mapper("totalUndelegated")]
+    fn total_undelegated(&self) -> SingleValueMapper<BigUint>;
 
     #[storage_mapper("addressDeposit")]
     fn address_deposit(&self, address: &ManagedAddress) -> SingleValueMapper<BigUint>;
