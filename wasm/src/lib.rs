@@ -5,10 +5,10 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           98
+// Endpoints:                           99
 // Async Callback:                       1
 // Promise callbacks:                    8
-// Total number of exported functions: 108
+// Total number of exported functions: 109
 
 #![no_std]
 #![allow(internal_features)]
@@ -66,6 +66,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         getReserveEgldAmount => get_reserve_egld_amount
         getUserReserve => get_user_reserve
         getTokenPrice => token_price
+        isProviderUpToDate => view_provider_updated
         areProvidersUpToDate => view_providers_updated
         setWrapSC => set_wrap_sc
         getLegldInCustody => legld_in_custody

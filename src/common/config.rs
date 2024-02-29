@@ -366,6 +366,15 @@ pub trait ConfigModule:
         }
     }
 
+    #[view(isProviderUpToDate)]
+    fn view_provider_updated(&self, provider_address: &ManagedAddress) -> bool {
+        let current_nonce = self.blockchain().get_block_nonce();
+        let current_epoch = self.blockchain().get_block_epoch();
+
+        let provider = self.providers().get(provider_address).unwrap();
+        provider.is_up_to_date(current_nonce, current_epoch)
+    }
+
     #[view(areProvidersUpToDate)]
     fn view_providers_updated(&self) -> bool {
         let current_nonce = self.blockchain().get_block_nonce();

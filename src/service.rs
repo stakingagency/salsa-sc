@@ -14,7 +14,7 @@ pub trait ServiceModule:
     // endpoints: service
 
     #[endpoint(delegateAll)]
-    fn delegate_all(&self) {
+    fn delegate_all(&self) -> BigUint {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         let mut storage_cache = StorageCache::new(self);
@@ -34,14 +34,14 @@ pub trait ServiceModule:
         self.reduce_egld_to_delegate_undelegate(&mut storage_cache);
         if storage_cache.egld_to_delegate == 0 {
             drop(storage_cache);
-            return
+            return BigUint::zero()
         }
 
         let (provider_address, amount, _, _) =
             self.get_provider_to_delegate_and_amount(&storage_cache.egld_to_delegate);
         if amount == 0 {
             drop(storage_cache);
-            return
+            return BigUint::zero()
         }
 
         storage_cache.egld_to_delegate -= &amount;
@@ -54,17 +54,19 @@ pub trait ServiceModule:
             .with_egld_transfer(amount.clone())
             .async_call_promise()
             .with_callback(
-                ServiceModule::callbacks(self).delegate_all_callback(provider_address, amount),
+                ServiceModule::callbacks(self).delegate_all_callback(provider_address, &amount),
             )
             .with_extra_gas_for_callback(MIN_GAS_FOR_CALLBACK)
             .register_promise();
+
+        amount
     }
 
     #[promises_callback]
     fn delegate_all_callback(
         &self,
         provider_address: ManagedAddress,
-        egld_to_delegate: BigUint,
+        egld_to_delegate: &BigUint,
         #[call_result] result: ManagedAsyncCallResult<()>,
     ) {
         let mut provider = self.get_provider(&provider_address);
@@ -82,7 +84,7 @@ pub trait ServiceModule:
     }
 
     #[endpoint(unDelegateAll)]
-    fn undelegate_all(&self) {
+    fn undelegate_all(&self) -> BigUint {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         let mut storage_cache = StorageCache::new(self);
@@ -94,14 +96,14 @@ pub trait ServiceModule:
         self.reduce_egld_to_delegate_undelegate(&mut storage_cache);
         if storage_cache.egld_to_undelegate == 0 {
             drop(storage_cache);
-            return
+            return BigUint::zero()
         }
 
         let (_, _, provider_address, amount) =
             self.get_provider_to_delegate_and_amount(&storage_cache.egld_to_undelegate);
         if amount == 0 {
             drop(storage_cache);
-            return
+            return BigUint::zero()
         }
 
         storage_cache.egld_to_undelegate -= &amount;
@@ -109,21 +111,23 @@ pub trait ServiceModule:
 
         self.service_delegation_proxy_obj()
             .contract(provider_address.clone())
-            .undelegate(amount.clone())
+            .undelegate(&amount)
             .with_gas_limit(MIN_GAS_FOR_ASYNC_CALL)
             .async_call_promise()
             .with_callback(
-                ServiceModule::callbacks(self).undelegate_all_callback(provider_address, amount),
+                ServiceModule::callbacks(self).undelegate_all_callback(provider_address, &amount),
             )
             .with_extra_gas_for_callback(MIN_GAS_FOR_CALLBACK)
             .register_promise();
+
+        amount
     }
 
     #[promises_callback]
     fn undelegate_all_callback(
         &self,
         provider_address: ManagedAddress,
-        egld_to_undelegate: BigUint,
+        egld_to_undelegate: &BigUint,
         #[call_result] result: ManagedAsyncCallResult<()>,
     ) {
         let mut provider = self.get_provider(&provider_address);
@@ -301,7 +305,8 @@ pub trait ServiceModule:
         }
 
         let mut min_topup = BigUint::zero();
-        let mut max_topup = BigUint::zero();
+        let mut max_topup_delegate = BigUint::zero();
+        let mut max_topup_undelegate = BigUint::zero();
         let base_stake = BigUint::from(NODE_BASE_STAKE) * ONE_EGLD;
         for (_, provider) in self.providers().iter() {
             if !provider.is_active() {
@@ -318,20 +323,23 @@ pub trait ServiceModule:
                 min_topup = topup.clone();
                 provider_to_delegate = provider.clone();
             }
-            if (topup > max_topup || max_topup == 0) && (provider.salsa_stake > 0) {
-                max_topup = topup;
+            if topup > max_topup_delegate || max_topup_delegate == 0 {
+                max_topup_delegate = topup.clone();
+            }
+            if (topup > max_topup_undelegate || max_topup_undelegate == 0) && (provider.salsa_stake > 0) {
+                max_topup_undelegate = topup;
                 provider_to_undelegate = provider.clone();
             }
         }
-        if max_topup < min_topup {
-            max_topup = min_topup.clone();
-        }
-        let dif_topup = &max_topup - &min_topup;
         let mut delegate_amount = BigUint::zero();
         if provider_to_delegate.staked_nodes > 0 {
+            if max_topup_delegate < min_topup {
+                max_topup_delegate = min_topup.clone();
+            }
+            let dif_topup_delegate = &max_topup_delegate - &min_topup;
             delegate_amount = amount.clone();
-            if min_topup != max_topup {
-                let mut max_amount = &dif_topup * (provider_to_delegate.staked_nodes as u64);
+            if min_topup != max_topup_delegate {
+                let mut max_amount = &dif_topup_delegate * (provider_to_delegate.staked_nodes as u64);
                 if max_amount < MIN_EGLD {
                     max_amount = BigUint::from(MIN_EGLD);
                 }
@@ -351,9 +359,13 @@ pub trait ServiceModule:
         }
         let mut undelegate_amount = BigUint::zero();
         if provider_to_undelegate.staked_nodes > 0 {
-            undelegate_amount = amount.clone();
-            if min_topup != max_topup {
-                let mut max_amount = dif_topup * (provider_to_undelegate.staked_nodes as u64);
+            if max_topup_undelegate < min_topup {
+                max_topup_undelegate = min_topup.clone();
+            }
+            let dif_topup_undelegate = &max_topup_undelegate - &min_topup;
+                undelegate_amount = amount.clone();
+            if min_topup != max_topup_undelegate {
+                let mut max_amount = dif_topup_undelegate * (provider_to_undelegate.staked_nodes as u64);
                 if max_amount < MIN_EGLD {
                     max_amount = BigUint::from(MIN_EGLD);
                 }

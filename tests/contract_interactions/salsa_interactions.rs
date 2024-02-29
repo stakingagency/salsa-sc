@@ -14,6 +14,30 @@ pub fn set_block_nonce(
     world.set_state_step(SetStateStep::new().block_epoch(block_nonce_expr / BLOCKS_PER_EPOCH));
 }
 
+pub fn set_state_active_test(world: &mut ScenarioWorld) {
+    let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
+    world.whitebox_call(
+        &salsa_whitebox,
+        ScCallStep::new()
+            .from(OWNER_ADDRESS_EXPR),
+        |sc| {
+            sc.set_state_active();
+        }
+    );
+}
+
+pub fn set_state_inactive_test(world: &mut ScenarioWorld) {
+    let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
+    world.whitebox_call(
+        &salsa_whitebox,
+        ScCallStep::new()
+            .from(OWNER_ADDRESS_EXPR),
+        |sc| {
+            sc.set_state_inactive();
+        }
+    );
+}
+
 pub fn delegate_test(
     world: &mut ScenarioWorld,
     caller: &str,
