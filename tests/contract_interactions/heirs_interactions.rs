@@ -11,19 +11,24 @@ pub fn undelegate_heir_test(
     caller: &str,
     user: &str,
     amount: &num_bigint::BigUint,
-    without_arbitrage: bool
+    without_arbitrage: bool,
+    error: &[u8]
 ) {
     let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
-    world.whitebox_call(
+    world.whitebox_call_check(
         &salsa_whitebox,
         ScCallStep::new()
-            .from(caller),
+            .from(caller)
+            .no_expect(),
         |sc| {
             sc.undelegate_heir(
                 managed_address!(&AddressValue::from(user).to_address()),
                 to_managed_biguint(amount),
                 OptionalValue::Some(without_arbitrage)
             );
+        },
+        |r| {
+            assert!(r.result_message.as_bytes() == error);
         }
     );
 }
@@ -97,17 +102,22 @@ pub fn set_heir_test(
     caller: &str,
     heir: &str,
     inheritance_epochs: u64,
+    error: &[u8]
 ) {
     let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
-    world.whitebox_call(
+    world.whitebox_call_check(
         &salsa_whitebox,
         ScCallStep::new()
-            .from(caller),
+            .from(caller)
+            .no_expect(),
         |sc| {
             sc.set_heir(
                 managed_address!(&AddressValue::from(heir).to_address()),
                 inheritance_epochs
             );
+        },
+        |r| {
+            assert!(r.result_message.as_bytes() == error);
         }
     );
 }
@@ -131,7 +141,6 @@ pub fn remove_heir_test(
     world: &mut ScenarioWorld,
     caller: &str,
     user: &str,
-    inheritance_epochs: u64,
 ) {
     let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
     world.whitebox_call(

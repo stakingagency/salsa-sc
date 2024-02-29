@@ -3,8 +3,7 @@
 multiversx_sc::imports!();
 
 pub type Epoch = u64;
-pub const MAX_PERCENTAGE: u64 = 100_000;
-pub const APY: u64 = 10_000; //10%
+pub const MAX_PERCENTAGE: u64 = 10_000;
 pub const EPOCHS_IN_YEAR: u64 = 365;
 pub const UNBOND_PERIOD: u64 = 10;
 
@@ -14,11 +13,13 @@ pub trait DelegationMock<ContractReader> {
     fn init(&self,
         total_stake: BigUint,
         nodes_count: u64,
-        service_fee: u64
+        service_fee: u64,
+        apr: u64
     ) {
         self.egld_token_supply().set(total_stake);
         self.nodes_count().set(nodes_count);
         self.service_fee().set(service_fee);
+        self.apr().set(apr);
     }
 
     #[payable("EGLD")]
@@ -26,8 +27,11 @@ pub trait DelegationMock<ContractReader> {
     fn delegate(&self) {
         let caller = self.blockchain().get_caller();
         let payment_amount = self.call_value().egld_value();
-        self.address_deposit(&caller)
-            .update(|value| *value += payment_amount.clone_value());
+        let delegation = self.address_deposit(&caller).get();
+        if delegation == 0 {
+            self.address_last_claim_epoch(&caller).set(self.blockchain().get_block_epoch());
+        }
+        self.address_deposit(&caller).set(delegation + payment_amount.clone_value());
         self.egld_token_supply()
             .update(|value| *value += payment_amount.clone_value());
     }
@@ -83,7 +87,7 @@ pub trait DelegationMock<ContractReader> {
         let total_deposit = self.address_deposit(&caller).get();
 
         if current_epoch > last_claim_epoch {
-            let rewards = (total_deposit * APY / MAX_PERCENTAGE)
+            let rewards = (total_deposit * self.apr().get() / MAX_PERCENTAGE)
                 * (current_epoch - last_claim_epoch) / EPOCHS_IN_YEAR;
             if rewards > 0u64 {
                 self.address_deposit(&caller)
@@ -99,21 +103,15 @@ pub trait DelegationMock<ContractReader> {
     fn claim_rewards(&self) {
         let caller = self.blockchain().get_caller();
         let current_epoch = self.blockchain().get_block_epoch();
-        let last_claim_epoch = self.address_last_claim_epoch(&caller).get();
-        let total_deposit = self.address_deposit(&caller).get();
-
-        if current_epoch > last_claim_epoch {
-            let rewards = (total_deposit * APY / MAX_PERCENTAGE)
-                * (current_epoch - last_claim_epoch) / EPOCHS_IN_YEAR;
-            if rewards > 0u64 {
-                self.address_last_claim_epoch(&caller).set(current_epoch);
-                self.send_raw().async_call_raw(
-                    &caller,
-                    &rewards,
-                    &ManagedBuffer::new(),
-                    &ManagedArgBuffer::new(),
-                );
-            }
+        let rewards = self.get_claimable_rewards();
+        if rewards > 0u64 {
+            self.address_last_claim_epoch(&caller).set(current_epoch);
+            self.send_raw().async_call_raw(
+                &caller,
+                &rewards,
+                &ManagedBuffer::new(),
+                &ManagedArgBuffer::new(),
+            );
         }
     }
 
@@ -125,7 +123,7 @@ pub trait DelegationMock<ContractReader> {
         let total_deposit = self.address_deposit(&caller).get();
 
         if current_epoch > last_claim_epoch {
-            (total_deposit * APY / MAX_PERCENTAGE)
+            (total_deposit * self.apr().get() / MAX_PERCENTAGE)
                 * (current_epoch - last_claim_epoch) / EPOCHS_IN_YEAR
         } else {
             BigUint::zero()
@@ -146,7 +144,7 @@ pub trait DelegationMock<ContractReader> {
         let delegated = self.address_deposit(&address).get();
 
         let rewards = if current_epoch > last_claim_epoch {
-            (&delegated * APY / MAX_PERCENTAGE)
+            (&delegated * self.apr().get() / MAX_PERCENTAGE)
                 * (current_epoch - last_claim_epoch) / EPOCHS_IN_YEAR
         } else {
             BigUint::zero()
@@ -220,4 +218,7 @@ pub trait DelegationMock<ContractReader> {
 
     #[storage_mapper("service_fee")]
     fn service_fee(&self) -> SingleValueMapper<u64>;
+
+    #[storage_mapper("apr")]
+    fn apr(&self) -> SingleValueMapper<u64>;
 }
