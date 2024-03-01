@@ -19,7 +19,7 @@ pub trait HeirsModule:
     ) {
         let caller = self.blockchain().get_caller();
         require!(
-            inheritance_epochs >= MIN_INHERITANCE_EPOCHS && inheritance_epochs <= MAX_INHERITANCE_EPOCHS,
+            (MIN_INHERITANCE_EPOCHS..=MAX_INHERITANCE_EPOCHS).contains(&inheritance_epochs),
             ERROR_WRONG_INHERITANCE_EPOCHS,
         );
         require!(
@@ -98,10 +98,8 @@ pub trait HeirsModule:
         }
 
         let knight = self.user_knight(&caller);
-        if !knight.is_empty() {
-            if knight.get().state == KnightState::ActiveKnight {
-                return
-            }
+        if !knight.is_empty() && knight.get().state == KnightState::ActiveKnight {
+            return
         }
 
         let current_epoch = self.blockchain().get_block_epoch();
