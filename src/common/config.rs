@@ -301,7 +301,7 @@ pub trait ConfigModule:
     #[endpoint(setUndelegateNowFee)]
     fn set_undelegate_now_fee(&self, new_fee: u64) {
         require!(!self.is_state_active(), ERROR_ACTIVE);
-        require!(new_fee >= MIN_UNDELEGATE_NOW_FEE && new_fee < MAX_PERCENT, ERROR_INCORRECT_FEE);
+        require!((MIN_UNDELEGATE_NOW_FEE..MAX_PERCENT).contains(&new_fee), ERROR_INCORRECT_FEE);
 
         self.undelegate_now_fee().set(new_fee);
     }
