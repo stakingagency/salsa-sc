@@ -9,7 +9,7 @@ publish = false
 path = "src/delegation.rs"
 
 [dependencies.multiversx-sc]
-version = "0.45.2"
+version = "0.47.4"
 
 [dependencies.itertools]
 version = "0.10.1"

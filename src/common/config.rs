@@ -3,7 +3,7 @@ multiversx_sc::derive_imports!();
 
 use crate::{common::consts::*, common::errors::*};
 
-#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(ManagedVecItem, TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Eq, Copy, Clone, Debug)]
 pub enum State {
     Inactive,
     Active,
@@ -61,11 +61,12 @@ pub struct ContractInfo<M: ManagedTypeApi + multiversx_sc::api::StorageMapperApi
     pub liquid_token_id: TokenIdentifier<M>,
     pub liquid_token_supply: BigUint<M>,
     pub total_egld_staked: BigUint<M>,
-    pub provider_address: ManagedAddress<M>,
+    pub providers: ManagedVec<M, ProviderConfig<M>>,
     pub egld_reserve: BigUint<M>,
     pub available_egld_reserve: BigUint<M>,
     pub unbond_period: u64,
     pub undelegate_now_fee: u64,
+    pub service_fee: u64,
     pub token_price: BigUint<M>,
 }
 
@@ -84,6 +85,61 @@ pub struct LpInfo<M: ManagedTypeApi> {
     pub lp_supply: BigUint<M>,
     pub lp_token: TokenIdentifier<M>,
     pub lp_balance: BigUint<M>,
+}
+
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
+pub struct ProviderConfig<M: ManagedTypeApi> {
+    pub state: State,
+    pub address: ManagedAddress<M>,
+    pub staked_nodes: usize,
+    pub total_stake: BigUint<M>,
+    pub max_cap: BigUint<M>,
+    pub has_cap: bool,
+    pub fee: u64,
+    pub salsa_stake: BigUint<M>,
+    pub salsa_undelegated: BigUint<M>,
+    pub salsa_withdrawable: BigUint<M>,
+    pub salsa_rewards: BigUint<M>,
+    pub config_last_update_nonce: u64,
+    pub stake_last_update_nonce: u64,
+    pub nodes_last_update_nonce: u64,
+    pub funds_last_update_nonce: u64,
+    pub funds_last_update_epoch: u64,
+}
+
+impl<M> ProviderConfig<M>
+where M: ManagedTypeApi
+{
+    pub fn is_active(&self) -> bool {
+        self.state == State::Active &&
+        self.staked_nodes > 0 &&
+        self.fee <= MAX_PROVIDER_FEE &&
+        (!self.has_cap || (self.max_cap > &self.total_stake + ONE_EGLD))
+    }
+
+    pub fn is_config_up_to_date(&self, current_nonce: u64) -> bool {
+        self.config_last_update_nonce + PROVIDER_UPDATE_NONCES_DELTA >= current_nonce
+    }
+
+    pub fn is_stake_up_to_date(&self, current_nonce: u64) -> bool {
+        self.stake_last_update_nonce + PROVIDER_UPDATE_NONCES_DELTA >= current_nonce
+    }
+
+    pub fn are_nodes_up_to_date(&self, current_nonce: u64) -> bool {
+        self.nodes_last_update_nonce + PROVIDER_UPDATE_NONCES_DELTA >= current_nonce
+    }
+
+    pub fn are_funds_up_to_date(&self, current_nonce: u64, current_epoch: u64) -> bool {
+        self.funds_last_update_nonce + PROVIDER_UPDATE_NONCES_DELTA >= current_nonce &&
+        self.funds_last_update_epoch == current_epoch
+    }
+
+    pub fn is_up_to_date(&self, current_nonce: u64, current_epoch: u64) -> bool {
+        self.is_config_up_to_date(current_nonce) &&
+        self.is_stake_up_to_date(current_nonce) &&
+        self.are_nodes_up_to_date(current_nonce) &&
+        self.are_funds_up_to_date(current_nonce, current_epoch)
+    }
 }
 
 #[multiversx_sc::module]
@@ -122,7 +178,7 @@ pub trait ConfigModule:
     #[only_owner]
     #[endpoint(setStateActive)]
     fn set_state_active(&self) {
-        require!(!self.provider_address().is_empty(), ERROR_PROVIDER_NOT_SET);
+        require!(!self.providers().is_empty(), ERROR_PROVIDERS_NOT_SET);
         require!(!self.liquid_token_id().is_empty(), ERROR_TOKEN_NOT_SET);
         require!(!self.unbond_period().is_empty(), ERROR_UNBOND_PERIOD_NOT_SET);
         require!(self.undelegate_now_fee().get() >= MIN_UNDELEGATE_NOW_FEE, ERROR_INCORRECT_FEE);
@@ -146,22 +202,9 @@ pub trait ConfigModule:
     #[storage_mapper("state")]
     fn state(&self) -> SingleValueMapper<State>;
 
-    #[only_owner]
-    #[endpoint(setProviderAddress)]
-    fn set_provider_address(self, address: ManagedAddress) {
-        require!(!self.is_state_active(), ERROR_ACTIVE);
-
-        require!(
-            self.provider_address().is_empty(),
-            ERROR_PROVIDER_ALREADY_SET
-        );
-
-        self.provider_address().set(address);
-    }
-
-    #[view(getProviderAddress)]
-    #[storage_mapper("provider_address")]
-    fn provider_address(&self) -> SingleValueMapper<ManagedAddress>;
+    #[view(getProviders)]
+    #[storage_mapper("providers")]
+    fn providers(&self) -> MapMapper<ManagedAddress, ProviderConfig<Self::Api>>;
 
     #[view(getUnbondPeriod)]
     #[storage_mapper("unbond_period")]
@@ -178,6 +221,18 @@ pub trait ConfigModule:
         require!(self.unbond_period().get() == 0, ERROR_UNBOND_PERIOD_ALREADY_SET);
 
         self.unbond_period().set(period);
+    }
+
+    #[view(getServiceFee)]
+    #[storage_mapper("service_fee")]
+    fn service_fee(&self) -> SingleValueMapper<u64>;
+
+    #[only_owner]
+    #[endpoint(setServiceFee)]
+    fn set_service_fee(&self, new_fee: u64) {
+        require!(new_fee < MAX_PERCENT, ERROR_INCORRECT_FEE);
+
+        self.service_fee().set(new_fee);
     }
 
     // delegation
@@ -317,6 +372,36 @@ pub trait ConfigModule:
         }
     }
 
+    #[view(isProviderUpToDate)]
+    fn view_provider_updated(&self, provider_address: &ManagedAddress) -> bool {
+        let current_nonce = self.blockchain().get_block_nonce();
+        let current_epoch = self.blockchain().get_block_epoch();
+
+        let provider = self.providers().get(provider_address).unwrap();
+        provider.is_up_to_date(current_nonce, current_epoch)
+    }
+
+    #[view(areProvidersUpToDate)]
+    fn view_providers_updated(&self) -> bool {
+        let current_nonce = self.blockchain().get_block_nonce();
+        let current_epoch = self.blockchain().get_block_epoch();
+        let mut result = false;
+        for (_, provider) in self.providers().iter() {
+            if provider.is_up_to_date(current_nonce, current_epoch) {
+                result = true;
+                continue
+            }
+
+            if !provider.is_active() {
+                continue
+            }
+
+            return false
+        }
+
+        result
+    }
+
     // arbitrage
 
     #[storage_mapper("wegld_id")]
@@ -361,16 +446,21 @@ pub trait ConfigModule:
 
     #[view(getContractInfo)]
     fn get_contract_info(&self) -> ContractInfo<Self::Api> {
+        let mut providers: ManagedVec<ProviderConfig<Self::Api>> = ManagedVec::new();
+        for (_, provider) in self.providers().iter() {
+            providers.push(provider);
+        }
         ContractInfo{
             state: self.state().get(),
             liquid_token_id: self.liquid_token_id().get_token_id(),
             liquid_token_supply: self.liquid_token_supply().get(),
             total_egld_staked: self.total_egld_staked().get(),
-            provider_address: self.provider_address().get(),
+            providers,
             egld_reserve: self.egld_reserve().get(),
             available_egld_reserve: self.available_egld_reserve().get(),
             unbond_period: self.unbond_period().get(),
             undelegate_now_fee: self.undelegate_now_fee().get(),
+            service_fee: self.service_fee().get(),
             token_price: self.token_price(),
         }
     }

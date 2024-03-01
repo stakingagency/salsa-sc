@@ -12,16 +12,13 @@ path = "src/salsa.rs"
 num-bigint = "0.4.3"
 
 [dependencies.multiversx-sc]
-version = "0.45.2"
+version = "0.47.4"
 
 [dependencies.multiversx-sc-modules]
-version = "0.45.2"
+version = "0.47.4"
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "0.45.2"
-
-[dependencies]
-hex-literal = "0.3.1"
+version = "0.47.4"
 
 [dependencies.delegation-mock]
 path = "./delegation-mock"

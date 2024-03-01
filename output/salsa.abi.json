@@ -1,11 +1,11 @@
 {
     "buildInfo": {
         "rustc": {
-            "version": "1.74.0-nightly",
-            "commitHash": "4e78abb437a0478d1f42115198ee45888e5330fd",
-            "commitDate": "2023-08-28",
+            "version": "1.76.0-nightly",
+            "commitHash": "d86d65bbc19b928387f68427fcc3a0da498d8a19",
+            "commitDate": "2023-12-10",
             "channel": "Nightly",
-            "short": "rustc 1.74.0-nightly (4e78abb43 2023-08-28)"
+            "short": "rustc 1.76.0-nightly (d86d65bbc 2023-12-10)"
         },
         "contractCrate": {
             "name": "salsa",
@@ -13,7 +13,7 @@
         },
         "framework": {
             "name": "multiversx-sc",
-            "version": "0.45.2"
+            "version": "0.47.4"
         }
     },
     "name": "SalsaContract",
@@ -433,24 +433,13 @@
             ]
         },
         {
-            "name": "setProviderAddress",
-            "onlyOwner": true,
-            "mutability": "mutable",
-            "inputs": [
-                {
-                    "name": "address",
-                    "type": "Address"
-                }
-            ],
-            "outputs": []
-        },
-        {
-            "name": "getProviderAddress",
+            "name": "getProviders",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
                 {
-                    "type": "Address"
+                    "type": "variadic<multi<Address,ProviderConfig>>",
+                    "multi_result": true
                 }
             ]
         },
@@ -471,6 +460,28 @@
             "inputs": [
                 {
                     "name": "period",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "getServiceFee",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "setServiceFee",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "new_fee",
                     "type": "u64"
                 }
             ],
@@ -667,6 +678,31 @@
             ]
         },
         {
+            "name": "isProviderUpToDate",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "provider_address",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "areProvidersUpToDate",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
             "name": "setWrapSC",
             "onlyOwner": true,
             "mutability": "mutable",
@@ -794,16 +830,24 @@
             "name": "delegateAll",
             "mutability": "mutable",
             "inputs": [],
-            "outputs": []
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
         },
         {
             "name": "unDelegateAll",
             "mutability": "mutable",
             "inputs": [],
-            "outputs": []
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
         },
         {
-            "name": "compound",
+            "name": "claimRewards",
             "mutability": "mutable",
             "inputs": [],
             "outputs": []
@@ -1030,7 +1074,81 @@
             "mutability": "mutable",
             "inputs": [],
             "outputs": []
+        },
+        {
+            "name": "addProvider",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "address",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "refreshProvider",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "address",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "removeProvider",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "address",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "setProviderState",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "address",
+                    "type": "Address"
+                },
+                {
+                    "name": "new_state",
+                    "type": "State"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "    * Refresh Providers - updates all providers infos and returns true if all are up to date and false otherwise\\n     "
+            ],
+            "name": "refreshProviders",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
         }
+    ],
+    "promisesCallbackNames": [
+        "delegate_all_callback",
+        "undelegate_all_callback",
+        "claim_rewards_callback",
+        "withdraw_all_callback",
+        "get_contract_config_callback",
+        "get_total_active_stake_callback",
+        "get_all_nodes_states_callback",
+        "get_delegator_funds_data_callback"
     ],
     "esdtAttributes": [],
     "hasCallback": true,
@@ -1055,8 +1173,8 @@
                     "type": "BigUint"
                 },
                 {
-                    "name": "provider_address",
-                    "type": "Address"
+                    "name": "providers",
+                    "type": "List<ProviderConfig>"
                 },
                 {
                     "name": "egld_reserve",
@@ -1072,6 +1190,10 @@
                 },
                 {
                     "name": "undelegate_now_fee",
+                    "type": "u64"
+                },
+                {
+                    "name": "service_fee",
                     "type": "u64"
                 },
                 {
@@ -1128,6 +1250,75 @@
                 {
                     "name": "ActiveKnight",
                     "discriminant": 3
+                }
+            ]
+        },
+        "ProviderConfig": {
+            "type": "struct",
+            "fields": [
+                {
+                    "name": "state",
+                    "type": "State"
+                },
+                {
+                    "name": "address",
+                    "type": "Address"
+                },
+                {
+                    "name": "staked_nodes",
+                    "type": "u32"
+                },
+                {
+                    "name": "total_stake",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "max_cap",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "has_cap",
+                    "type": "bool"
+                },
+                {
+                    "name": "fee",
+                    "type": "u64"
+                },
+                {
+                    "name": "salsa_stake",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "salsa_undelegated",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "salsa_withdrawable",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "salsa_rewards",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "config_last_update_nonce",
+                    "type": "u64"
+                },
+                {
+                    "name": "stake_last_update_nonce",
+                    "type": "u64"
+                },
+                {
+                    "name": "nodes_last_update_nonce",
+                    "type": "u64"
+                },
+                {
+                    "name": "funds_last_update_nonce",
+                    "type": "u64"
+                },
+                {
+                    "name": "funds_last_update_epoch",
+                    "type": "u64"
                 }
             ]
         },
