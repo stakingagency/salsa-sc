@@ -1,53 +1,78 @@
 multiversx_sc::imports!();
 
 use crate::common::storage_cache::StorageCache;
-use crate::{common::consts::*, common::errors::*};
-use crate::proxies::delegation_proxy;
-use crate::common::config::UndelegationType;
+use crate::{common::config::*, common::consts::*, common::errors::*};
+use crate::proxies::delegation_proxy::{self};
 
 #[multiversx_sc::module]
 pub trait ServiceModule:
     crate::common::config::ConfigModule
     + crate::helpers::HelpersModule
+    + crate::providers::ProvidersModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     // endpoints: service
 
     #[endpoint(delegateAll)]
-    fn delegate_all(&self) {
+    fn delegate_all(&self) -> BigUint {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
-        let egld_to_delegate = self.egld_to_delegate().take();
+        let mut storage_cache = StorageCache::new(self);
         require!(
-            egld_to_delegate >= MIN_EGLD,
+            storage_cache.egld_to_delegate >= MIN_EGLD,
             ERROR_INSUFFICIENT_AMOUNT
         );
 
-        let last_delegation_block = self.last_delegation_block().get();
         let current_block = self.blockchain().get_block_nonce();
-        require!(last_delegation_block + MIN_BLOCK_BETWEEN_DELEGATIONS <= current_block, ERROR_DELEGATE_TOO_SOON);
+        require!(
+            storage_cache.last_delegation_block + MIN_BLOCK_BETWEEN_DELEGATIONS <= current_block,
+            ERROR_DELEGATE_TOO_SOON
+        );
 
-        self.last_delegation_block().set(current_block);
-        let delegation_contract = self.provider_address().get();
-        let gas_for_async_call = self.get_gas_for_async_call();
+        storage_cache.last_delegation_block = current_block;
+
+        self.reduce_egld_to_delegate_undelegate(&mut storage_cache);
+        if storage_cache.egld_to_delegate == 0 {
+            drop(storage_cache);
+            return BigUint::zero()
+        }
+
+        let (provider_address, amount, _, _) =
+            self.get_provider_to_delegate_and_amount(&storage_cache.egld_to_delegate);
+        if amount == 0 {
+            drop(storage_cache);
+            return BigUint::zero()
+        }
+
+        storage_cache.egld_to_delegate -= &amount;
+        drop(storage_cache);
+
         self.service_delegation_proxy_obj()
-            .contract(delegation_contract)
+            .contract(provider_address.clone())
             .delegate()
-            .with_gas_limit(gas_for_async_call)
-            .with_egld_transfer(egld_to_delegate.clone())
-            .async_call()
+            .with_gas_limit(MIN_GAS_FOR_ASYNC_CALL)
+            .with_egld_transfer(amount.clone())
+            .async_call_promise()
             .with_callback(
-                ServiceModule::callbacks(self).delegate_all_callback(egld_to_delegate),
+                ServiceModule::callbacks(self).delegate_all_callback(provider_address, &amount),
             )
-            .call_and_exit()
+            .with_extra_gas_for_callback(MIN_GAS_FOR_CALLBACK)
+            .register_promise();
+
+        amount
     }
 
-    #[callback]
+    #[promises_callback]
     fn delegate_all_callback(
         &self,
-        egld_to_delegate: BigUint,
+        provider_address: ManagedAddress,
+        egld_to_delegate: &BigUint,
         #[call_result] result: ManagedAsyncCallResult<()>,
     ) {
+        let mut provider = self.get_provider(&provider_address);
+        provider.funds_last_update_nonce = 0;
+        provider.funds_last_update_epoch = 0;
+        provider.stake_last_update_nonce = 0;
         match result {
             ManagedAsyncCallResult::Ok(()) => {}
             ManagedAsyncCallResult::Err(_) => {
@@ -55,41 +80,60 @@ pub trait ServiceModule:
                     .update(|value| *value += egld_to_delegate);
             }
         }
+        self.providers().insert(provider_address, provider);
     }
 
     #[endpoint(unDelegateAll)]
-    fn undelegate_all(&self) {
+    fn undelegate_all(&self) -> BigUint {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
-        let egld_to_undelegate = self.egld_to_undelegate().take();
+        let mut storage_cache = StorageCache::new(self);
         require!(
-            egld_to_undelegate >= MIN_EGLD,
+            storage_cache.egld_to_undelegate >= MIN_EGLD,
             ERROR_INSUFFICIENT_AMOUNT
         );
 
-        let mut storage_cache = StorageCache::new(self);
         self.reduce_egld_to_delegate_undelegate(&mut storage_cache);
+        if storage_cache.egld_to_undelegate == 0 {
+            drop(storage_cache);
+            return BigUint::zero()
+        }
+
+        let (_, _, provider_address, amount) =
+            self.get_provider_to_delegate_and_amount(&storage_cache.egld_to_undelegate);
+        if amount == 0 {
+            drop(storage_cache);
+            return BigUint::zero()
+        }
+
+        storage_cache.egld_to_undelegate -= &amount;
         drop(storage_cache);
 
-        let delegation_contract = self.provider_address().get();
-        let gas_for_async_call = self.get_gas_for_async_call();
         self.service_delegation_proxy_obj()
-            .contract(delegation_contract)
-            .undelegate(egld_to_undelegate.clone())
-            .with_gas_limit(gas_for_async_call)
-            .async_call()
+            .contract(provider_address.clone())
+            .undelegate(&amount)
+            .with_gas_limit(MIN_GAS_FOR_ASYNC_CALL)
+            .async_call_promise()
             .with_callback(
-                ServiceModule::callbacks(self).undelegate_all_callback(egld_to_undelegate),
+                ServiceModule::callbacks(self).undelegate_all_callback(provider_address, &amount),
             )
-            .call_and_exit()
+            .with_extra_gas_for_callback(MIN_GAS_FOR_CALLBACK)
+            .register_promise();
+
+        amount
     }
 
-    #[callback]
+    #[promises_callback]
     fn undelegate_all_callback(
         &self,
-        egld_to_undelegate: BigUint,
+        provider_address: ManagedAddress,
+        egld_to_undelegate: &BigUint,
         #[call_result] result: ManagedAsyncCallResult<()>,
     ) {
+        let mut provider = self.get_provider(&provider_address);
+        provider.funds_last_update_nonce = 0;
+        provider.funds_last_update_epoch = 0;
+        provider.stake_last_update_nonce = 0;
         match result {
             ManagedAsyncCallResult::Ok(()) => {}
             ManagedAsyncCallResult::Err(_) => {
@@ -97,99 +141,116 @@ pub trait ServiceModule:
                     .update(|value| *value += egld_to_undelegate);
             }
         }
+        self.providers().insert(provider_address, provider);
     }
 
-    #[endpoint(compound)]
-    fn compound(&self) {
+    #[endpoint(claimRewards)]
+    fn claim_rewards(&self) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
-        let delegation_contract = self.provider_address().get();
-        let this_contract = self.blockchain().get_sc_address();
-        let gas_for_async_call = self.get_gas_for_async_call();
-        let claimable_rewards_amount = self.claimable_rewards_amount().get();
-        let claimable_rewards_epoch = self.claimable_rewards_epoch().get();
+        if !self.refresh_providers() {
+            return
+        }
+
+        let current_nonce = self.blockchain().get_block_nonce();
         let current_epoch = self.blockchain().get_block_epoch();
-
-        if claimable_rewards_amount == 0 || claimable_rewards_epoch != current_epoch {
-            self.service_delegation_proxy_obj()
-                .contract(delegation_contract)
-                .get_claimable_rewards(this_contract)
-                .with_gas_limit(gas_for_async_call)
-                .async_call()
-                .with_callback(
-                    ServiceModule::callbacks(self).get_claimable_rewards_callback(current_epoch),
-                )
-                .call_and_exit()
-        } else {
-            self.service_delegation_proxy_obj()
-                .contract(delegation_contract)
-                .redelegate_rewards()
-                .with_gas_limit(gas_for_async_call)
-                .async_call()
-                .with_callback(
-                    ServiceModule::callbacks(self).compound_callback(claimable_rewards_amount),
-                )
-                .call_and_exit()
-        }
-    }
-
-    #[callback]
-    fn get_claimable_rewards_callback(
-        &self,
-        current_epoch: u64,
-        #[call_result] result: ManagedAsyncCallResult<BigUint>,
-    ) {
-        match result {
-            ManagedAsyncCallResult::Ok(total_rewards) => {
-                self.claimable_rewards_amount().set(total_rewards);
-                self.claimable_rewards_epoch().set(current_epoch);
+        for (address, provider) in self.providers().iter() {
+            let is_active = provider.is_active();
+            let is_up_to_date = provider.is_up_to_date(current_nonce, current_epoch);
+            if !is_active || !is_up_to_date || (provider.salsa_rewards == 0) {
+                continue
             }
-            ManagedAsyncCallResult::Err(_) => {}
+
+            if !self.enough_gas_left_for_callback() {
+                break
+            }
+
+            self.service_delegation_proxy_obj()
+                .contract(address.clone())
+                .claim_rewards()
+                .with_gas_limit(MIN_GAS_FOR_ASYNC_CALL)
+                .async_call_promise()
+                .with_callback(ServiceModule::callbacks(self).claim_rewards_callback(address))
+                .with_extra_gas_for_callback(MIN_GAS_FOR_CALLBACK)
+                .register_promise();
         }
     }
 
-    #[callback]
-    fn compound_callback(
+    #[promises_callback]
+    fn claim_rewards_callback(
         &self,
-        claimable_rewards: BigUint,
+        provider_address: ManagedAddress,
         #[call_result] result: ManagedAsyncCallResult<()>,
     ) {
+        let mut provider = self.get_provider(&provider_address);
+        provider.funds_last_update_nonce = 0;
+        provider.funds_last_update_epoch = 0;
         match result {
             ManagedAsyncCallResult::Ok(()) => {
+                let claimed_amount = self.call_value().egld_value().clone_value();
+                let commission = &claimed_amount * self.service_fee().get() / MAX_PERCENT;
+                let left_amount = &claimed_amount - &commission;
                 self.total_egld_staked()
-                    .update(|value| *value += claimable_rewards);
-                self.claimable_rewards_amount().clear();
+                    .update(|value| *value += &left_amount);
+                self.egld_to_delegate()
+                    .update(|value| *value += left_amount);
+                self.send().direct_egld(&self.blockchain().get_owner_address(), &commission);
+                provider.salsa_rewards = BigUint::zero();
             }
             ManagedAsyncCallResult::Err(_) => {}
         }
+        self.providers().insert(provider_address, provider);
     }
 
     #[endpoint(withdrawAll)]
     fn withdraw_all(&self) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
-        let delegation_contract = self.provider_address().get();
-        let gas_for_async_call = self.get_gas_for_async_call();
+        if !self.refresh_providers() {
+            return
+        }
 
-        self.service_delegation_proxy_obj()
-            .contract(delegation_contract)
-            .withdraw()
-            .with_gas_limit(gas_for_async_call)
-            .async_call()
-            .with_callback(ServiceModule::callbacks(self).withdraw_all_callback())
-            .call_and_exit()
+        let current_nonce = self.blockchain().get_block_nonce();
+        let current_epoch = self.blockchain().get_block_epoch();
+        for (address, provider) in self.providers().iter() {
+            if !provider.is_active() || !provider.is_up_to_date(current_nonce, current_epoch) || (provider.salsa_withdrawable == 0) {
+                continue
+            }
+
+            if !self.enough_gas_left_for_callback() {
+                break
+            }
+
+            self.service_delegation_proxy_obj()
+                .contract(address.clone())
+                .withdraw()
+                .with_gas_limit(MIN_GAS_FOR_ASYNC_CALL)
+                .async_call_promise()
+                .with_callback(ServiceModule::callbacks(self).withdraw_all_callback(address))
+                .with_extra_gas_for_callback(MIN_GAS_FOR_CALLBACK)
+                .register_promise();
+        }
     }
 
-    #[callback]
-    fn withdraw_all_callback(&self, #[call_result] result: ManagedAsyncCallResult<()>) {
+    #[promises_callback]
+    fn withdraw_all_callback(
+        &self,
+        provider_address: ManagedAddress,
+        #[call_result] result: ManagedAsyncCallResult<()>,
+    ) {
+        let mut provider = self.get_provider(&provider_address);
+        provider.funds_last_update_nonce = 0;
+        provider.funds_last_update_epoch = 0;
         match result {
             ManagedAsyncCallResult::Ok(()) => {
                 let withdrawn_amount = self.call_value().egld_value();
                 self.total_withdrawn_egld()
                     .update(|value| *value += withdrawn_amount.clone_value());
+                provider.salsa_withdrawable = BigUint::zero();
             }
             ManagedAsyncCallResult::Err(_) => {}
         }
+        self.providers().insert(provider_address, provider);
     }
 
     #[endpoint(computeWithdrawn)]
@@ -228,17 +289,106 @@ pub trait ServiceModule:
 
     // helpers
 
-     fn get_gas_for_async_call(&self) -> u64 {
-        let gas_left = self.blockchain().get_gas_left();
-        require!(
-            gas_left > MIN_GAS_FOR_ASYNC_CALL + MIN_GAS_FOR_CALLBACK,
-            ERROR_INSUFFICIENT_GAS
-        );
+    fn get_provider_to_delegate_and_amount(
+        &self,
+        amount: &BigUint,
+    ) -> (
+        ManagedAddress,
+        BigUint,
+        ManagedAddress,
+        BigUint,
+    ) {
+        let mut provider_to_delegate = self.empty_provider();
+        let mut provider_to_undelegate = self.empty_provider();
+        if !self.refresh_providers() {
+            return (ManagedAddress::from(&[0u8; 32]), BigUint::zero(), ManagedAddress::from(&[0u8; 32]), BigUint::zero())
+        }
 
-        gas_left - MIN_GAS_FOR_CALLBACK
+        let mut min_topup = BigUint::zero();
+        let mut max_topup_delegate = BigUint::zero();
+        let mut max_topup_undelegate = BigUint::zero();
+        let base_stake = BigUint::from(NODE_BASE_STAKE) * ONE_EGLD;
+        for (_, provider) in self.providers().iter() {
+            if !provider.is_active() {
+                continue
+            }
+
+            let mut topup = &provider.total_stake / (provider.staked_nodes as u64);
+            if topup > base_stake {
+                topup -= &base_stake;
+            } else {
+                topup = BigUint::zero();
+            }
+            if topup < min_topup || min_topup == 0 {
+                min_topup = topup.clone();
+                provider_to_delegate = provider.clone();
+            }
+            if topup > max_topup_delegate || max_topup_delegate == 0 {
+                max_topup_delegate = topup.clone();
+            }
+            if (topup > max_topup_undelegate || max_topup_undelegate == 0) && (provider.salsa_stake > 0) {
+                max_topup_undelegate = topup;
+                provider_to_undelegate = provider.clone();
+            }
+        }
+        let mut delegate_amount = BigUint::zero();
+        if provider_to_delegate.staked_nodes > 0 {
+            if max_topup_delegate < min_topup {
+                max_topup_delegate = min_topup.clone();
+            }
+            let dif_topup_delegate = &max_topup_delegate - &min_topup;
+            delegate_amount = amount.clone();
+            if min_topup != max_topup_delegate {
+                let mut max_amount = &dif_topup_delegate * (provider_to_delegate.staked_nodes as u64);
+                if max_amount < MIN_EGLD {
+                    max_amount = BigUint::from(MIN_EGLD);
+                }
+                if amount > &max_amount {
+                    delegate_amount = max_amount;
+                }
+            }
+            if provider_to_delegate.has_cap {
+                let max_amount = provider_to_delegate.max_cap - provider_to_delegate.total_stake;
+                if delegate_amount > max_amount {
+                    delegate_amount = max_amount;
+                }
+            }
+            if delegate_amount < MIN_EGLD {
+                delegate_amount = BigUint::zero();
+            }
+        }
+        let mut undelegate_amount = BigUint::zero();
+        if provider_to_undelegate.staked_nodes > 0 {
+            if max_topup_undelegate < min_topup {
+                max_topup_undelegate = min_topup.clone();
+            }
+            let dif_topup_undelegate = &max_topup_undelegate - &min_topup;
+                undelegate_amount = amount.clone();
+            if min_topup != max_topup_undelegate {
+                let mut max_amount = dif_topup_undelegate * (provider_to_undelegate.staked_nodes as u64);
+                if max_amount < MIN_EGLD {
+                    max_amount = BigUint::from(MIN_EGLD);
+                }
+                if amount > &max_amount {
+                    undelegate_amount = max_amount;
+                }
+            }
+            if provider_to_undelegate.salsa_stake < undelegate_amount {
+                undelegate_amount = provider_to_undelegate.salsa_stake.clone();
+            }
+            let diff = &provider_to_undelegate.salsa_stake - &undelegate_amount;
+            if diff < MIN_EGLD && diff > 0 {
+                undelegate_amount = provider_to_undelegate.salsa_stake - MIN_EGLD;
+            }
+            if undelegate_amount < MIN_EGLD {
+                undelegate_amount = BigUint::zero();
+            }
+        }
+
+        (provider_to_delegate.address, delegate_amount, provider_to_undelegate.address, undelegate_amount)
     }
 
-   // proxy
+    // proxy
 
     #[proxy]
     fn service_delegation_proxy_obj(&self) -> delegation_proxy::Proxy<Self::Api>;

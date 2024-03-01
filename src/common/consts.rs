@@ -2,6 +2,7 @@ pub const ONE_EGLD: u64 = 1_000_000_000_000_000_000;
 pub const MIN_EGLD: u64 = ONE_EGLD;
 pub const MIN_GAS_FOR_ASYNC_CALL: u64 = 12_000_000;
 pub const MIN_GAS_FOR_CALLBACK: u64 = 12_000_000;
+pub const GAS_FOR_VIEW_FUNCTION: u64 = 6_000_000;
 pub const MAX_PERCENT: u64 = 10_000;
 pub const MIN_UNDELEGATE_NOW_FEE: u64 = 3;
 pub const MAX_UNBOND_PERIOD: u64 = 20;
@@ -11,3 +12,15 @@ pub const MAX_INHERITANCE_EPOCHS: u64 = 3653;
 pub const MAX_KNIGHT_USERS: usize = 10;
 pub const MAX_HEIR_USERS: usize = 10;
 pub const MIN_BLOCK_BETWEEN_DELEGATIONS: u64 = 10;
+
+pub const PROVIDER_UPDATE_NONCES_DELTA: u64 = 300; // 30 minutes
+pub const NODE_BASE_STAKE: u64 = 2_500;
+pub const MAX_PROVIDER_FEE: u64 = 1000; // 10%
+
+pub const PROVIDER_CONFIG_FEE_INDEX: usize = 1;
+pub const PROVIDER_CONFIG_MAX_CAP_INDEX: usize = 2;
+pub const PROVIDER_CONFIG_HAS_CAP_INDEX: usize = 5;
+pub const PROVIDER_FUNDS_DELEGATED_INDEX: usize = 0;
+pub const PROVIDER_FUNDS_REWARDS_INDEX: usize = 1;
+pub const PROVIDER_FUNDS_UNDELEGATED_INDEX: usize = 2;
+pub const PROVIDER_FUNDS_WITHDRAWABLE_INDEX: usize = 3;

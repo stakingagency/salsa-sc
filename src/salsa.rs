@@ -9,6 +9,7 @@ pub mod service;
 pub mod exchanges;
 pub mod knights;
 pub mod heirs;
+pub mod providers;
 
 use crate::{common::config::*, common::{consts::*, storage_cache::StorageCache}, common::errors::*};
 
@@ -22,6 +23,7 @@ pub trait SalsaContract<ContractReader>:
     + exchanges::xexchange::XexchangeModule
     + knights::KnightsModule
     + heirs::HeirsModule
+    + providers::ProvidersModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[init]

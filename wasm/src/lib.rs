@@ -5,9 +5,10 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           81
+// Endpoints:                           89
 // Async Callback:                       1
-// Total number of exported functions:  83
+// Promise callbacks:                    8
+// Total number of exported functions:  99
 
 #![no_std]
 #![allow(internal_features)]
@@ -44,10 +45,11 @@ multiversx_sc_wasm_adapter::endpoints! {
         setStateActive => set_state_active
         setStateInactive => set_state_inactive
         getState => state
-        setProviderAddress => set_provider_address
-        getProviderAddress => provider_address
+        getProviders => providers
         getUnbondPeriod => unbond_period
         setUnbondPeriod => set_unbond_period
+        getServiceFee => service_fee
+        setServiceFee => set_service_fee
         getUserUndelegations => luser_undelegations
         getTotalEgldStaked => total_egld_staked
         getUserWithdrawnEgld => user_withdrawn_egld
@@ -64,6 +66,8 @@ multiversx_sc_wasm_adapter::endpoints! {
         getReserveEgldAmount => get_reserve_egld_amount
         getUserReserve => get_user_reserve
         getTokenPrice => token_price
+        isProviderUpToDate => view_provider_updated
+        areProvidersUpToDate => view_providers_updated
         setWrapSC => set_wrap_sc
         getLegldInCustody => legld_in_custody
         getUserDelegation => user_delegation
@@ -75,7 +79,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         getUserInfo => get_user_info
         delegateAll => delegate_all
         unDelegateAll => undelegate_all
-        compound => compound
+        claimRewards => claim_rewards
         withdrawAll => withdraw_all
         computeWithdrawn => compute_withdrawn
         setArbitrageActive => set_arbitrage_active
@@ -101,6 +105,19 @@ multiversx_sc_wasm_adapter::endpoints! {
         cancelHeir => cancel_heir
         removeHeir => remove_heir
         updateLastAccessed => update_last_accessed
+        addProvider => add_provider
+        refreshProvider => refresh_provider
+        removeProvider => remove_provider
+        setProviderState => set_provider_state
+        refreshProviders => refresh_providers
+        delegate_all_callback => delegate_all_callback
+        undelegate_all_callback => undelegate_all_callback
+        claim_rewards_callback => claim_rewards_callback
+        withdraw_all_callback => withdraw_all_callback
+        get_contract_config_callback => get_contract_config_callback
+        get_total_active_stake_callback => get_total_active_stake_callback
+        get_all_nodes_states_callback => get_all_nodes_states_callback
+        get_delegator_funds_data_callback => get_delegator_funds_data_callback
     )
 }
 
