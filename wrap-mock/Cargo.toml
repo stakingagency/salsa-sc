@@ -1,0 +1,16 @@
+[package]
+name = "wrap-mock"
+version = "0.0.0"
+authors = [ "DrDelphi <drdelphi@gmail.com>",]
+edition = "2021"
+publish = false
+
+[lib]
+path = "src/wrap.rs"
+
+[dependencies.multiversx-sc]
+version = "0.47.4"
+
+[dependencies.itertools]
+version = "0.10.1"
+default-features = false

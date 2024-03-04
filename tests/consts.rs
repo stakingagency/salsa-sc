@@ -39,3 +39,17 @@ pub const GAS_LIMIT_WITHDRAW_ALL: u64 = 300_000_000;
 pub const GAS_LIMIT_CLAIM_REWARDS: u64 = 300_000_000;
 pub const GAS_LIMIT_REFRESH_PROVIDERS: u64 = 300_000_000;
 pub const GAS_LIMIT_REFRESH_PROVIDER: u64 = 100_000_000;
+
+pub const WRAP_OWNER_ADDRESS_EXPR: &str = "address:wrap_owner";
+pub const WEGLD_ID_EXPR: &str = "str:WEGLD-123456";
+pub const WEGLD_ID: &str = "WEGLD-123456";
+pub const WRAP_PATH_EXPR: &str = "mxsc:wrap-mock/output/wrap-mock.mxsc.json";
+pub const WRAP_ADDRESS_EXPR: &str = "sc:wrap";
+pub const WRAP_INITIAL_BALANCE_EXPR: &str = "1_000_000_000_000_000_000_000_000";
+
+pub const ONEDEX_OWNER_ADDRESS_EXPR: &str = "address:onedex_owner";
+pub const ONEDEX_OWNER_INITIAL_BALANCE_EXPR: &str = "10_000_000_000_000_000_000_000";
+pub const ONEDEX_PATH_EXPR: &str = "mxsc:onedex-mock/output/onedex-mock.mxsc.json";
+pub const ONEDEX_ADDRESS_EXPR: &str = "sc:onedex";
+pub const ONEDEX_LP_EXPR: &str = "str:OneDexLP-123456";
+pub const ONEDEX_LP: &str = "OneDexLP-123456";

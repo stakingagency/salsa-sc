@@ -23,10 +23,25 @@ version = "0.47.4"
 [dependencies.delegation-mock]
 path = "./delegation-mock"
 
+[dependencies.wrap-mock]
+path = "./wrap-mock"
+
+[dependencies.onedex-mock]
+path = "./onedex-mock"
+
+[dependencies.xexchange-mock]
+path = "./xexchange-mock"
+
 [workspace]
 members = [
     ".",
     "./meta",
     "delegation-mock",
-    "delegation-mock/meta"
+    "delegation-mock/meta",
+    "wrap-mock",
+    "wrap-mock/meta",
+    "onedex-mock",
+    "onedex-mock/meta",
+    "xexchange-mock",
+    "xexchange-mock/meta"
 ]
