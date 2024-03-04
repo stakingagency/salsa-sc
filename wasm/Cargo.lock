@@ -146,6 +146,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "onedex-mock"
+version = "0.0.0"
+dependencies = [
+ "itertools",
+ "multiversx-sc",
+]
+
+[[package]]
 name = "proc-macro2"
 version = "1.0.78"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -180,6 +188,9 @@ dependencies = [
  "delegation-mock",
  "multiversx-sc",
  "multiversx-sc-modules",
+ "onedex-mock",
+ "wrap-mock",
+ "xexchange-mock",
 ]
 
 [[package]]
@@ -212,3 +223,19 @@ name = "unicode-ident"
 version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "301abaae475aa91687eb82514b328ab47a211a533026cb25fc3e519b86adfc3c"
+
+[[package]]
+name = "wrap-mock"
+version = "0.0.0"
+dependencies = [
+ "itertools",
+ "multiversx-sc",
+]
+
+[[package]]
+name = "xexchange-mock"
+version = "0.0.0"
+dependencies = [
+ "itertools",
+ "multiversx-sc",
+]

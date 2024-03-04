@@ -6,15 +6,36 @@ use std::ops::Mul;
 
 use consts::*;
 use contract_interactions::{
-    checks::*, delegation_interaction::get_provider_total_stake, heirs_interactions::*, knights_interactions::*, providers_interactions::*, salsa_interactions::*, service_interactions::*
+    salsa_interactions::*,
+    delegation_interaction::*,
+    service_interactions::*,
+    knights_interactions::*,
+    heirs_interactions::*,
+    providers_interactions::*,
+    checks::*,
 };
 use delegation_mock::{DelegationMock, EPOCHS_IN_YEAR};
+use wrap_mock::WrapMock;
+use onedex_mock::{
+    logic::{
+        liquidity::LiquidityLogicModule,
+        pair::PairLogicModule
+    },
+    storage::{
+        common_storage::CommonStorageModule,
+        pair_storage::PairStorageModule
+    },
+    view::ViewModule, OneDexMock
+};
 
 use salsa::{
     common::{
         config::{ConfigModule, State},
-        consts::{MAX_HEIR_USERS, MAX_KNIGHT_USERS, MAX_PERCENT, NODE_BASE_STAKE}, errors::*
-    }, providers::ProvidersModule
+        consts::{MAX_HEIR_USERS, MAX_KNIGHT_USERS, MAX_PERCENT, NODE_BASE_STAKE},
+        errors::*
+    },
+    exchanges::onedex::OnedexModule,
+    providers::ProvidersModule
 };
 
 use multiversx_sc::{
@@ -24,7 +45,7 @@ use multiversx_sc::{
 use multiversx_sc_scenario::{
     managed_address, managed_token_id, rust_biguint,
     scenario_model::{
-        Account, BigUintValue, ScCallStep, ScDeployStep, SetStateStep
+        Account, BigUintValue, BytesValue, ScCallStep, ScDeployStep, SetStateStep, TxESDT, U64Value
     },
     DebugApi, ScenarioWorld, WhiteboxContract
 };
@@ -41,6 +62,14 @@ pub fn world() -> ScenarioWorld {
         DELEGATION_PATH_EXPR,
         delegation_mock::ContractBuilder,
     );
+    blockchain.register_contract(
+        WRAP_PATH_EXPR,
+        wrap_mock::ContractBuilder,
+    );
+    blockchain.register_contract(
+        ONEDEX_PATH_EXPR,
+        onedex_mock::ContractBuilder,
+    );
 
     blockchain
 }
@@ -54,6 +83,12 @@ pub fn setup() -> ScenarioWorld {
     let delegation1_whitebox = WhiteboxContract::new(DELEGATION1_ADDRESS_EXPR, delegation_mock::contract_obj);
     let delegation2_whitebox = WhiteboxContract::new(DELEGATION2_ADDRESS_EXPR, delegation_mock::contract_obj);
     let delegation_code = world.code_expression(DELEGATION_PATH_EXPR);
+
+    let wrap_whitebox = WhiteboxContract::new(WRAP_ADDRESS_EXPR, wrap_mock::contract_obj);
+    let wrap_code = world.code_expression(WRAP_PATH_EXPR);
+
+    let onedex_whitebox = WhiteboxContract::new(ONEDEX_ADDRESS_EXPR, onedex_mock::contract_obj);
+    let onedex_code = world.code_expression(ONEDEX_PATH_EXPR);
 
     let roles = vec![
         "ESDTRoleLocalMint".to_string(),
@@ -89,13 +124,13 @@ pub fn setup() -> ScenarioWorld {
                     .nonce(1)
                     .balance(DELEGATOR2_INITIAL_BALANCE_EXPR)
             )
+            .new_address(DELEGATOR2_ADDRESS_EXPR, 1, DELEGATION2_ADDRESS_EXPR)
             .put_account(
                 RESERVER1_ADDRESS_EXPR,
                 Account::new()
                     .nonce(1)
                     .balance(RESERVER1_INITIAL_BALANCE_EXPR)
             )
-            .new_address(RESERVER1_ADDRESS_EXPR, 1, DELEGATION2_ADDRESS_EXPR)
             .put_account(
                 RESERVER2_ADDRESS_EXPR,
                 Account::new()
@@ -108,42 +143,43 @@ pub fn setup() -> ScenarioWorld {
                     .nonce(1)
                     .code(salsa_code.clone())
                     .owner(OWNER_ADDRESS_EXPR)
-                    .esdt_roles(TOKEN_ID_EXPR, roles)
+                    .esdt_roles(TOKEN_ID_EXPR, roles.clone())
+            )
+            .put_account(
+                WRAP_OWNER_ADDRESS_EXPR,
+                Account::new()
+                    .nonce(1)
+                    .balance("1_000_000_000_000_000_000")
+            )
+            .new_address(WRAP_OWNER_ADDRESS_EXPR, 1, WRAP_ADDRESS_EXPR)
+            .put_account(
+                WRAP_ADDRESS_EXPR,
+                Account::new()
+                    .nonce(1)
+                    .code(wrap_code)
+                    .balance(WRAP_INITIAL_BALANCE_EXPR)
+                    .esdt_balance(WEGLD_ID_EXPR, WRAP_INITIAL_BALANCE_EXPR)
+                    .owner(WRAP_OWNER_ADDRESS_EXPR)
+                    .esdt_roles(WEGLD_ID_EXPR, roles.clone())
+            )
+            .put_account(
+                ONEDEX_OWNER_ADDRESS_EXPR,
+                Account::new()
+                    .nonce(1)
+                    .balance(ONEDEX_OWNER_INITIAL_BALANCE_EXPR)
+            )
+            .new_address(ONEDEX_OWNER_ADDRESS_EXPR, 1, ONEDEX_ADDRESS_EXPR)
+            .put_account(
+                ONEDEX_ADDRESS_EXPR,
+                Account::new()
+                    .nonce(1)
+                    .code(onedex_code)
+                    .owner(ONEDEX_OWNER_ADDRESS_EXPR)
+                    .esdt_roles(ONEDEX_LP_EXPR, roles)
             )
     );
 
-    world.whitebox_call(
-        &salsa_whitebox,
-        ScCallStep::new()
-            .from(OWNER_ADDRESS_EXPR),
-        |sc| sc.liquid_token_id().set_token_id(managed_token_id!(TOKEN_ID)),
-    );
-
-    // set unbond period
-    world.whitebox_call(
-        &salsa_whitebox,
-        ScCallStep::new()
-            .from(OWNER_ADDRESS_EXPR),
-        |sc| sc.set_unbond_period(UNBOND_PERIOD),
-    );
-
-    // set service fee
-    world.whitebox_call(
-        &salsa_whitebox,
-        ScCallStep::new()
-            .from(OWNER_ADDRESS_EXPR),
-        |sc| sc.set_service_fee(SERVICE_FEE),
-    );
-
-    // set undelegate now fee
-    world.whitebox_call(
-        &salsa_whitebox,
-        ScCallStep::new()
-            .from(OWNER_ADDRESS_EXPR),
-        |sc| sc.set_undelegate_now_fee(UNDELEGATE_NOW_FEE),
-    );
-
-    // add providers
+    // deploy providers
     world.whitebox_deploy(
         &delegation1_whitebox,
         ScDeployStep::new()
@@ -162,7 +198,7 @@ pub fn setup() -> ScenarioWorld {
     world.whitebox_deploy(
         &delegation2_whitebox,
         ScDeployStep::new()
-            .from(RESERVER1_ADDRESS_EXPR)
+            .from(DELEGATOR2_ADDRESS_EXPR)
             .code(delegation_code),
         |sc| {
             sc.init(
@@ -174,32 +210,74 @@ pub fn setup() -> ScenarioWorld {
         }
     );
 
+    // setup wrap sc
+    world.whitebox_call(
+        &wrap_whitebox,
+        ScCallStep::new()
+            .from(WRAP_OWNER_ADDRESS_EXPR),
+        |sc| sc.wrapped_egld_token_id().set(managed_token_id!(WEGLD_ID)),
+    );
+
+    // setup onedex sc
+    let mut pair_id: usize = 0;
+    world.whitebox_call(
+        &onedex_whitebox,
+        ScCallStep::new()
+            .from(ONEDEX_OWNER_ADDRESS_EXPR),
+        |sc| {
+            sc.init(
+                managed_token_id!(WEGLD_ID),
+                managed_address!(&Address::from_slice(wrap_whitebox.address_expr.to_address().as_bytes()))
+            );
+            sc.add_main_pair(managed_token_id!(WEGLD_ID));
+        }
+    );
+
+    // create onedex pair
+    world.whitebox_call(
+        &onedex_whitebox,
+        ScCallStep::new()
+            .from(ONEDEX_OWNER_ADDRESS_EXPR),
+        |sc| {
+            pair_id = sc.create_pair(managed_token_id!(TOKEN_ID), managed_token_id!(WEGLD_ID));
+            sc.pair_lp_token_id(pair_id).set(managed_token_id!(ONEDEX_LP));
+            sc.lp_token_pair_id_map().insert(managed_token_id!(ONEDEX_LP), pair_id);
+            sc.pair_enabled(pair_id).set(true);
+            sc.pair_state(pair_id).set(onedex_mock::state::State::Active);
+        }
+    );
+
+    // check onedex pair active
+    world.whitebox_query(
+        &onedex_whitebox, |sc| {
+            assert!(sc.view_pair(pair_id).enabled);
+            assert_eq!(sc.view_pair(pair_id).state, onedex_mock::state::State::Active);
+            assert_eq!(sc.pair_state(pair_id).get(), onedex_mock::state::State::Active);
+        }
+    );
+
+    // setup SALSA
     world.whitebox_call(
         &salsa_whitebox,
         ScCallStep::new()
             .from(OWNER_ADDRESS_EXPR),
         |sc| {
+            sc.liquid_token_id().set_token_id(managed_token_id!(TOKEN_ID));
+            sc.set_unbond_period(UNBOND_PERIOD);
+            sc.set_service_fee(SERVICE_FEE);
+            sc.set_undelegate_now_fee(UNDELEGATE_NOW_FEE);
             sc.add_provider(managed_address!(&Address::from_slice(delegation1_whitebox.address_expr.to_address().as_bytes())));
-        }
-    );
-
-    world.whitebox_call(
-        &salsa_whitebox,
-        ScCallStep::new()
-            .from(OWNER_ADDRESS_EXPR),
-        |sc| {
             sc.add_provider(managed_address!(&Address::from_slice(delegation2_whitebox.address_expr.to_address().as_bytes())));
+            sc.set_state_active();
+
+            sc.set_wrap_sc(managed_address!(&Address::from_slice(wrap_whitebox.address_expr.to_address().as_bytes())));
+            sc.set_onedex_sc(managed_address!(&Address::from_slice(onedex_whitebox.address_expr.to_address().as_bytes())));
+            sc.set_onedex_pair_id(pair_id);
+            sc.set_onedex_arbitrage_active();
         }
     );
 
-    // set state active
-    world.whitebox_call(
-        &salsa_whitebox,
-        ScCallStep::new()
-            .from(OWNER_ADDRESS_EXPR),
-        |sc| sc.set_state_active(),
-    );
-
+    // check salsa active
     world.whitebox_query(
         &salsa_whitebox, |sc| {
             assert_eq!(sc.state().get(), State::Active);
@@ -232,21 +310,31 @@ fn test_delegation() {
     let first_user_initial_amount = &BigUintValue::from(DELEGATOR1_INITIAL_BALANCE_EXPR).value;
     let mut nonce = BLOCKS_PER_EPOCH;
 
+    let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
+    let mut initial_egld_staked = rust_biguint!(0);
+    let mut initial_legld_supply = rust_biguint!(0);
+    world.whitebox_query(
+        &salsa_whitebox, |sc| {
+            initial_egld_staked = num_bigint::BigUint::from_bytes_be(sc.total_egld_staked().get().to_bytes_be().as_slice());
+            initial_legld_supply = num_bigint::BigUint::from_bytes_be(sc.liquid_token_supply().get().to_bytes_be().as_slice());
+        }
+    );
+
     // delegate
     set_block_nonce(&mut world, nonce);
     delegate_test(&mut world, DELEGATOR1_ADDRESS_EXPR, &amount, false, true);
     check_esdt_balance(&mut world, DELEGATOR1_ADDRESS_EXPR, TOKEN_ID_EXPR, &amount);
     check_egld_to_delegate(&mut world, &amount);
     delegate_all_test(&mut world);
-    check_total_egld_staked(&mut world, &amount);
-    check_liquid_token_supply(&mut world, &amount);
+    check_total_egld_staked(&mut world, &(&amount + &initial_egld_staked));
+    check_liquid_token_supply(&mut world, &(&amount + &initial_legld_supply));
 
     // undelegate
     nonce += BLOCKS_PER_EPOCH;
     set_block_nonce(&mut world, nonce);
     undelegate_test(&mut world, false, DELEGATOR1_ADDRESS_EXPR, &amount, true, b"");
     check_esdt_balance(&mut world, DELEGATOR1_ADDRESS_EXPR, TOKEN_ID_EXPR, &rust_biguint!(0));
-    check_total_egld_staked(&mut world, &rust_biguint!(0));
+    check_total_egld_staked(&mut world, &initial_egld_staked);
     check_egld_to_undelegate(&mut world, &amount);
 
     //undelegate all
