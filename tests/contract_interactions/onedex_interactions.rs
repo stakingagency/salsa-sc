@@ -57,3 +57,27 @@ pub fn sell_on_onedex(
         }
     );
 }
+
+pub fn buy_from_onedex(
+    world: &mut ScenarioWorld,
+    caller: &str,
+    wegld_amount: &num_bigint::BigUint,
+    min_amount_out: &num_bigint::BigUint,
+) {
+    let onedex_whitebox = WhiteboxContract::new(ONEDEX_ADDRESS_EXPR, onedex_mock::contract_obj);
+    world.whitebox_call(
+        &onedex_whitebox,
+        ScCallStep::new()
+            .from(caller)
+            .esdt_transfer(WEGLD_ID_EXPR, 0, wegld_amount),
+        |sc| {
+            let legld_token = TokenIdentifier::from(TOKEN_ID);
+            let wegld_token = TokenIdentifier::from(WEGLD_ID);
+            let mut path: MultiValueEncoded<DebugApi, TokenIdentifier<DebugApi>> = MultiValueEncoded::new();
+            path.push(wegld_token.clone());
+            path.push(legld_token.clone());
+
+            sc.swap_multi_tokens_fixed_input(to_managed_biguint(min_amount_out), false, path);
+        }
+    );
+}
