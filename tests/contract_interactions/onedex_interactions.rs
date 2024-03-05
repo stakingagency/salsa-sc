@@ -1,5 +1,12 @@
 use multiversx_sc::types::{MultiValueEncoded, TokenIdentifier};
-use onedex_mock::logic::{common::CommonLogicModule, swap::SwapLogicModule};
+use onedex_mock::{
+    logic::{
+        liquidity::LiquidityLogicModule,
+        common::CommonLogicModule,
+        swap::SwapLogicModule
+    },
+    storage::pair_storage::PairStorageModule,
+};
 
 use crate::*;
 

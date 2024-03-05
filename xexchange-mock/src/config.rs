@@ -44,6 +44,11 @@ pub trait ConfigModule {
     #[storage_mapper("special_fee_percent")]
     fn special_fee_percent(&self) -> SingleValueMapper<u64>;
 
+    #[view(getLpTokenIdentifier)]
+    fn get_lp_token_identifier(&self) -> TokenIdentifier {
+        self.lp_token_identifier().get()
+    }
+
     #[storage_mapper("lpTokenIdentifier")]
     fn lp_token_identifier(&self) -> SingleValueMapper<TokenIdentifier>;
 
