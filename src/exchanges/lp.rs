@@ -389,10 +389,10 @@ pub trait LpModule:
     }
 
     fn remove_all_lps(&self, storage_cache: &mut StorageCache<Self>, lp_cache: &mut LpCache<Self>) {
+        self.do_arbitrage(storage_cache, lp_cache, OptionalValue::None);
+
         let mut onedex_cache = OnedexCache::new(self);
         let mut xexchange_cache = XexchangeCache::new(self);
-
-        self.do_arbitrage(storage_cache, lp_cache, OptionalValue::None);
 
         let (old_balance, old_ls_balance) = self.get_sc_balances();
         if self.is_onedex_arbitrage_active() && onedex_cache.lp_info.lp_balance > 0 {

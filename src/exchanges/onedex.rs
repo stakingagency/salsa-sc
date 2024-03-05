@@ -114,7 +114,7 @@ pub trait OnedexModule:
         is_buy: bool,
         in_amount: BigUint,
         storage_cache: &mut StorageCache<Self>,
-        onedex_cache: OnedexCache<Self>,
+        onedex_cache: &OnedexCache<Self>,
     ) -> (BigUint, BigUint) {
         let out_amount = self.get_salsa_amount_out(&in_amount, is_buy, storage_cache);
         let amount_to_send_to_onedex =
