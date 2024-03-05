@@ -194,19 +194,21 @@ pub trait ArbitrageModule:
             let onedex_cache = OnedexCache::new(self);
             if onedex_cache.is_active {
                 let (sold, bought) =
-                    self.do_arbitrage_on_onedex(is_buy, in_amount.clone(), storage_cache, onedex_cache);
+                    self.do_arbitrage_on_onedex(is_buy, in_amount.clone(), storage_cache, &onedex_cache);
                 sold_amount += &sold;
                 bought_amount += &bought;
             }
+            drop(onedex_cache);
         }
         if self.is_xexchange_arbitrage_active() && in_amount > sold_amount {
             let xexchange_cache = XexchangeCache::new(self);
             if xexchange_cache.is_active {
                 let (sold, bought) =
-                    self.do_arbitrage_on_xexchange(is_buy, in_amount - &sold_amount, storage_cache, xexchange_cache);
+                    self.do_arbitrage_on_xexchange(is_buy, in_amount - &sold_amount, storage_cache, &xexchange_cache);
                 sold_amount += sold;
                 bought_amount += bought;
             }
+            drop(xexchange_cache);
         }
 
         (sold_amount, bought_amount)
