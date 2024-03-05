@@ -1,19 +1,35 @@
+mod consts;
 mod contract_interactions;
-pub mod consts;
+mod modules_tests;
+mod setup;
 
 use std::ops::Mul;
 
 use consts::*;
 use contract_interactions::{
-    checks::*, delegation_interaction::get_provider_total_stake, heirs_interactions::*, knights_interactions::*, providers_interactions::*, salsa_interactions::*, service_interactions::*
+    salsa_interactions::*,
+    delegation_interaction::*,
+    service_interactions::*,
+    knights_interactions::*,
+    heirs_interactions::*,
+    providers_interactions::*,
+    checks::*,
 };
+use crate::setup::*;
 use delegation_mock::{DelegationMock, EPOCHS_IN_YEAR};
+use wrap_mock::WrapMock;
 
 use salsa::{
     common::{
         config::{ConfigModule, State},
-        consts::{MAX_HEIR_USERS, MAX_KNIGHT_USERS, MAX_PERCENT, NODE_BASE_STAKE}, errors::*
-    }, providers::ProvidersModule
+        consts::{MAX_HEIR_USERS, MAX_KNIGHT_USERS, MAX_PERCENT, NODE_BASE_STAKE},
+        errors::*
+    },
+    exchanges::{
+        onedex::OnedexModule,
+        xexchange::XexchangeModule
+    },
+    providers::ProvidersModule
 };
 
 use multiversx_sc::{
@@ -23,12 +39,12 @@ use multiversx_sc::{
 use multiversx_sc_scenario::{
     managed_address, managed_token_id, rust_biguint,
     scenario_model::{
-        Account, BigUintValue, ScCallStep, ScDeployStep, SetStateStep
+        Account, BigUintValue, BytesValue, ScCallStep, ScDeployStep, SetStateStep, TxESDT, U64Value
     },
     DebugApi, ScenarioWorld, WhiteboxContract
 };
 
-fn world() -> ScenarioWorld {
+pub fn world() -> ScenarioWorld {
     let mut blockchain = ScenarioWorld::new();
     blockchain.set_current_dir_from_workspace(".");
 
@@ -40,11 +56,23 @@ fn world() -> ScenarioWorld {
         DELEGATION_PATH_EXPR,
         delegation_mock::ContractBuilder,
     );
+    blockchain.register_contract(
+        WRAP_PATH_EXPR,
+        wrap_mock::ContractBuilder,
+    );
+    blockchain.register_contract(
+        ONEDEX_PATH_EXPR,
+        onedex_mock::ContractBuilder,
+    );
+    blockchain.register_contract(
+        XEXCHANGE_PATH_EXPR,
+        xexchange_mock::ContractBuilder,
+    );
 
     blockchain
 }
 
-fn setup() -> ScenarioWorld {
+pub fn setup() -> ScenarioWorld {
     let mut world = world();
 
     let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
@@ -52,7 +80,15 @@ fn setup() -> ScenarioWorld {
 
     let delegation1_whitebox = WhiteboxContract::new(DELEGATION1_ADDRESS_EXPR, delegation_mock::contract_obj);
     let delegation2_whitebox = WhiteboxContract::new(DELEGATION2_ADDRESS_EXPR, delegation_mock::contract_obj);
-    let delegation_code = world.code_expression(DELEGATION_PATH_EXPR);
+
+    let wrap_whitebox = WhiteboxContract::new(WRAP_ADDRESS_EXPR, wrap_mock::contract_obj);
+    let wrap_code = world.code_expression(WRAP_PATH_EXPR);
+
+    let onedex_whitebox = WhiteboxContract::new(ONEDEX_ADDRESS_EXPR, onedex_mock::contract_obj);
+    let onedex_code = world.code_expression(ONEDEX_PATH_EXPR);
+
+    let xexchange_whitebox = WhiteboxContract::new(XEXCHANGE_ADDRESS_EXPR, xexchange_mock::contract_obj);
+    let xexchange_code = world.code_expression(XEXCHANGE_PATH_EXPR);
 
     let roles = vec![
         "ESDTRoleLocalMint".to_string(),
@@ -88,13 +124,13 @@ fn setup() -> ScenarioWorld {
                     .nonce(1)
                     .balance(DELEGATOR2_INITIAL_BALANCE_EXPR)
             )
+            .new_address(DELEGATOR2_ADDRESS_EXPR, 1, DELEGATION2_ADDRESS_EXPR)
             .put_account(
                 RESERVER1_ADDRESS_EXPR,
                 Account::new()
                     .nonce(1)
                     .balance(RESERVER1_INITIAL_BALANCE_EXPR)
             )
-            .new_address(RESERVER1_ADDRESS_EXPR, 1, DELEGATION2_ADDRESS_EXPR)
             .put_account(
                 RESERVER2_ADDRESS_EXPR,
                 Account::new()
@@ -107,98 +143,86 @@ fn setup() -> ScenarioWorld {
                     .nonce(1)
                     .code(salsa_code.clone())
                     .owner(OWNER_ADDRESS_EXPR)
-                    .esdt_roles(TOKEN_ID_EXPR, roles)
+                    .esdt_roles(TOKEN_ID_EXPR, roles.clone())
+            )
+            .put_account(
+                WRAP_OWNER_ADDRESS_EXPR,
+                Account::new()
+                    .nonce(1)
+                    .balance("1_000_000_000_000_000_000")
+            )
+            .new_address(WRAP_OWNER_ADDRESS_EXPR, 1, WRAP_ADDRESS_EXPR)
+            .put_account(
+                WRAP_ADDRESS_EXPR,
+                Account::new()
+                    .nonce(1)
+                    .code(wrap_code)
+                    .balance(WRAP_INITIAL_BALANCE_EXPR)
+                    .esdt_balance(WEGLD_ID_EXPR, WRAP_INITIAL_BALANCE_EXPR)
+                    .owner(WRAP_OWNER_ADDRESS_EXPR)
+                    .esdt_roles(WEGLD_ID_EXPR, roles.clone())
+            )
+            .put_account(
+                ONEDEX_OWNER_ADDRESS_EXPR,
+                Account::new()
+                    .nonce(1)
+                    .balance(ONEDEX_OWNER_INITIAL_BALANCE_EXPR)
+            )
+            .new_address(ONEDEX_OWNER_ADDRESS_EXPR, 1, ONEDEX_ADDRESS_EXPR)
+            .put_account(
+                ONEDEX_ADDRESS_EXPR,
+                Account::new()
+                    .nonce(1)
+                    .code(onedex_code)
+                    .owner(ONEDEX_OWNER_ADDRESS_EXPR)
+                    .esdt_roles(ONEDEX_LP_EXPR, roles.clone())
+            )
+            .put_account(
+                XEXCHANGE_OWNER_ADDRESS_EXPR,
+                Account::new()
+                    .nonce(1)
+                    .balance(XEXCHANGE_OWNER_INITIAL_BALANCE_EXPR)
+            )
+            .new_address(XEXCHANGE_OWNER_ADDRESS_EXPR, 1, XEXCHANGE_ADDRESS_EXPR)
+            .put_account(
+                XEXCHANGE_ADDRESS_EXPR,
+                Account::new()
+                    .nonce(1)
+                    .code(xexchange_code)
+                    .owner(XEXCHANGE_OWNER_ADDRESS_EXPR)
+                    .esdt_roles(XEXCHANGE_LP_EXPR, roles)
             )
     );
 
-    world.whitebox_call(
-        &salsa_whitebox,
-        ScCallStep::new()
-            .from(OWNER_ADDRESS_EXPR),
-        |sc| sc.liquid_token_id().set_token_id(managed_token_id!(TOKEN_ID)),
-    );
+    setup_providers(&mut world);
+    setup_wrap_sc(&mut world);
+    let onedex_pair_id = setup_onedex_sc(&mut world);
+    setup_xexchange_sc(&mut world);
 
-    // set unbond period
-    world.whitebox_call(
-        &salsa_whitebox,
-        ScCallStep::new()
-            .from(OWNER_ADDRESS_EXPR),
-        |sc| sc.set_unbond_period(UNBOND_PERIOD),
-    );
-
-    // set service fee
-    world.whitebox_call(
-        &salsa_whitebox,
-        ScCallStep::new()
-            .from(OWNER_ADDRESS_EXPR),
-        |sc| sc.set_service_fee(SERVICE_FEE),
-    );
-
-    // set undelegate now fee
-    world.whitebox_call(
-        &salsa_whitebox,
-        ScCallStep::new()
-            .from(OWNER_ADDRESS_EXPR),
-        |sc| sc.set_undelegate_now_fee(UNDELEGATE_NOW_FEE),
-    );
-
-    // add providers
-    world.whitebox_deploy(
-        &delegation1_whitebox,
-        ScDeployStep::new()
-            .from(DELEGATOR1_ADDRESS_EXPR)
-            .code(delegation_code.clone()),
-        |sc| {
-            sc.init(
-                BigUint::from(ONE_EGLD) * DELEGATION1_TOTAL_STAKE,
-                DELEGATION1_NODES_COUNT,
-                DELEGATION1_FEE,
-                DELEGATION1_APR
-            )
-        }
-    );
-
-    world.whitebox_deploy(
-        &delegation2_whitebox,
-        ScDeployStep::new()
-            .from(RESERVER1_ADDRESS_EXPR)
-            .code(delegation_code),
-        |sc| {
-            sc.init(
-                BigUint::from(ONE_EGLD) * DELEGATION2_TOTAL_STAKE,
-                DELEGATION2_NODES_COUNT,
-                DELEGATION2_FEE,
-                DELEGATION2_APR
-            )
-        }
-    );
-
+    // setup SALSA
     world.whitebox_call(
         &salsa_whitebox,
         ScCallStep::new()
             .from(OWNER_ADDRESS_EXPR),
         |sc| {
+            sc.liquid_token_id().set_token_id(managed_token_id!(TOKEN_ID));
+            sc.set_unbond_period(UNBOND_PERIOD);
+            sc.set_service_fee(SERVICE_FEE);
+            sc.set_undelegate_now_fee(UNDELEGATE_NOW_FEE);
             sc.add_provider(managed_address!(&Address::from_slice(delegation1_whitebox.address_expr.to_address().as_bytes())));
-        }
-    );
-
-    world.whitebox_call(
-        &salsa_whitebox,
-        ScCallStep::new()
-            .from(OWNER_ADDRESS_EXPR),
-        |sc| {
             sc.add_provider(managed_address!(&Address::from_slice(delegation2_whitebox.address_expr.to_address().as_bytes())));
+            sc.set_state_active();
+
+            sc.set_wrap_sc(managed_address!(&Address::from_slice(wrap_whitebox.address_expr.to_address().as_bytes())));
+            sc.set_onedex_sc(managed_address!(&Address::from_slice(onedex_whitebox.address_expr.to_address().as_bytes())));
+            sc.set_onedex_pair_id(onedex_pair_id);
+            sc.set_onedex_arbitrage_active();
+            sc.set_xexchange_sc(managed_address!(&Address::from_slice(xexchange_whitebox.address_expr.to_address().as_bytes())));
+            sc.set_xexchange_arbitrage_active();
         }
     );
 
-    // set state active
-    world.whitebox_call(
-        &salsa_whitebox,
-        ScCallStep::new()
-            .from(OWNER_ADDRESS_EXPR),
-        |sc| sc.set_state_active(),
-    );
-
+    // check salsa active
     world.whitebox_query(
         &salsa_whitebox, |sc| {
             assert_eq!(sc.state().get(), State::Active);
@@ -219,8 +243,8 @@ pub fn to_managed_biguint(value: &num_bigint::BigUint) -> BigUint<DebugApi> {
 #[test]
 fn test_init() {
     let mut world = setup();
-    check_provider_active(&mut world, DELEGATION1_ADDRESS_EXPR);
-    check_provider_active(&mut world, DELEGATION2_ADDRESS_EXPR);
+    check_provider_state(&mut world, DELEGATION1_ADDRESS_EXPR, true);
+    check_provider_state(&mut world, DELEGATION2_ADDRESS_EXPR, true);
 }
 
 #[test]
@@ -231,21 +255,31 @@ fn test_delegation() {
     let first_user_initial_amount = &BigUintValue::from(DELEGATOR1_INITIAL_BALANCE_EXPR).value;
     let mut nonce = BLOCKS_PER_EPOCH;
 
+    let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
+    let mut initial_egld_staked = rust_biguint!(0);
+    let mut initial_legld_supply = rust_biguint!(0);
+    world.whitebox_query(
+        &salsa_whitebox, |sc| {
+            initial_egld_staked = num_bigint::BigUint::from_bytes_be(sc.total_egld_staked().get().to_bytes_be().as_slice());
+            initial_legld_supply = num_bigint::BigUint::from_bytes_be(sc.liquid_token_supply().get().to_bytes_be().as_slice());
+        }
+    );
+
     // delegate
     set_block_nonce(&mut world, nonce);
     delegate_test(&mut world, DELEGATOR1_ADDRESS_EXPR, &amount, false, true);
     check_esdt_balance(&mut world, DELEGATOR1_ADDRESS_EXPR, TOKEN_ID_EXPR, &amount);
     check_egld_to_delegate(&mut world, &amount);
     delegate_all_test(&mut world);
-    check_total_egld_staked(&mut world, &amount);
-    check_liquid_token_supply(&mut world, &amount);
+    check_total_egld_staked(&mut world, &(&amount + &initial_egld_staked));
+    check_liquid_token_supply(&mut world, &(&amount + &initial_legld_supply));
 
     // undelegate
     nonce += BLOCKS_PER_EPOCH;
     set_block_nonce(&mut world, nonce);
     undelegate_test(&mut world, false, DELEGATOR1_ADDRESS_EXPR, &amount, true, b"");
     check_esdt_balance(&mut world, DELEGATOR1_ADDRESS_EXPR, TOKEN_ID_EXPR, &rust_biguint!(0));
-    check_total_egld_staked(&mut world, &rust_biguint!(0));
+    check_total_egld_staked(&mut world, &initial_egld_staked);
     check_egld_to_undelegate(&mut world, &amount);
 
     //undelegate all
@@ -570,231 +604,6 @@ fn test_reserve_undelegations_order() {
 }
 
 #[test]
-fn test_knight() {
-    let mut world = setup();
-
-    let one = exp(1, 18);
-    let fee = &one * UNDELEGATE_NOW_FEE / MAX_PERCENT;
-    let one_minus_fee = &one - &fee;
-    const KNIGHT1_ADDRESS_EXPR: &str = "address:knight1";
-    const KNIGHT2_ADDRESS_EXPR: &str = "address:knight1";
-    world.set_state_step(SetStateStep::new().put_account(KNIGHT1_ADDRESS_EXPR, Account::new()));
-    world.set_state_step(SetStateStep::new().put_account(KNIGHT2_ADDRESS_EXPR, Account::new()));
-
-    set_block_nonce(&mut world, BLOCKS_PER_EPOCH);
-
-    delegate_test(&mut world, DELEGATOR1_ADDRESS_EXPR, &one, true, true); // true = custodial
-    delegate_all_test(&mut world);
-
-    set_knight_test(&mut world, DELEGATOR1_ADDRESS_EXPR, KNIGHT1_ADDRESS_EXPR, b"");
-    set_knight_test(&mut world, DELEGATOR1_ADDRESS_EXPR, KNIGHT1_ADDRESS_EXPR, ERROR_KNIGHT_ALREADY_SET);
-    cancel_knight_test(&mut world, DELEGATOR1_ADDRESS_EXPR, b"");
-
-    set_knight_test(&mut world, DELEGATOR1_ADDRESS_EXPR, KNIGHT2_ADDRESS_EXPR, b"");
-    confirm_knight_test(&mut world, KNIGHT2_ADDRESS_EXPR, DELEGATOR1_ADDRESS_EXPR);
-    cancel_knight_test(&mut world, DELEGATOR1_ADDRESS_EXPR, ERROR_KNIGHT_NOT_PENDING);
-    remove_knight_test(&mut world, &KNIGHT2_ADDRESS_EXPR, DELEGATOR1_ADDRESS_EXPR);
-
-    set_knight_test(&mut world, DELEGATOR1_ADDRESS_EXPR, KNIGHT1_ADDRESS_EXPR, b"");
-    undelegate_now_test(
-        &mut world,
-        true,
-        DELEGATOR1_ADDRESS_EXPR,
-        &one_minus_fee,
-        &one,
-        true,
-        ERROR_KNIGHT_SET
-    );
-    confirm_knight_test(&mut world, KNIGHT1_ADDRESS_EXPR, DELEGATOR1_ADDRESS_EXPR);
-    activate_knight_test(&mut world, DELEGATOR1_ADDRESS_EXPR);
-    undelegate_test(&mut world, true, DELEGATOR1_ADDRESS_EXPR, &one, true, ERROR_KNIGHT_ACTIVE);
-
-    deactivate_knight_test(&mut world, KNIGHT1_ADDRESS_EXPR, DELEGATOR1_ADDRESS_EXPR);
-    undelegate_test(&mut world, true, DELEGATOR1_ADDRESS_EXPR, &one, true, b"");
-}
-
-#[test]
-fn test_active_knigth() {
-    let mut world = setup();
-
-    let one = exp(1, 18);
-    let fee = &one * UNDELEGATE_NOW_FEE / MAX_PERCENT;
-    let one_minus_fee = &one - &fee;
-    let one_plus_fee = &one + &fee;
-    let mut nonce = BLOCKS_PER_EPOCH;
-    let delegator1_initial_amount = BigUintValue::from(DELEGATOR1_INITIAL_BALANCE_EXPR).value;
-    const KNIGHT_ADDRESS_EXPR: &str = "address:knight";
-    world.set_state_step(SetStateStep::new().put_account(KNIGHT_ADDRESS_EXPR, Account::new()));
-
-    // set epoch
-    set_block_nonce(&mut world, nonce);
-
-    // delegate and add reserve
-    delegate_test(&mut world, DELEGATOR1_ADDRESS_EXPR, &(&one * 2_u64), true, true); // true = custodial
-    delegate_all_test(&mut world);
-    add_reserve_test(&mut world, DELEGATOR1_ADDRESS_EXPR, &one, true);
-
-    // set knight, confirm and activate
-    set_knight_test(&mut world, DELEGATOR1_ADDRESS_EXPR, KNIGHT_ADDRESS_EXPR, b"");
-    confirm_knight_test(&mut world, KNIGHT_ADDRESS_EXPR, DELEGATOR1_ADDRESS_EXPR);
-    undelegate_knight_test(&mut world, KNIGHT_ADDRESS_EXPR, DELEGATOR1_ADDRESS_EXPR, &one, true, ERROR_KNIGHT_NOT_ACTIVE);
-    activate_knight_test(&mut world, DELEGATOR1_ADDRESS_EXPR);
-
-    // undelegate knight, undelegate now knight and remove reserve knight
-    undelegate_knight_test(&mut world, KNIGHT_ADDRESS_EXPR, DELEGATOR1_ADDRESS_EXPR, &one, true, b"");
-    undelegate_now_knight_test(&mut world, KNIGHT_ADDRESS_EXPR, DELEGATOR1_ADDRESS_EXPR, &one_minus_fee, &one, true);
-    undelegate_all_test(&mut world);
-    nonce += BLOCKS_PER_EPOCH;
-    set_block_nonce(&mut world, nonce);
-    remove_reserve_knight_test(&mut world, KNIGHT_ADDRESS_EXPR, DELEGATOR1_ADDRESS_EXPR, &one_plus_fee, true);
-
-    // withdraw
-    nonce += BLOCKS_PER_EPOCH * 9;
-    set_block_nonce(&mut world, nonce);
-    withdraw_all_test(&mut world);
-    compute_withdrawn_test(&mut world);
-    withdraw_knight_test(&mut world, KNIGHT_ADDRESS_EXPR, DELEGATOR1_ADDRESS_EXPR);
-
-    // checks
-    check_egld_balance(&mut world, DELEGATOR1_ADDRESS_EXPR, &(&delegator1_initial_amount - &one * 3_u64));
-    check_egld_balance(&mut world, KNIGHT_ADDRESS_EXPR, &(&one * 3_u64));
-}
-
-#[test]
-fn test_too_many_knight_users() {
-    let mut world = setup();
-
-    let one = exp(1, 18);
-    const KNIGHT_ADDRESS_EXPR: &str = "address:knight";
-    world.set_state_step(SetStateStep::new().put_account(KNIGHT_ADDRESS_EXPR, Account::new()));
-    let mut nonce = BLOCKS_PER_EPOCH;
-
-    for i in 0..MAX_KNIGHT_USERS {
-        let new_user_string = "address:".to_owned() + &i.to_string();
-        let new_user = new_user_string.as_str();
-        world.set_state_step(SetStateStep::new().put_account(new_user, Account::new().balance(&one)));
-        delegate_test(&mut world, &new_user, &one, true, true);
-        set_block_nonce(&mut world, nonce);
-        nonce += BLOCKS_PER_EPOCH;
-        delegate_all_test(&mut world);
-        set_knight_test(&mut world, &new_user, KNIGHT_ADDRESS_EXPR, b"");
-    }
-
-    delegate_test(&mut world, DELEGATOR1_ADDRESS_EXPR, &one, true, true);
-    set_block_nonce(&mut world, nonce);
-    delegate_all_test(&mut world);
-    set_knight_test(&mut world, DELEGATOR1_ADDRESS_EXPR, KNIGHT_ADDRESS_EXPR, ERROR_TOO_MANY_KNIGHT_USERS);
-}
-
-#[test]
-fn test_too_many_heir_users() {
-    let mut world = setup();
-
-    let one = exp(1, 18);
-    const HEIR_ADDRESS_EXPR: &str = "address:heir";
-    world.set_state_step(SetStateStep::new().put_account(HEIR_ADDRESS_EXPR, Account::new()));
-    let mut nonce = BLOCKS_PER_EPOCH;
-
-    for i in 0..MAX_HEIR_USERS {
-        let new_user_expr = ["address", &i.to_string()].join(":");
-        let new_user = new_user_expr.as_str();
-        world.set_state_step(SetStateStep::new().put_account(new_user, Account::new().balance(&one)));
-        delegate_test(&mut world, &new_user, &one, true, true);
-        set_block_nonce(&mut world, nonce);
-        nonce += BLOCKS_PER_EPOCH;
-        delegate_all_test(&mut world);
-        set_heir_test(&mut world, &new_user, HEIR_ADDRESS_EXPR, 365, b"");
-    }
-
-    delegate_test(&mut world, DELEGATOR1_ADDRESS_EXPR, &one, true, true);
-    set_block_nonce(&mut world, nonce);
-    delegate_all_test(&mut world);
-    set_heir_test(&mut world, DELEGATOR1_ADDRESS_EXPR, HEIR_ADDRESS_EXPR, 365, ERROR_TOO_MANY_HEIR_USERS);
-    let first_heir_expr = "address:0".to_owned();
-    let first_heir = first_heir_expr.as_str();
-    remove_heir_test(&mut world, HEIR_ADDRESS_EXPR, first_heir);
-    set_heir_test(&mut world, DELEGATOR1_ADDRESS_EXPR, HEIR_ADDRESS_EXPR, 365, b"");
-}
-
-#[test]
-fn test_entitled_heir() {
-    let mut world = setup();
-
-    let one = exp(1, 18);
-    let fee = &one * UNDELEGATE_NOW_FEE / MAX_PERCENT;
-    let one_minus_fee = &one - &fee;
-    let one_plus_fee = &one + &fee;
-    let delegator1_initial_amount = BigUintValue::from(DELEGATOR1_INITIAL_BALANCE_EXPR).value;
-    const HEIR1_ADDRESS_EXPR: &str = "address:heir1";
-    const HEIR2_ADDRESS_EXPR: &str = "address:heir2";
-    world.set_state_step(SetStateStep::new().put_account(HEIR1_ADDRESS_EXPR, Account::new()));
-    world.set_state_step(SetStateStep::new().put_account(HEIR2_ADDRESS_EXPR, Account::new()));
-    let mut nonce = BLOCKS_PER_EPOCH;
-
-    // delegate and add reserve
-    set_block_nonce(&mut world, nonce);
-    delegate_test(&mut world, DELEGATOR1_ADDRESS_EXPR, &(&one * 2_u64), true, true); // true = custodial
-    delegate_all_test(&mut world);
-    add_reserve_test(&mut world, DELEGATOR1_ADDRESS_EXPR, &one, true);
-
-    // set heir
-    set_heir_test(&mut world, DELEGATOR1_ADDRESS_EXPR, HEIR2_ADDRESS_EXPR, 365u64, b"");
-    cancel_heir_test(&mut world, DELEGATOR1_ADDRESS_EXPR);
-    set_heir_test(&mut world, DELEGATOR1_ADDRESS_EXPR, HEIR1_ADDRESS_EXPR, 365u64, b"");
-
-    // update last accessed
-    nonce += BLOCKS_PER_EPOCH * 100;
-    set_block_nonce(&mut world, nonce);
-    update_last_accessed_test(&mut world, DELEGATOR1_ADDRESS_EXPR);
-
-    // undelegate heir, undelegate now heir and remove reserve heir
-    nonce += BLOCKS_PER_EPOCH * 364;
-    set_block_nonce(&mut world, nonce);
-    undelegate_heir_test(
-        &mut world,
-        HEIR1_ADDRESS_EXPR,
-        DELEGATOR1_ADDRESS_EXPR,
-        &one,
-        true,
-        ERROR_HEIR_NOT_YET_ENTITLED
-    );
-
-    nonce += BLOCKS_PER_EPOCH;
-    set_block_nonce(&mut world, nonce);
-    undelegate_heir_test(
-        &mut world,
-        HEIR1_ADDRESS_EXPR,
-        DELEGATOR1_ADDRESS_EXPR,
-        &one,
-        true,
-        b""
-    );
-    undelegate_now_heir_test(
-        &mut world,
-        HEIR1_ADDRESS_EXPR,
-        DELEGATOR1_ADDRESS_EXPR,
-        &one_minus_fee,
-        &one,
-        true
-    );
-    undelegate_all_test(&mut world);
-    nonce += BLOCKS_PER_EPOCH;
-    set_block_nonce(&mut world, nonce);
-    remove_reserve_heir_test(&mut world, HEIR1_ADDRESS_EXPR, DELEGATOR1_ADDRESS_EXPR, &one_plus_fee, true);
-
-    // withdraw
-    nonce += BLOCKS_PER_EPOCH * 9;
-    set_block_nonce(&mut world, nonce);
-    withdraw_all_test(&mut world);
-    compute_withdrawn_test(&mut world);
-    withdraw_heir_test(&mut world, HEIR1_ADDRESS_EXPR, DELEGATOR1_ADDRESS_EXPR);
-
-    // checks
-    check_egld_balance(&mut world, DELEGATOR1_ADDRESS_EXPR, &(&delegator1_initial_amount - &one * 3_u64));
-    check_egld_balance(&mut world, HEIR1_ADDRESS_EXPR, &(&one * 3_u64));
-}
-
-#[test]
 fn test_custodial_delegation() {
     let mut world = setup();
 
@@ -852,106 +661,4 @@ fn test_undelegate_predelegated() {
     // withdraw
     withdraw_test(&mut world, DELEGATOR1_ADDRESS_EXPR);
     check_egld_balance(&mut world, DELEGATOR1_ADDRESS_EXPR, &delegator1_initial_amount);
-}
-
-#[test]
-fn test_one_provider() {
-    let mut world = setup();
-
-    let amount = exp(1000, 18);
-    let mut nonce = BLOCKS_PER_EPOCH;
-
-    set_block_nonce(&mut world, nonce);
-    remove_provider_test(&mut world, OWNER_ADDRESS_EXPR, DELEGATION2_ADDRESS_EXPR, ERROR_PROVIDER_NOT_UP_TO_DATE);
-    refresh_provider_test(&mut world, DELEGATION2_ADDRESS_EXPR);
-    remove_provider_test(&mut world, OWNER_ADDRESS_EXPR, DELEGATION2_ADDRESS_EXPR, b"");
-
-    add_provider_test(&mut world, OWNER_ADDRESS_EXPR, DELEGATION2_ADDRESS_EXPR, ERROR_ACTIVE);
-    set_state_inactive_test(&mut world);
-    add_provider_test(&mut world, OWNER_ADDRESS_EXPR, DELEGATION2_ADDRESS_EXPR, b"");
-    set_state_active_test(&mut world);
-    set_provider_state_test(&mut world, OWNER_ADDRESS_EXPR, DELEGATION2_ADDRESS_EXPR, State::Inactive);
-
-    delegate_test(&mut world, DELEGATOR1_ADDRESS_EXPR, &amount, false, true);
-    delegate_all_test(&mut world);
-
-    let mut rewards = rust_biguint!(0);
-    let mut epochs = 0_u64;
-
-    while rewards < rust_biguint!(ONE_EGLD) {
-        epochs += 1;
-        rewards = &amount * DELEGATION1_APR / MAX_PERCENT * epochs / EPOCHS_IN_YEAR;
-        let service_fee = &rewards * SERVICE_FEE / MAX_PERCENT;
-        rewards -= service_fee;
-    }
-
-    nonce += BLOCKS_PER_EPOCH * epochs;
-    set_block_nonce(&mut world, nonce);
-    claim_rewards_test(&mut world);
-    delegate_all_test(&mut world);
-    check_total_egld_staked(&mut world, &(&amount + &rewards));
-}
-
-fn get_amount_to_equal_topup(world: &mut ScenarioWorld) -> num_bigint::BigUint {
-    refresh_providers_test(world);
-    let total_stake1 = get_provider_total_stake(world, DELEGATION1_ADDRESS_EXPR);
-    let total_stake2 = get_provider_total_stake(world, DELEGATION2_ADDRESS_EXPR);
-    let topup1 = total_stake1 / DELEGATION1_NODES_COUNT - NODE_BASE_STAKE;
-    let topup2 = total_stake2 / DELEGATION2_NODES_COUNT - NODE_BASE_STAKE;
-    if topup1 > topup2 {
-        (topup1 - topup2) * DELEGATION2_NODES_COUNT
-    } else {
-        (topup2 - topup1) * DELEGATION1_NODES_COUNT
-    }
-}
-
-#[test]
-fn test_two_providers() {
-    let mut world = setup();
-
-    let mut nonce = BLOCKS_PER_EPOCH;
-    let extra = exp(10, 18);
-    let amount1 = get_amount_to_equal_topup(&mut world) + &extra;
-
-    // delegate
-    set_block_nonce(&mut world, nonce);
-    delegate_test(&mut world, DELEGATOR1_ADDRESS_EXPR, &amount1, false, true);
-    delegate_all_test(&mut world);
-    check_egld_to_delegate(&mut world, &extra);
-
-    // now topups are equal
-    nonce += BLOCKS_PER_EPOCH;
-    set_block_nonce(&mut world, nonce);
-    delegate_all_test(&mut world);
-    check_egld_to_delegate(&mut world, &rust_biguint!(0));
-
-    // force delegate to second provider
-    let amount2 = get_amount_to_equal_topup(&mut world) + &extra;
-    nonce += BLOCKS_PER_EPOCH;
-    set_block_nonce(&mut world, nonce);
-    delegate_test(&mut world, DELEGATOR1_ADDRESS_EXPR, &amount2, false, true);
-    delegate_all_test(&mut world);
-    check_egld_to_delegate(&mut world, &extra);
-
-    // now topups are equal
-    nonce += BLOCKS_PER_EPOCH;
-    set_block_nonce(&mut world, nonce);
-    delegate_all_test(&mut world);
-    check_egld_to_delegate(&mut world, &rust_biguint!(0));
-
-    // undelegate
-    undelegate_test(&mut world, false, DELEGATOR1_ADDRESS_EXPR, &amount2, true, b"");
-    undelegate_all_test(&mut world);
-    check_egld_to_undelegate(&mut world, &(&amount2 - &extra));
-
-    // now topups are equal
-    nonce += BLOCKS_PER_EPOCH;
-    set_block_nonce(&mut world, nonce);
-    undelegate_test(&mut world, false, DELEGATOR1_ADDRESS_EXPR, &amount1, true, b"");
-    undelegate_all_test(&mut world);
-
-    nonce += BLOCKS_PER_EPOCH;
-    set_block_nonce(&mut world, nonce);
-    undelegate_all_test(&mut world);
-    check_egld_to_undelegate(&mut world, &rust_biguint!(0));
 }
