@@ -119,16 +119,17 @@ pub fn check_providers_updated(
     );
 }
 
-pub fn check_provider_active(
+pub fn check_provider_state(
     world: &mut ScenarioWorld,
-    provider: &str
+    provider: &str,
+    state: bool
 ) {
     let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
     world.whitebox_query(
         &salsa_whitebox, |sc| {
             let provider_info =
                 sc.get_provider(&managed_address!(&AddressValue::from(provider).to_address()));
-            assert_eq!(provider_info.is_active(), true);
+            assert_eq!(provider_info.is_active(), state);
         }
     );
 }

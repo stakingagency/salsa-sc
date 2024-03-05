@@ -101,3 +101,21 @@ fn test_two_providers() {
     undelegate_all_test(&mut world);
     check_egld_to_undelegate(&mut world, &rust_biguint!(0));
 }
+
+#[test]
+fn test_disable_provider_reached_cap() {
+    let mut world = setup();
+
+    let delegation1_whitebox = WhiteboxContract::new(DELEGATION1_ADDRESS_EXPR, delegation_mock::contract_obj);
+    world.whitebox_call(
+        &delegation1_whitebox,
+        ScCallStep::new()
+            .from(DELEGATOR1_ADDRESS_EXPR),
+        |sc| {
+            sc.max_cap().set(BigUint::from(ONE_EGLD) * DELEGATION1_TOTAL_STAKE);
+            sc.has_cap().set(true);
+        }
+    );
+    refresh_provider_test(&mut world, DELEGATION1_ADDRESS_EXPR);
+    check_provider_state(&mut world, DELEGATION1_ADDRESS_EXPR, false);
+}
