@@ -54,9 +54,8 @@ pub trait FeeModule:
         let remaining_fee = if fees_collector_configured {
             let fees_collector_cut_percentage = self.fees_collector_cut_percentage().get();
             let cut_amount = fee_amount * fees_collector_cut_percentage / MAX_PERCENTAGE;
-            let reminder = fee_amount - &cut_amount;
 
-            reminder
+            fee_amount - &cut_amount
         } else {
             fee_amount.clone()
         };

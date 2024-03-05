@@ -128,14 +128,14 @@ pub trait XexchangeModule:
         }
 
         let amount_from_xexchange =
-            self.get_xexchange_amount_out(is_buy, &amount_to_send_to_xexchange, storage_cache, &xexchange_cache);
+            self.get_xexchange_amount_out(is_buy, &amount_to_send_to_xexchange, storage_cache, xexchange_cache);
         let amount_from_salsa =
             self.get_salsa_amount_out(&amount_to_send_to_xexchange, is_buy, storage_cache);
         if amount_from_xexchange <= amount_from_salsa {
             return (BigUint::zero(), BigUint::zero())
         }
 
-        self.swap_on_xexchange(is_buy, &amount_to_send_to_xexchange, &amount_from_salsa, storage_cache, &xexchange_cache);
+        self.swap_on_xexchange(is_buy, &amount_to_send_to_xexchange, &amount_from_salsa, storage_cache, xexchange_cache);
 
         (amount_to_send_to_xexchange, amount_from_salsa)
     }

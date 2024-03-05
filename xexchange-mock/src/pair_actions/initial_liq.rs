@@ -73,8 +73,6 @@ pub trait InitialLiquidityModule:
             second_token_optimal_amount: second_token_optimal_amount.clone(),
             liq_added,
         };
-        let output = self.build_add_initial_liq_results(&storage_cache, &add_liq_context);
-
-        output
+        self.build_add_initial_liq_results(&storage_cache, &add_liq_context)
     }
 }

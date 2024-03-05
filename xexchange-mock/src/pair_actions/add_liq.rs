@@ -104,8 +104,6 @@ pub trait AddLiquidityModule:
 
         self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
 
-        let output = self.build_add_liq_results(&storage_cache, &add_liq_context);
-
-        output
+        self.build_add_liq_results(&storage_cache, &add_liq_context)
     }
 }

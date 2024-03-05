@@ -126,14 +126,14 @@ pub trait OnedexModule:
         }
 
         let amount_from_onedex =
-            self.get_onedex_amount_out(is_buy, &amount_to_send_to_onedex, storage_cache, &onedex_cache);
+            self.get_onedex_amount_out(is_buy, &amount_to_send_to_onedex, storage_cache, onedex_cache);
         let amount_from_salsa =
             self.get_salsa_amount_out(&amount_to_send_to_onedex, is_buy, storage_cache);
         if amount_from_onedex <= amount_from_salsa {
             return (BigUint::zero(), BigUint::zero())
         }
 
-        self.swap_on_onedex(is_buy, &amount_to_send_to_onedex, &amount_from_salsa, storage_cache, &onedex_cache);
+        self.swap_on_onedex(is_buy, &amount_to_send_to_onedex, &amount_from_salsa, storage_cache, onedex_cache);
 
         (amount_to_send_to_onedex, amount_from_salsa)
     }
