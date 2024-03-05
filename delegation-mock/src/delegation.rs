@@ -20,6 +20,7 @@ pub trait DelegationMock<ContractReader> {
         self.nodes_count().set(nodes_count);
         self.service_fee().set(service_fee);
         self.apr().set(apr);
+        self.has_cap().set(false);
     }
 
     #[payable("EGLD")]
@@ -154,10 +155,14 @@ pub trait DelegationMock<ContractReader> {
         let mut result: MultiValueEncoded<ManagedBuffer> = MultiValueEncoded::new();
         result.push(BigUint::zero().to_bytes_be_buffer()); // owner
         result.push(BigUint::from(self.service_fee().get()).to_bytes_be_buffer()); // service fee
-        result.push(BigUint::zero().to_bytes_be_buffer()); // max cap
+        result.push(self.max_cap().get().to_bytes_be_buffer()); // max cap
         result.push(BigUint::zero().to_bytes_be_buffer()); // initial owner funds
         result.push(BigUint::zero().to_bytes_be_buffer()); // automatic activation
-        result.push(ManagedBuffer::from("false")); // has cap
+        if self.has_cap().get() {
+            result.push(ManagedBuffer::from("true")); // has cap
+        } else {
+            result.push(ManagedBuffer::from("false")); // no cap
+        }
         result.push(BigUint::zero().to_bytes_be_buffer()); // changeable fee
         result.push(BigUint::zero().to_bytes_be_buffer()); // check cap on redelegate
         result.push(BigUint::zero().to_bytes_be_buffer()); // created nonce
@@ -208,4 +213,10 @@ pub trait DelegationMock<ContractReader> {
 
     #[storage_mapper("apr")]
     fn apr(&self) -> SingleValueMapper<u64>;
+
+    #[storage_mapper("has_cap")]
+    fn has_cap(&self) -> SingleValueMapper<bool>;
+
+    #[storage_mapper("max_cap")]
+    fn max_cap(&self) -> SingleValueMapper<BigUint>;
 }

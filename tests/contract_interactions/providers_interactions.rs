@@ -105,3 +105,31 @@ pub fn set_provider_state_test(
         }
     );
 }
+
+// checks
+
+pub fn check_providers_updated(
+    world: &mut ScenarioWorld,
+) {
+    let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
+    world.whitebox_query(
+        &salsa_whitebox, |sc| {
+            assert_eq!(sc.view_providers_updated(), true);
+        }
+    );
+}
+
+pub fn check_provider_state(
+    world: &mut ScenarioWorld,
+    provider: &str,
+    state: bool
+) {
+    let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
+    world.whitebox_query(
+        &salsa_whitebox, |sc| {
+            let provider_info =
+                sc.get_provider(&managed_address!(&AddressValue::from(provider).to_address()));
+            assert_eq!(provider_info.is_active(), state);
+        }
+    );
+}
