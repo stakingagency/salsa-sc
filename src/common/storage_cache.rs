@@ -55,6 +55,6 @@ where
         self.sc_ref.egld_to_undelegate().set(&self.egld_to_undelegate);
         self.sc_ref.egld_reserve().set(&self.egld_reserve);
         self.sc_ref.reserve_points().set(&self.reserve_points);
-        self.sc_ref.last_delegation_block().set(&self.last_delegation_block);
+        self.sc_ref.last_delegation_block().set(self.last_delegation_block);
     }
 }

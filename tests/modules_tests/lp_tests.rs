@@ -145,8 +145,7 @@ fn test_add_remove_imbalanced_lp() {
     world.whitebox_call(
         &salsa_whitebox,
         ScCallStep::new()
-            .from(OWNER_ADDRESS_EXPR)
-            .no_expect(),
+            .from(OWNER_ADDRESS_EXPR),
         |sc| {
             sc.call_reduce_egld_to_delegate_undelegate();
             egld_to_delegate = num_bigint::BigUint::from_bytes_be(sc.egld_to_delegate().get().to_bytes_be().as_slice());
