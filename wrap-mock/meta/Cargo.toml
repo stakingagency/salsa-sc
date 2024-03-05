@@ -1,0 +1,17 @@
+[package]
+name = "wrap-mock-meta"
+version = "0.0.0"
+edition = "2021"
+publish = false
+authors = [ "DrDelphi <drdelphi@gmail.com>",]
+
+[dev-dependencies]
+
+[dependencies.wrap-mock]
+path = ".."
+
+[dependencies.multiversx-sc]
+version = "0.47.4"
+
+[dependencies.multiversx-sc-meta]
+version = "0.47.4"
