@@ -34,7 +34,10 @@ pub trait XexchangeMock<ContractReader>:
         first_token_id: TokenIdentifier,
         second_token_id: TokenIdentifier,
     ) {
-        require!(first_token_id.is_valid_esdt_identifier(), ERROR_NOT_AN_ESDT);
+        require!(
+            first_token_id.is_valid_esdt_identifier(),
+            ERROR_NOT_AN_ESDT
+        );
         require!(
             second_token_id.is_valid_esdt_identifier(),
             ERROR_NOT_AN_ESDT

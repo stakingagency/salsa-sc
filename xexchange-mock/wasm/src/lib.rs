@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                            0
+// Endpoints:                           27
 // Async Callback (empty):               1
-// Total number of exported functions:   2
+// Total number of exported functions:  29
 
 #![no_std]
 #![allow(internal_features)]
@@ -20,6 +20,33 @@ multiversx_sc_wasm_adapter::endpoints! {
     xexchange_mock
     (
         init => init
+        setLpTokenIdentifier => set_lp_token_identifier
+        getTotalFeePercent => total_fee_percent
+        getSpecialFee => special_fee_percent
+        getLpTokenIdentifier => get_lp_token_identifier
+        getFirstTokenId => first_token_id
+        getSecondTokenId => second_token_id
+        getTotalSupply => lp_token_supply
+        getReserve => pair_reserve
+        getInitialLiquidtyAdder => initial_liquidity_adder
+        getState => state
+        addInitialLiquidity => add_initial_liquidity
+        addLiquidity => add_liquidity
+        removeLiquidity => remove_liquidity
+        swapTokensFixedInput => swap_tokens_fixed_input
+        swapTokensFixedOutput => swap_tokens_fixed_output
+        getTokensForGivenPosition => get_tokens_for_given_position
+        getReservesAndTotalSupply => get_reserves_and_total_supply
+        getAmountOut => get_amount_out_view
+        getAmountIn => get_amount_in_view
+        getEquivalent => get_equivalent
+        getFeeState => is_fee_enabled
+        setFeeOn => set_fee_on
+        getFeeDestinations => get_fee_destinations
+        getTrustedSwapPairs => get_trusted_swap_pairs
+        getWhitelistedManagedAddresses => get_whitelisted_managed_addresses
+        getFeesCollectorAddress => fees_collector_address
+        getFeesCollectorCutPercentage => fees_collector_cut_percentage
     )
 }
 

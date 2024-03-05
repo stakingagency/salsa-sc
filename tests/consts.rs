@@ -51,5 +51,12 @@ pub const ONEDEX_OWNER_ADDRESS_EXPR: &str = "address:onedex_owner";
 pub const ONEDEX_OWNER_INITIAL_BALANCE_EXPR: &str = "10_000_000_000_000_000_000_000";
 pub const ONEDEX_PATH_EXPR: &str = "mxsc:onedex-mock/output/onedex-mock.mxsc.json";
 pub const ONEDEX_ADDRESS_EXPR: &str = "sc:onedex";
-pub const ONEDEX_LP_EXPR: &str = "str:OneDexLP-123456";
-pub const ONEDEX_LP: &str = "OneDexLP-123456";
+pub const ONEDEX_LP_EXPR: &str = "str:ONEDEXLP-123456";
+pub const ONEDEX_LP: &str = "ONEDEXLP-123456";
+
+pub const XEXCHANGE_OWNER_ADDRESS_EXPR: &str = "address:xexchange_owner";
+pub const XEXCHANGE_OWNER_INITIAL_BALANCE_EXPR: &str = "10_000_000_000_000_000_000_000";
+pub const XEXCHANGE_PATH_EXPR: &str = "mxsc:xexchange-mock/output/xexchange-mock.mxsc.json";
+pub const XEXCHANGE_ADDRESS_EXPR: &str = "sc:xexchange";
+pub const XEXCHANGE_LP_EXPR: &str = "str:XEXCHLP-123456";
+pub const XEXCHANGE_LP: &str = "XEXCHLP-123456";
