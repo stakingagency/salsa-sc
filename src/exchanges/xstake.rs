@@ -194,6 +194,10 @@ pub trait XStakeModule:
     }
 
     fn take_xstake_profit(&self, stake_id: usize) {
+        if !self.is_xstake_active() {
+            return
+        }
+
         let user_stake = self.get_user_xstake(stake_id, self.blockchain().get_sc_address());
         let mut has_rewards = false;
         for reward in user_stake.rewards.iter() {
