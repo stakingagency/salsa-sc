@@ -8,7 +8,7 @@ use crate::*;
 use super::lp_tests::*;
 
 #[test]
-fn test_xstake_add_remove_lp() {
+fn test_xstake() {
     let mut world = setup();
 
     let liquidity_amount = rust_biguint!(ONE_EGLD) * 500_u64;
@@ -52,7 +52,8 @@ fn test_xstake_add_remove_lp() {
             sc.take_lp_profit();
             let (egld_balance, _) = sc.get_sc_balances();
             assert!(egld_balance > to_managed_biguint(&liquidity_amount));
-            assert!(sc.token_price() > ONE_EGLD);
+            assert!(sc.reserve_points().get() < sc.egld_reserve().get()); // check reserve profit
+            assert!(sc.token_price() > ONE_EGLD); // check legld profit
         }
     );
 
