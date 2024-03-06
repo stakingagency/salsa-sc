@@ -1,16 +1,21 @@
-use salsa::SalsaContract;
-use salsa::{exchanges::arbitrage::ArbitrageModule, helpers::HelpersModule};
-use salsa::exchanges::lp::LpModule;
+use salsa::{
+    SalsaContract,
+    exchanges::{
+        lp::LpModule,
+        arbitrage::ArbitrageModule
+    },
+    helpers::HelpersModule
+};
 
 use self::contract_interactions::{
     onedex_interactions::*,
     xexchange_interactions::*,
-    wrap_interactions::wrap_egld
+    wrap_interactions::*
 };
 
 use crate::*;
 
-fn add_liquidity_and_enable_arbitrage_and_lp(
+pub fn add_liquidity_and_enable_arbitrage_and_lp(
     mut world: &mut ScenarioWorld,
     nonce: &mut u64,
     liquidity_amount: &num_bigint::BigUint
@@ -116,7 +121,7 @@ fn test_add_remove_lp() {
     delegate_all_test(&mut world);
     add_reserve_test(&mut world, RESERVER1_ADDRESS_EXPR, &liquidity_amount, false);
 
-    // check if half was added as equal LPs to OneDex and xEXchange
+    // check if half was added as equal LPs to OneDex and xExchange
     check_egld_balance(&mut world, SALSA_ADDRESS_EXPR, &(&liquidity_amount / 2_u64));
     check_esdt_balance(&mut world, SALSA_ADDRESS_EXPR, TOKEN_ID_EXPR, &(&liquidity_amount / 2_u64));
     check_esdt_balance(&mut world, SALSA_ADDRESS_EXPR, ONEDEX_LP_EXPR, &(&liquidity_amount / 4_u64));
@@ -132,7 +137,7 @@ fn test_add_remove_lp() {
             sc.set_lp_inactive();
         }
     );
-    
+
     // check if legld in custody and reserves are restored
     check_egld_balance(&mut world, SALSA_ADDRESS_EXPR, &(&liquidity_amount));
     check_esdt_balance(&mut world, SALSA_ADDRESS_EXPR, TOKEN_ID_EXPR, &(&liquidity_amount));
@@ -157,7 +162,7 @@ fn test_add_remove_imbalanced_lp() {
     delegate_all_test(&mut world);
     add_reserve_test(&mut world, RESERVER1_ADDRESS_EXPR, &liquidity_amount, false);
 
-    // check if half was added as equal LPs to OneDex and xEXchange
+    // check if half was added as equal LPs to OneDex and xExchange
     check_egld_balance(&mut world, SALSA_ADDRESS_EXPR, &(&liquidity_amount / 2_u64));
     check_esdt_balance(&mut world, SALSA_ADDRESS_EXPR, TOKEN_ID_EXPR, &(&liquidity_amount / 2_u64));
     check_esdt_balance(&mut world, SALSA_ADDRESS_EXPR, ONEDEX_LP_EXPR, &(&liquidity_amount / 4_u64));
@@ -206,7 +211,7 @@ fn test_add_remove_lp_legld_high() {
     delegate_all_test(&mut world);
     add_reserve_test(&mut world, RESERVER1_ADDRESS_EXPR, &liquidity_amount, false);
 
-    // check if half was added as equal LPs to OneDex and xEXchange
+    // check if half was added as equal LPs to OneDex and xExchange
     check_egld_balance(&mut world, SALSA_ADDRESS_EXPR, &(&liquidity_amount / 2_u64));
     check_esdt_balance(&mut world, SALSA_ADDRESS_EXPR, TOKEN_ID_EXPR, &(&liquidity_amount / 2_u64));
     check_esdt_balance(&mut world, SALSA_ADDRESS_EXPR, ONEDEX_LP_EXPR, &(&liquidity_amount / 4_u64));
@@ -248,7 +253,7 @@ fn test_add_remove_lp_legld_low() {
     delegate_all_test(&mut world);
     add_reserve_test(&mut world, RESERVER1_ADDRESS_EXPR, &liquidity_amount, false);
 
-    // check if half was added as equal LPs to OneDex and xEXchange
+    // check if half was added as equal LPs to OneDex and xExchange
     check_egld_balance(&mut world, SALSA_ADDRESS_EXPR, &(&liquidity_amount / 2_u64));
     check_esdt_balance(&mut world, SALSA_ADDRESS_EXPR, TOKEN_ID_EXPR, &(&liquidity_amount / 2_u64));
     check_esdt_balance(&mut world, SALSA_ADDRESS_EXPR, ONEDEX_LP_EXPR, &(&liquidity_amount / 4_u64));

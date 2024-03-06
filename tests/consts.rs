@@ -49,6 +49,7 @@ pub const WRAP_INITIAL_BALANCE_EXPR: &str = "1_000_000_000_000_000_000_000_000";
 
 pub const ONEDEX_OWNER_ADDRESS_EXPR: &str = "address:onedex_owner";
 pub const ONEDEX_OWNER_INITIAL_BALANCE_EXPR: &str = "10_000_000_000_000_000_000_000";
+pub const ONEDEX_OWNER_INITIAL_RONE_BALANCE_EXPR: &str = "10_000_000_000_000_000_000_000_000";
 pub const ONEDEX_PATH_EXPR: &str = "mxsc:onedex-mock/output/onedex-mock.mxsc.json";
 pub const ONEDEX_ADDRESS_EXPR: &str = "sc:onedex";
 pub const ONEDEX_LP_EXPR: &str = "str:ONEDEXLP-123456";
@@ -60,3 +61,15 @@ pub const XEXCHANGE_PATH_EXPR: &str = "mxsc:xexchange-mock/output/xexchange-mock
 pub const XEXCHANGE_ADDRESS_EXPR: &str = "sc:xexchange";
 pub const XEXCHANGE_LP_EXPR: &str = "str:XEXCHLP-123456";
 pub const XEXCHANGE_LP: &str = "XEXCHLP-123456";
+
+pub const XSTAKE_OWNER_ADDRESS_EXPR: &str = "address:xstake_owner";
+pub const XSTAKE_PATH_EXPR: &str = "mxsc:xstake-mock/output/xstake-mock.mxsc.json";
+pub const XSTAKE_ADDRESS_EXPR: &str = "sc:xstake";
+pub const REWARD_TOKEN_EXPR: &str = "str:RONE-123456";
+pub const REWARD_TOKEN: &str = "RONE-123456";
+pub const XSTAKE_REWARDS_AMOUNT_EXPR: &str = "1_000_000_000_000_000_000_000_000";
+pub const XSTAKE_TOTAL_REWARDS_EXPR: &str = "2_000_000_000_000_000_000_000_000";
+pub const RONE_LP_EXPR: &str = "str:RONELP-123456";
+pub const RONE_LP: &str = "RONELP-123456";
+pub const RONES_PER_EGLD: u64 = 5_000;
+pub const RONE_LIQUIDITY_EGLD: u64 = 1_000;

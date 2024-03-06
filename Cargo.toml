@@ -35,6 +35,9 @@ path = "./onedex-mock"
 [dependencies.xexchange-mock]
 path = "./xexchange-mock"
 
+[dependencies.xstake-mock]
+path = "./xstake-mock"
+
 [workspace]
 members = [
     ".",
@@ -46,5 +49,7 @@ members = [
     "onedex-mock",
     "onedex-mock/meta",
     "xexchange-mock",
-    "xexchange-mock/meta"
+    "xexchange-mock/meta",
+    "xstake-mock",
+    "xstake-mock/meta"
 ]

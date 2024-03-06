@@ -192,6 +192,7 @@ dependencies = [
  "onedex-mock",
  "wrap-mock",
  "xexchange-mock",
+ "xstake-mock",
 ]
 
 [[package]]
@@ -235,6 +236,14 @@ dependencies = [
 
 [[package]]
 name = "xexchange-mock"
+version = "0.0.0"
+dependencies = [
+ "itertools",
+ "multiversx-sc",
+]
+
+[[package]]
+name = "xstake-mock"
 version = "0.0.0"
 dependencies = [
  "itertools",

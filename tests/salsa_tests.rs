@@ -27,13 +27,15 @@ use salsa::{
     },
     exchanges::{
         onedex::OnedexModule,
-        xexchange::XexchangeModule
+        xexchange::XexchangeModule,
+        xstake::XStakeModule
     },
     providers::ProvidersModule
 };
 
 use multiversx_sc::{
-    storage::mappers::StorageTokenWrapper as _, types::{Address, BigUint}
+    storage::mappers::StorageTokenWrapper as _,
+    types::{Address, BigUint}
 };
 
 use multiversx_sc_scenario::{
@@ -68,6 +70,10 @@ pub fn world() -> ScenarioWorld {
         XEXCHANGE_PATH_EXPR,
         xexchange_mock::ContractBuilder,
     );
+    blockchain.register_contract(
+        XSTAKE_PATH_EXPR,
+        xstake_mock::ContractBuilder,
+    );
 
     blockchain
 }
@@ -89,6 +95,8 @@ pub fn setup() -> ScenarioWorld {
 
     let xexchange_whitebox = WhiteboxContract::new(XEXCHANGE_ADDRESS_EXPR, xexchange_mock::contract_obj);
     let xexchange_code = world.code_expression(XEXCHANGE_PATH_EXPR);
+
+    let xstake_whitebox = WhiteboxContract::new(XSTAKE_ADDRESS_EXPR, xstake_mock::contract_obj);
 
     let roles = vec![
         "ESDTRoleLocalMint".to_string(),
@@ -167,6 +175,7 @@ pub fn setup() -> ScenarioWorld {
                 Account::new()
                     .nonce(1)
                     .balance(ONEDEX_OWNER_INITIAL_BALANCE_EXPR)
+                    .esdt_balance(REWARD_TOKEN_EXPR, ONEDEX_OWNER_INITIAL_RONE_BALANCE_EXPR)
             )
             .new_address(ONEDEX_OWNER_ADDRESS_EXPR, 1, ONEDEX_ADDRESS_EXPR)
             .put_account(
@@ -176,6 +185,7 @@ pub fn setup() -> ScenarioWorld {
                     .code(onedex_code)
                     .owner(ONEDEX_OWNER_ADDRESS_EXPR)
                     .esdt_roles(ONEDEX_LP_EXPR, roles.clone())
+                    .esdt_roles(RONE_LP_EXPR, roles.clone())
             )
             .put_account(
                 XEXCHANGE_OWNER_ADDRESS_EXPR,
@@ -192,12 +202,21 @@ pub fn setup() -> ScenarioWorld {
                     .owner(XEXCHANGE_OWNER_ADDRESS_EXPR)
                     .esdt_roles(XEXCHANGE_LP_EXPR, roles)
             )
+            .put_account(
+                XSTAKE_OWNER_ADDRESS_EXPR,
+                Account::new()
+                    .nonce(1)
+                    .balance("1_000_000_000_000_000_000")
+                    .esdt_balance(REWARD_TOKEN_EXPR, XSTAKE_TOTAL_REWARDS_EXPR)
+            )
+            .new_address(XSTAKE_OWNER_ADDRESS_EXPR, 1, XSTAKE_ADDRESS_EXPR)
     );
 
     setup_providers(&mut world);
     setup_wrap_sc(&mut world);
     let onedex_pair_id = setup_onedex_sc(&mut world);
     setup_xexchange_sc(&mut world);
+    let (onedex_xstake_id, xexchange_xstake_id) = setup_xstake(&mut world);
 
     // setup SALSA
     world.whitebox_call(
@@ -219,6 +238,10 @@ pub fn setup() -> ScenarioWorld {
             sc.set_onedex_arbitrage_active();
             sc.set_xexchange_sc(managed_address!(&Address::from_slice(xexchange_whitebox.address_expr.to_address().as_bytes())));
             sc.set_xexchange_arbitrage_active();
+
+            sc.set_xstake_sc(managed_address!(&Address::from_slice(xstake_whitebox.address_expr.to_address().as_bytes())));
+            sc.set_xstake_onedex_id(onedex_xstake_id);
+            sc.set_xstake_xexchange_id(xexchange_xstake_id);
         }
     );
 
