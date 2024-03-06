@@ -61,6 +61,8 @@ fn test_xstake() {
     check_esdt_balance(&mut world, SALSA_ADDRESS_EXPR, TOKEN_ID_EXPR, &liquidity_amount);
     check_esdt_balance(&mut world, XSTAKE_ADDRESS_EXPR, ONEDEX_LP_EXPR, &rust_biguint!(0));
     check_esdt_balance(&mut world, XSTAKE_ADDRESS_EXPR, XEXCHANGE_LP_EXPR, &rust_biguint!(0));
+    check_esdt_balance(&mut world, SALSA_ADDRESS_EXPR, WEGLD_ID_EXPR, &rust_biguint!(0));
+    check_esdt_balance(&mut world, SALSA_ADDRESS_EXPR, REWARD_TOKEN_EXPR, &rust_biguint!(0));
     check_esdt_balance(&mut world, SALSA_ADDRESS_EXPR, ONEDEX_LP_EXPR, &rust_biguint!(0));
     check_esdt_balance(&mut world, SALSA_ADDRESS_EXPR, XEXCHANGE_LP_EXPR, &rust_biguint!(0));
 }
