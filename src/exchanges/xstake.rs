@@ -2,6 +2,7 @@ multiversx_sc::imports!();
 
 use crate::common::config::State;
 use crate::common::errors::*;
+use crate::common::storage_cache::StorageCache;
 use crate::exchanges::onedex_cache::OnedexCache;
 use crate::exchanges::xexchange_cache::XexchangeCache;
 use crate::proxies::onedex_proxy::ProxyTrait as _;
@@ -39,8 +40,6 @@ pub trait XStakeModule:
     #[only_owner]
     #[endpoint(setXStakeInactive)]
     fn set_xstake_inactive(&self) {
-        let (old_egld_balance, _) = self.get_sc_balances();
-
         let onedex_xstake_id = self.xstake_onedex_id().get();
         let onedex_stake = self.get_xstake(onedex_xstake_id);
         let onedex_user_stake =
@@ -49,7 +48,8 @@ pub trait XStakeModule:
         if onedex_staked > 0 {
             self.remove_xstake(onedex_xstake_id, onedex_staked, onedex_stake.stake_tokens.get(0).clone_value());
         }
-        self.take_xstake_profit(onedex_xstake_id);
+        let mut storage_cache = StorageCache::new(self);
+        self.take_xstake_profit(onedex_xstake_id, &mut storage_cache);
 
         let xexchange_xstake_id = self.xstake_xexchange_id().get();
         let xexchange_stake = self.get_xstake(xexchange_xstake_id);
@@ -59,10 +59,7 @@ pub trait XStakeModule:
         if xexchange_staked > 0 {
             self.remove_xstake(xexchange_xstake_id, xexchange_staked, xexchange_stake.stake_tokens.get(0).clone_value());
         }
-        self.take_xstake_profit(xexchange_xstake_id);
-
-        let (new_egld_balance, _) = self.get_sc_balances();
-        self.excess_lp_egld().update(|value| *value += new_egld_balance - old_egld_balance);
+        self.take_xstake_profit(xexchange_xstake_id, &mut storage_cache);
 
         self.xstake_state().set(State::Inactive);
     }
@@ -193,7 +190,7 @@ pub trait XStakeModule:
             .execute_on_dest_context()
     }
 
-    fn take_xstake_profit(&self, stake_id: usize) {
+    fn take_xstake_profit(&self, stake_id: usize, storage_cache: &mut StorageCache<Self>) {
         if !self.is_xstake_active() {
             return
         }
@@ -211,6 +208,7 @@ pub trait XStakeModule:
         }
         let stake = self.get_xstake(stake_id);
         let wegld_id = self.wegld_id().get();
+        let (old_egld_balance, _) = self.get_sc_balances();
         for token in stake.reward_tokens.iter() {
             let balance = self.blockchain()
                 .get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(token.clone_value()), 0);
@@ -225,9 +223,22 @@ pub trait XStakeModule:
                 EsdtTokenPayment::new(token.clone_value(), 0, balance.clone());
             self.onedex_proxy_obj()
                 .contract(self.onedex_sc().get())
-                .swap_multi_tokens_fixed_input(1_u64, false, path)
+                .swap_multi_tokens_fixed_input(1_u64, true, path)
                 .with_esdt_transfer(payment)
                 .execute_on_dest_context::<()>();
+        }
+        let (new_egld_balance, _) = self.get_sc_balances();
+        let profit = new_egld_balance - old_egld_balance;
+        let egld_profit = &profit / 2_u64;
+        let legld_profit = &profit - &egld_profit;
+        self.excess_lp_egld().update(|value| *value += egld_profit);
+
+        if legld_profit > 0 {
+            let ls_amount =
+                self.add_liquidity(&legld_profit, true, storage_cache);
+            self.mint_liquid_token(ls_amount.clone());
+            storage_cache.egld_to_delegate += legld_profit;
+            self.excess_lp_legld().update(|value| *value += ls_amount);
         }
     }
 

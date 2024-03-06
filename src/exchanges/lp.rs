@@ -230,14 +230,14 @@ pub trait LpModule:
                         lp_to_remove = onedex_cache.lp_info.lp_balance.clone();
                         egld_to_remove = &onedex_cache.lp_info.egld_reserve * &lp_to_remove / &onedex_cache.lp_info.lp_supply;
                     }
-                    self.remove_onedex_lp(lp_to_remove, &mut onedex_cache);
+                    self.remove_onedex_lp(lp_to_remove, storage_cache, &mut onedex_cache);
                 }
                 Exchange::Xexchange => {
                     if lp_to_remove > xexchange_cache.lp_info.lp_balance {
                         lp_to_remove = xexchange_cache.lp_info.lp_balance.clone();
                         egld_to_remove = &xexchange_cache.lp_info.egld_reserve * &lp_to_remove / &xexchange_cache.lp_info.lp_supply;
                     }
-                    self.remove_xexchange_lp(lp_to_remove, &mut xexchange_cache);
+                    self.remove_xexchange_lp(lp_to_remove, storage_cache, &mut xexchange_cache);
                 }
                 Exchange::None => {}
             }
@@ -305,14 +305,14 @@ pub trait LpModule:
                         lp_to_remove = onedex_cache.lp_info.lp_balance.clone();
                         legld_to_remove = &onedex_cache.lp_info.liquid_reserve * &lp_to_remove / &onedex_cache.lp_info.lp_supply;
                     }
-                    self.remove_onedex_lp(lp_to_remove, &mut onedex_cache);
+                    self.remove_onedex_lp(lp_to_remove, storage_cache, &mut onedex_cache);
                 }
                 Exchange::Xexchange => {
                     if lp_to_remove > xexchange_cache.lp_info.lp_balance {
                         lp_to_remove = xexchange_cache.lp_info.lp_balance.clone();
                         legld_to_remove = &xexchange_cache.lp_info.liquid_reserve * &lp_to_remove / &xexchange_cache.lp_info.lp_supply;
                     }
-                    self.remove_xexchange_lp(lp_to_remove, &mut xexchange_cache);
+                    self.remove_xexchange_lp(lp_to_remove, storage_cache, &mut xexchange_cache);
                 }
                 Exchange::None => {}
             }
@@ -362,12 +362,12 @@ pub trait LpModule:
 
     // helpers
 
-    fn remove_onedex_lp(&self, lp_to_remove: BigUint, onedex_cache: &mut OnedexCache<Self>) {
+    fn remove_onedex_lp(&self, lp_to_remove: BigUint, storage_cache: &mut StorageCache<Self>, onedex_cache: &mut OnedexCache<Self>) {
         let payment =
             EsdtTokenPayment::new(onedex_cache.lp_info.lp_token.clone(), 0, lp_to_remove.clone());
         onedex_cache.lp_info.lp_balance -= &lp_to_remove;
         self.remove_xstake(self.xstake_onedex_id().get(), lp_to_remove, onedex_cache.lp_info.lp_token.clone());
-        self.take_xstake_profit(self.xstake_onedex_id().get());
+        self.take_xstake_profit(self.xstake_onedex_id().get(), storage_cache);
         self.onedex_proxy_obj()
             .contract(onedex_cache.sc_address.clone())
             .remove_liquidity(BigUint::from(1u64), BigUint::from(1u64), false)
@@ -375,12 +375,12 @@ pub trait LpModule:
             .execute_on_dest_context::<()>();
     }
 
-    fn remove_xexchange_lp(&self, lp_to_remove: BigUint, xexchange_cache: &mut XexchangeCache<Self>) {
+    fn remove_xexchange_lp(&self, lp_to_remove: BigUint, storage_cache: &mut StorageCache<Self>, xexchange_cache: &mut XexchangeCache<Self>) {
         let payment
             = EsdtTokenPayment::new(xexchange_cache.lp_info.lp_token.clone(), 0, lp_to_remove.clone());
         xexchange_cache.lp_info.lp_balance -= &lp_to_remove;
         self.remove_xstake(self.xstake_xexchange_id().get(), lp_to_remove, xexchange_cache.lp_info.lp_token.clone());
-        self.take_xstake_profit(self.xstake_xexchange_id().get());
+        self.take_xstake_profit(self.xstake_xexchange_id().get(), storage_cache);
         self.xexchange_proxy_obj()
             .contract(xexchange_cache.sc_address.clone())
             .remove_liquidity(BigUint::from(1u64), BigUint::from(1u64))
@@ -396,10 +396,10 @@ pub trait LpModule:
 
         let (old_balance, old_ls_balance) = self.get_sc_balances();
         if self.is_onedex_arbitrage_active() && onedex_cache.lp_info.lp_balance > 0 {
-            self.remove_onedex_lp(onedex_cache.lp_info.lp_balance.clone(), &mut onedex_cache);
+            self.remove_onedex_lp(onedex_cache.lp_info.lp_balance.clone(), storage_cache, &mut onedex_cache);
         }
         if self.is_xexchange_arbitrage_active() && xexchange_cache.lp_info.lp_balance > 0 {
-            self.remove_xexchange_lp(xexchange_cache.lp_info.lp_balance.clone(), &mut xexchange_cache);
+            self.remove_xexchange_lp(xexchange_cache.lp_info.lp_balance.clone(), storage_cache, &mut xexchange_cache);
         }
 
         self.unwrap_all_wegld();
