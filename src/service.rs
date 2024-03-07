@@ -316,13 +316,20 @@ pub trait ServiceModule:
                 continue
             }
 
+            if !provider.is_eligible() {
+                if provider.salsa_stake > 0 {
+                    uneligible_provider = provider.clone();
+                }
+                continue
+            }
+
             let mut topup = &provider.total_stake / (provider.staked_nodes as u64);
             if topup > base_stake {
                 topup -= &base_stake;
             } else {
                 topup = BigUint::zero();
             }
-            if provider.is_eligible() && provider.has_free_space() {
+            if provider.has_free_space() {
                 if topup < min_topup || min_topup == 0 {
                     min_topup = topup.clone();
                     provider_to_delegate = provider.clone();
@@ -331,14 +338,9 @@ pub trait ServiceModule:
                     max_topup_delegate = topup.clone();
                 }
             }
-            if provider.salsa_stake > 0 {
-                if topup > max_topup_undelegate || max_topup_undelegate == 0 {
-                    max_topup_undelegate = topup;
-                    provider_to_undelegate = provider.clone();
-                }
-                if !provider.is_eligible() {
-                    uneligible_provider = provider.clone();
-                }
+            if (topup > max_topup_undelegate || max_topup_undelegate == 0) && provider.salsa_stake > 0 {
+                max_topup_undelegate = topup;
+                provider_to_undelegate = provider.clone();
             }
         }
         let mut delegate_amount = BigUint::zero();
@@ -348,7 +350,7 @@ pub trait ServiceModule:
             }
             let dif_topup_delegate = &max_topup_delegate - &min_topup;
             delegate_amount = amount.clone();
-            if min_topup != max_topup_delegate {
+            if dif_topup_delegate > 0 {
                 let mut max_amount = &dif_topup_delegate * (provider_to_delegate.staked_nodes as u64);
                 if max_amount < MIN_EGLD {
                     max_amount = BigUint::from(MIN_EGLD);
@@ -381,8 +383,8 @@ pub trait ServiceModule:
                 max_topup_undelegate = min_topup.clone();
             }
             let dif_topup_undelegate = &max_topup_undelegate - &min_topup;
-                undelegate_amount = amount.clone();
-            if min_topup != max_topup_undelegate {
+            undelegate_amount = amount.clone();
+            if dif_topup_undelegate > 0 {
                 let mut max_amount = dif_topup_undelegate * (provider_to_undelegate.staked_nodes as u64);
                 if max_amount < MIN_EGLD {
                     max_amount = BigUint::from(MIN_EGLD);
