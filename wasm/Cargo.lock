@@ -186,7 +186,6 @@ name = "salsa"
 version = "0.0.3"
 dependencies = [
  "delegation-mock",
- "hex-literal",
  "multiversx-sc",
  "multiversx-sc-modules",
  "onedex-mock",
