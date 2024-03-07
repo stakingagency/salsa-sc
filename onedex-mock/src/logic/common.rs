@@ -107,7 +107,7 @@ pub trait CommonLogicModule:
         let roles = self
             .blockchain()
             .get_esdt_local_roles(&self.pair_lp_token_id(pair_id).get());
-        
+
         require!(
             roles.has_role(&EsdtLocalRole::Mint),
             "Smart Contract does not have LP token local mint role"

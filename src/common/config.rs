@@ -248,12 +248,6 @@ pub trait ConfigModule:
     #[storage_mapper("total_egld_staked")]
     fn total_egld_staked(&self) -> SingleValueMapper<BigUint>;
 
-    #[storage_mapper("claimable_rewards_amount")]
-    fn claimable_rewards_amount(&self) -> SingleValueMapper<BigUint>;
-
-    #[storage_mapper("claimable_rewards_epoch")]
-    fn claimable_rewards_epoch(&self) -> SingleValueMapper<u64>;
-
     #[view(getUserWithdrawnEgld)]
     #[storage_mapper("user_withdrawn_egld")]
     fn user_withdrawn_egld(&self) -> SingleValueMapper<BigUint>;

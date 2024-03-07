@@ -28,7 +28,7 @@ pub trait PairLogicModule:
         );
 
         self.require_pair_owner_or_admin(pair_id);
-        
+
         require!(
             !self.pair_enabled(pair_id).get(),
             "Already enabled"
@@ -198,7 +198,7 @@ pub trait PairLogicModule:
             },
             ManagedAsyncCallResult::Err(_) => {
                 let issue_cost = self.call_value().egld_value();
-                
+
                 self.send()
                     .direct_egld(caller, &issue_cost);
             },

@@ -1,3 +1,7 @@
 **/target/
 **/output/
 **/output-docker/
+Cargo.lock
+*.sh
+deploy*.json
+.vscode
