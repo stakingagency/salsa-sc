@@ -29,7 +29,7 @@ pub trait SwapLogicModule:
             amount_in_arg > BigUint::zero(),
             "Must be paid some amount to swap"
         );
-        
+
         let path = path_args.to_vec();
 
         let path_len = path.len();
@@ -39,7 +39,7 @@ pub trait SwapLogicModule:
         );
 
         let wegld_token_id = self.wegld_id().get();
-        
+
         if token_in.is_egld() {
             require!(
                 wegld_token_id == *path.get(0),
@@ -87,7 +87,7 @@ pub trait SwapLogicModule:
             let mut unwrap_payment = ManagedVec::new();
             unwrap_payment.push(
                 EsdtTokenPayment::new(
-                    self.wegld_id().get(), 
+                    self.wegld_id().get(),
                     0,
                     amount_out.clone()
                 )
@@ -110,7 +110,7 @@ pub trait SwapLogicModule:
                 token_out,
                 0,
                 &amount_out
-            );   
+            );
         }
     }
 
@@ -142,7 +142,7 @@ pub trait SwapLogicModule:
         );
 
         let wegld_token_id = self.wegld_id().get();
-        
+
         if token_in.is_egld() {
             require!(
                 wegld_token_id == *path.get(0),
@@ -253,22 +253,22 @@ pub trait SwapLogicModule:
 
         let token_in_is_first_id = true;
         let (
-            amount_out, 
-            new_first_token_reserve, 
+            amount_out,
+            new_first_token_reserve,
             new_second_token_reserve
-        ) = 
+        ) =
             if token_in == &first_token_id {
                 self.swap_fixed_input(token_in, token_out, amount_in, &old_first_token_reserve, &old_second_token_reserve, fee_input_token)
             } else if token_out == &first_token_id {
                 let (
-                    amount_out, 
+                    amount_out,
                     new_second_token_reserve,
-                    new_first_token_reserve, 
+                    new_first_token_reserve,
                 ) = self.swap_fixed_input(token_in, token_out, amount_in, &old_second_token_reserve, &old_first_token_reserve, fee_input_token);
 
                 (
-                    amount_out, 
-                    new_first_token_reserve, 
+                    amount_out,
+                    new_first_token_reserve,
                     new_second_token_reserve,
                 )
             } else {
@@ -312,23 +312,23 @@ pub trait SwapLogicModule:
 
         let token_in_is_first_id = true;
         let (
-            amount_in, 
-            new_first_token_reserve, 
+            amount_in,
+            new_first_token_reserve,
             new_second_token_reserve
-        ) = 
+        ) =
             if token_in == &first_token_id {
                 self.swap_fixed_output(token_in, token_out, amount_out, &old_first_token_reserve, &old_second_token_reserve, fee_input_token)
             } else if token_out == &first_token_id {
                 let (
-                    amount_in, 
-                    new_second_token_reserve, 
+                    amount_in,
+                    new_second_token_reserve,
                     new_first_token_reserve
                 ) = self.swap_fixed_output(token_in, token_out, amount_out, &old_second_token_reserve, &old_first_token_reserve, fee_input_token);
 
                 (
-                    amount_in, 
+                    amount_in,
                     new_first_token_reserve,
-                    new_second_token_reserve, 
+                    new_second_token_reserve,
                 )
             } else {
                 sc_panic!("Input or output token must be first token of the pair");
@@ -449,7 +449,7 @@ pub trait SwapLogicModule:
                     &staking_reward_fee_amount
                 );
             }
-    
+
             fee_amount - &special_fee_amount - &staking_reward_fee_amount
         }
 
@@ -552,7 +552,7 @@ pub trait SwapLogicModule:
         let second_token_reserve = self.pair_second_token_reserve(pair_id).get();
 
         let fee_input_token = self.main_pair_tokens().contains(token_in);
-        
+
         if token_in == first_token_id {
             require!(second_token_reserve > 0u64, "Not enough reserve");
 

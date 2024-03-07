@@ -21,7 +21,7 @@ pub trait AmmLogicModule:
     ) -> BigUint {
         first_token_amount * second_token_amount
     }
-    
+
     /**
      * Calculate Optimal Amount
      */
@@ -75,7 +75,7 @@ pub trait AmmLogicModule:
             let amount_in_with_fee = amount_in * (TOTAL_PERCENT - self.total_fee_percent().get());
             let numerator = &amount_in_with_fee * reserve_out;
             let denominator = (reserve_in * TOTAL_PERCENT) + amount_in_with_fee;
-    
+
             numerator / denominator
         } else {
             let amount_out_without_fee = self.get_amount_out_no_fee(amount_in, reserve_in, reserve_out);
@@ -95,11 +95,11 @@ pub trait AmmLogicModule:
             let numerator = reserve_in * amount_out * TOTAL_PERCENT;
             let denominator =
                 (reserve_out - amount_out) * (TOTAL_PERCENT - self.total_fee_percent().get());
-    
+
             (numerator / denominator) + 1u64
         } else {
             let amount_out_with_fee = amount_out * TOTAL_PERCENT / (TOTAL_PERCENT - self.total_fee_percent().get());
-            
+
             self.get_amount_in_no_fee(&amount_out_with_fee, reserve_in, reserve_out)
         }
     }

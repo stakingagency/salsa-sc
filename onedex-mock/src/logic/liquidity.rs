@@ -30,15 +30,15 @@ pub trait LiquidityLogicModule:
             first_payment.amount > BigUint::zero() && second_payment.amount > BigUint::zero(),
             "invalid add_liquidity_payment amount"
         );
-        
+
         let pair_key = (first_payment.token_identifier.clone(), second_payment.token_identifier.clone());
-        
+
         let pair_ids = self.pair_ids();
         require!(
             pair_ids.contains_key(&pair_key),
             "given pair of token identifiers not exist"
         );
-        
+
         let pair_id =  pair_ids.get(&pair_key).unwrap();
 
         self.require_valid_pair_id(pair_id);
@@ -76,7 +76,7 @@ pub trait LiquidityLogicModule:
             initial_total_liquidity > minimum_liquidity,
             "Initial total liquidity must be greater than minimun liquidity"
         );
-        
+
         let one18 = BigUint::from(10u64).pow(18);
         let ten = BigUint::from(10u64);
         while initial_total_liquidity < one18 {
@@ -86,7 +86,7 @@ pub trait LiquidityLogicModule:
         // mint LP token and send it to caller
         let lp_token_id = self.pair_lp_token_id(pair_id).get();
         self.send().esdt_local_mint(&lp_token_id, 0, &initial_total_liquidity);
-        
+
         // lock minimum liquidity permanently
         // returen the rest liquidity to initial liquidity provider
         let initial_liquidity = &initial_total_liquidity - &minimum_liquidity;
@@ -97,7 +97,7 @@ pub trait LiquidityLogicModule:
             0,
             &initial_liquidity,
         );
-        
+
         self.pair_lp_token_supply(pair_id).set(initial_total_liquidity.clone());
             }
 
@@ -138,7 +138,7 @@ pub trait LiquidityLogicModule:
             pair_ids.contains_key(&pair_key),
             "given pair of token identifiers does not exist"
         );
-        
+
         let pair_id =  pair_ids.get(&pair_key).unwrap();
 
         // check status
@@ -220,7 +220,7 @@ pub trait LiquidityLogicModule:
 
         let first_potential_lp = first_token_amount_added * &old_lp_token_supply / &old_first_token_reserve;
         let second_potential_lp = second_token_amount_added * &old_lp_token_supply / &old_second_token_reserve;
-        
+
         let new_liquidity_added = core::cmp::min(first_potential_lp, second_potential_lp);
 
         require!(new_liquidity_added > BigUint::zero(), "insufficient liquidity minted");
@@ -321,7 +321,7 @@ pub trait LiquidityLogicModule:
                 .unwrap_egld()
                 .with_multi_token_transfer(unwrap_payment)
                 .execute_on_dest_context::<()>();
-            
+
             self.send().direct_egld(
                 &self.blockchain().get_caller(),
                 &first_token_withdraw_amount.clone()
@@ -344,14 +344,14 @@ pub trait LiquidityLogicModule:
                     second_token_withdraw_amount.clone()
                 )
             );
-            
+
             self.unwrap_proxy(
                 self.unwrap_address().get()
             )
                 .unwrap_egld()
                 .with_multi_token_transfer(unwrap_payment)
                 .execute_on_dest_context::<()>();
-            
+
             self.send().direct_egld(
                 &self.blockchain().get_caller(),
                 &second_token_withdraw_amount.clone()

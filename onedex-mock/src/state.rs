@@ -14,7 +14,7 @@ pub struct Pair<M: ManagedTypeApi> {
     pub state: State,
     pub enabled: bool,
     pub owner: ManagedAddress<M>,
-    
+
     pub first_token_id: TokenIdentifier<M>,
     pub second_token_id: TokenIdentifier<M>,
     pub lp_token_id: TokenIdentifier<M>,
