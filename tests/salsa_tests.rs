@@ -266,8 +266,8 @@ pub fn to_managed_biguint(value: &num_bigint::BigUint) -> BigUint<DebugApi> {
 #[test]
 fn test_init() {
     let mut world = setup();
-    check_provider_state(&mut world, DELEGATION1_ADDRESS_EXPR, true);
-    check_provider_state(&mut world, DELEGATION2_ADDRESS_EXPR, true);
+    check_provider_eligible(&mut world, DELEGATION1_ADDRESS_EXPR, true);
+    check_provider_eligible(&mut world, DELEGATION2_ADDRESS_EXPR, true);
 }
 
 #[test]
