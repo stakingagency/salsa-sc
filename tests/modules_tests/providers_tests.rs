@@ -1,3 +1,5 @@
+use salsa::common::consts::MAX_PROVIDER_FEE;
+
 use crate::*;
 
 #[test]
@@ -103,7 +105,7 @@ fn test_two_providers() {
 }
 
 #[test]
-fn test_disable_provider_reached_cap() {
+fn test_provider_reached_cap() {
     let mut world = setup();
 
     let delegation1_whitebox = WhiteboxContract::new(DELEGATION1_ADDRESS_EXPR, delegation_mock::contract_obj);
@@ -117,5 +119,69 @@ fn test_disable_provider_reached_cap() {
         }
     );
     refresh_provider_test(&mut world, DELEGATION1_ADDRESS_EXPR);
-    check_provider_state(&mut world, DELEGATION1_ADDRESS_EXPR, false);
+    check_provider_has_free_space(&mut world, DELEGATION1_ADDRESS_EXPR, false);
+}
+
+#[test]
+fn test_provider_fee_too_high() {
+    let mut world = setup();
+
+    let delegation1_whitebox = WhiteboxContract::new(DELEGATION1_ADDRESS_EXPR, delegation_mock::contract_obj);
+    world.whitebox_call(
+        &delegation1_whitebox,
+        ScCallStep::new()
+            .from(DELEGATOR1_ADDRESS_EXPR),
+        |sc| {
+            sc.service_fee().set(MAX_PROVIDER_FEE + 1);
+        }
+    );
+    refresh_provider_test(&mut world, DELEGATION1_ADDRESS_EXPR);
+    check_provider_eligible(&mut world, DELEGATION1_ADDRESS_EXPR, false);
+}
+
+#[test]
+fn test_delegate_to_uneligible_providers() {
+    let mut world = setup();
+
+    let mut nonce = BLOCKS_PER_EPOCH;
+    let amount = exp(10, 18);
+
+    // set high fees so delegation should not be possible
+    let delegation1_whitebox = WhiteboxContract::new(DELEGATION1_ADDRESS_EXPR, delegation_mock::contract_obj);
+    world.whitebox_call(
+        &delegation1_whitebox,
+        ScCallStep::new()
+            .from(DELEGATOR1_ADDRESS_EXPR),
+        |sc| {
+            sc.service_fee().set(MAX_PROVIDER_FEE + 1);
+        }
+    );
+    let delegation2_whitebox = WhiteboxContract::new(DELEGATION2_ADDRESS_EXPR, delegation_mock::contract_obj);
+    world.whitebox_call(
+        &delegation2_whitebox,
+        ScCallStep::new()
+            .from(DELEGATOR2_ADDRESS_EXPR),
+        |sc| {
+            sc.service_fee().set(MAX_PROVIDER_FEE + 1);
+        }
+    );
+
+    set_block_nonce(&mut world, nonce);
+    delegate_test(&mut world, DELEGATOR1_ADDRESS_EXPR, &amount, false, true);
+    delegate_all_test(&mut world);
+    check_egld_to_delegate(&mut world, &amount);
+
+    // lowering the fee should make delegation possible
+    nonce += BLOCKS_PER_EPOCH;
+    set_block_nonce(&mut world, nonce);
+    world.whitebox_call(
+        &delegation1_whitebox,
+        ScCallStep::new()
+            .from(DELEGATOR1_ADDRESS_EXPR),
+        |sc| {
+            sc.service_fee().set(MAX_PROVIDER_FEE);
+        }
+    );
+    delegate_all_test(&mut world);
+    check_egld_to_delegate(&mut world, &rust_biguint!(0));
 }

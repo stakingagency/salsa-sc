@@ -213,7 +213,9 @@ pub trait ServiceModule:
         let current_nonce = self.blockchain().get_block_nonce();
         let current_epoch = self.blockchain().get_block_epoch();
         for (address, provider) in self.providers().iter() {
-            if !provider.is_active() || !provider.is_up_to_date(current_nonce, current_epoch) || (provider.salsa_withdrawable == 0) {
+            let is_active = provider.is_active();
+            let is_up_to_date = provider.is_up_to_date(current_nonce, current_epoch);
+            if !is_active || !is_up_to_date || (provider.salsa_withdrawable == 0) {
                 continue
             }
 
@@ -300,8 +302,9 @@ pub trait ServiceModule:
     ) {
         let mut provider_to_delegate = self.empty_provider();
         let mut provider_to_undelegate = self.empty_provider();
+        let mut uneligible_provider = self.empty_provider();
         if !self.refresh_providers() {
-            return (ManagedAddress::from(&[0u8; 32]), BigUint::zero(), ManagedAddress::from(&[0u8; 32]), BigUint::zero())
+            return (ManagedAddress::zero(), BigUint::zero(), ManagedAddress::zero(), BigUint::zero())
         }
 
         let mut min_topup = BigUint::zero();
@@ -319,20 +322,27 @@ pub trait ServiceModule:
             } else {
                 topup = BigUint::zero();
             }
-            if topup < min_topup || min_topup == 0 {
-                min_topup = topup.clone();
-                provider_to_delegate = provider.clone();
+            if provider.is_eligible() && provider.has_free_space() {
+                if topup < min_topup || min_topup == 0 {
+                    min_topup = topup.clone();
+                    provider_to_delegate = provider.clone();
+                }
+                if topup > max_topup_delegate || max_topup_delegate == 0 {
+                    max_topup_delegate = topup.clone();
+                }
             }
-            if topup > max_topup_delegate || max_topup_delegate == 0 {
-                max_topup_delegate = topup.clone();
-            }
-            if (topup > max_topup_undelegate || max_topup_undelegate == 0) && (provider.salsa_stake > 0) {
-                max_topup_undelegate = topup;
-                provider_to_undelegate = provider.clone();
+            if provider.salsa_stake > 0 {
+                if topup > max_topup_undelegate || max_topup_undelegate == 0 {
+                    max_topup_undelegate = topup;
+                    provider_to_undelegate = provider.clone();
+                }
+                if !provider.is_eligible() {
+                    uneligible_provider = provider.clone();
+                }
             }
         }
         let mut delegate_amount = BigUint::zero();
-        if provider_to_delegate.staked_nodes > 0 {
+        if provider_to_delegate.is_active() {
             if max_topup_delegate < min_topup {
                 max_topup_delegate = min_topup.clone();
             }
@@ -358,7 +368,15 @@ pub trait ServiceModule:
             }
         }
         let mut undelegate_amount = BigUint::zero();
-        if provider_to_undelegate.staked_nodes > 0 {
+        if uneligible_provider.is_active() {
+            provider_to_undelegate = uneligible_provider.clone();
+            undelegate_amount = if amount > &uneligible_provider.salsa_stake {
+                uneligible_provider.salsa_stake
+            } else {
+                amount.clone()
+            };
+        } else
+        if provider_to_undelegate.is_active() {
             if max_topup_undelegate < min_topup {
                 max_topup_undelegate = min_topup.clone();
             }
