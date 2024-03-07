@@ -20,6 +20,7 @@ pub trait ProvidersModule:
         );
 
         let mut provider = self.empty_provider();
+        provider.state = State::Active;
         provider.address = address.clone();
         self.providers().insert(address.clone(), provider);
 
@@ -307,8 +308,8 @@ pub trait ProvidersModule:
 
     fn empty_provider(&self) -> ProviderConfig<Self::Api> {
         ProviderConfig{
-            state: State::Active,
-            address: ManagedAddress::from(&[0u8; 32]),
+            state: State::Inactive,
+            address: ManagedAddress::zero(),
             staked_nodes: 0,
             total_stake: BigUint::zero(),
             max_cap: BigUint::zero(),

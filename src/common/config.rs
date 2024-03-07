@@ -111,10 +111,15 @@ impl<M> ProviderConfig<M>
 where M: ManagedTypeApi
 {
     pub fn is_active(&self) -> bool {
-        self.state == State::Active &&
-        self.staked_nodes > 0 &&
-        self.fee <= MAX_PROVIDER_FEE &&
-        (!self.has_cap || (self.max_cap > &self.total_stake + ONE_EGLD))
+        self.state == State::Active
+    }
+
+    pub fn has_free_space(&self) -> bool {
+        !self.has_cap || (self.max_cap > &self.total_stake + ONE_EGLD)
+    }
+
+    pub fn is_eligible(&self) -> bool {
+        self.staked_nodes > 0 && self.fee <= MAX_PROVIDER_FEE
     }
 
     pub fn is_config_up_to_date(&self, current_nonce: u64) -> bool {
@@ -464,7 +469,7 @@ pub trait ConfigModule:
         let user_knight = self.user_knight(user);
         let knight = if user_knight.is_empty() {
             Knight{
-                address: ManagedAddress::from(&[0u8; 32]),
+                address: ManagedAddress::zero(),
                 state: KnightState::Undefined,
             }
         } else {
@@ -481,7 +486,7 @@ pub trait ConfigModule:
         let user_heir = self.user_heir(user);
         let heir = if user_heir.is_empty() {
             Heir{
-                address: ManagedAddress::from(&[0u8; 32]),
+                address: ManagedAddress::zero(),
                 inheritance_epochs: 0,
                 last_accessed_epoch: 0,
             }
