@@ -15,7 +15,7 @@ pub const MIN_BLOCK_BETWEEN_DELEGATIONS: u64 = 10;
 
 pub const PROVIDER_UPDATE_NONCES_DELTA: u64 = 300; // 30 minutes
 pub const NODE_BASE_STAKE: u64 = 2_500;
-pub const MAX_PROVIDER_FEE: u64 = 1000; // 10%
+pub const MAX_PROVIDER_FEE: u64 = 1200; // 12%
 
 pub const PROVIDER_CONFIG_FEE_INDEX: usize = 1;
 pub const PROVIDER_CONFIG_MAX_CAP_INDEX: usize = 2;
