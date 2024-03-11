@@ -161,7 +161,7 @@ pub trait ServiceModule:
                 continue
             }
 
-            if !self.enough_gas_left_for_callback() {
+            if !self.enough_gas_left_for_async_call() {
                 break
             }
 
@@ -219,7 +219,7 @@ pub trait ServiceModule:
                 continue
             }
 
-            if !self.enough_gas_left_for_callback() {
+            if !self.enough_gas_left_for_async_call() {
                 break
             }
 
