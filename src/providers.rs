@@ -112,28 +112,28 @@ pub trait ProvidersModule:
             outdated = true;
 
             if !provider.is_config_up_to_date(current_nonce) {
-                if !self.enough_gas_left_for_callback() {
+                if !self.enough_gas_left_for_async_call() {
                     break
                 }
                 self.refresh_provider_config(&address);
             }
 
             if !provider.is_stake_up_to_date(current_nonce) {
-                if !self.enough_gas_left_for_callback() {
+                if !self.enough_gas_left_for_async_call() {
                     break
                 }
                 self.refresh_provider_stake(&address);
             }
 
             if !provider.are_nodes_up_to_date(current_nonce) {
-                if !self.enough_gas_left_for_callback() {
+                if !self.enough_gas_left_for_async_call() {
                     break
                 }
                 self.refresh_provider_nodes(&address);
             }
 
             if !provider.are_funds_up_to_date(current_nonce, current_epoch) {
-                if !self.enough_gas_left_for_callback() {
+                if !self.enough_gas_left_for_async_call() {
                     break
                 }
                 self.refresh_provider_funds_data(&address);
@@ -149,10 +149,10 @@ pub trait ProvidersModule:
         self.providers_delegation_proxy_obj()
             .contract(address.clone())
             .get_contract_config()
-            .with_gas_limit(GAS_FOR_VIEW_FUNCTION)
+            .with_gas_limit(MIN_GAS_FOR_ASYNC_CALL)
             .async_call_promise()
             .with_callback(ProvidersModule::callbacks(self).get_contract_config_callback(address))
-            .with_extra_gas_for_callback(GAS_FOR_VIEW_FUNCTION)
+            .with_extra_gas_for_callback(MIN_GAS_FOR_CALLBACK)
             .register_promise();
     }
 
@@ -160,10 +160,10 @@ pub trait ProvidersModule:
         self.providers_delegation_proxy_obj()
             .contract(address.clone())
             .get_total_active_stake()
-            .with_gas_limit(GAS_FOR_VIEW_FUNCTION)
+            .with_gas_limit(MIN_GAS_FOR_ASYNC_CALL)
             .async_call_promise()
             .with_callback(ProvidersModule::callbacks(self).get_total_active_stake_callback(address))
-            .with_extra_gas_for_callback(GAS_FOR_VIEW_FUNCTION)
+            .with_extra_gas_for_callback(MIN_GAS_FOR_CALLBACK)
             .register_promise();
     }
 
@@ -171,10 +171,10 @@ pub trait ProvidersModule:
         self.providers_delegation_proxy_obj()
             .contract(address.clone())
             .get_all_nodes_states()
-            .with_gas_limit(GAS_FOR_VIEW_FUNCTION)
+            .with_gas_limit(MIN_GAS_FOR_ASYNC_CALL)
             .async_call_promise()
             .with_callback(ProvidersModule::callbacks(self).get_all_nodes_states_callback(address))
-            .with_extra_gas_for_callback(GAS_FOR_VIEW_FUNCTION)
+            .with_extra_gas_for_callback(MIN_GAS_FOR_CALLBACK)
             .register_promise();
     }
 
@@ -182,10 +182,10 @@ pub trait ProvidersModule:
         self.providers_delegation_proxy_obj()
             .contract(address.clone())
             .get_delegator_funds_data(self.blockchain().get_sc_address())
-            .with_gas_limit(GAS_FOR_VIEW_FUNCTION)
+            .with_gas_limit(MIN_GAS_FOR_ASYNC_CALL)
             .async_call_promise()
             .with_callback(ProvidersModule::callbacks(self).get_delegator_funds_data_callback(address))
-            .with_extra_gas_for_callback(GAS_FOR_VIEW_FUNCTION)
+            .with_extra_gas_for_callback(MIN_GAS_FOR_CALLBACK)
             .register_promise();
     }
 
@@ -302,8 +302,8 @@ pub trait ProvidersModule:
 
     // helpers
 
-    fn enough_gas_left_for_callback(&self) -> bool {
-        self.blockchain().get_gas_left() > GAS_FOR_VIEW_FUNCTION * 2
+    fn enough_gas_left_for_async_call(&self) -> bool {
+        self.blockchain().get_gas_left() > MIN_GAS_FOR_ASYNC_CALL + MIN_GAS_FOR_CALLBACK
     }
 
     fn empty_provider(&self) -> ProviderConfig<Self::Api> {
