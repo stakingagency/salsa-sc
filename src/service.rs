@@ -47,6 +47,12 @@ pub trait ServiceModule:
         storage_cache.egld_to_delegate -= &amount;
         drop(storage_cache);
 
+        let mut provider = self.get_provider(&provider_address);
+        provider.funds_last_update_nonce = 0;
+        provider.funds_last_update_epoch = 0;
+        provider.stake_last_update_nonce = 0;
+        self.providers().insert(provider_address.clone(), provider);
+
         self.service_delegation_proxy_obj()
             .contract(provider_address.clone())
             .delegate()
@@ -54,7 +60,7 @@ pub trait ServiceModule:
             .with_egld_transfer(amount.clone())
             .async_call_promise()
             .with_callback(
-                ServiceModule::callbacks(self).delegate_all_callback(provider_address, &amount),
+                ServiceModule::callbacks(self).delegate_all_callback(&amount),
             )
             .with_extra_gas_for_callback(MIN_GAS_FOR_CALLBACK)
             .register_promise();
@@ -65,14 +71,9 @@ pub trait ServiceModule:
     #[promises_callback]
     fn delegate_all_callback(
         &self,
-        provider_address: ManagedAddress,
         egld_to_delegate: &BigUint,
         #[call_result] result: ManagedAsyncCallResult<()>,
     ) {
-        let mut provider = self.get_provider(&provider_address);
-        provider.funds_last_update_nonce = 0;
-        provider.funds_last_update_epoch = 0;
-        provider.stake_last_update_nonce = 0;
         match result {
             ManagedAsyncCallResult::Ok(()) => {}
             ManagedAsyncCallResult::Err(_) => {
@@ -80,7 +81,6 @@ pub trait ServiceModule:
                     .update(|value| *value += egld_to_delegate);
             }
         }
-        self.providers().insert(provider_address, provider);
     }
 
     #[endpoint(unDelegateAll)]
@@ -109,13 +109,19 @@ pub trait ServiceModule:
         storage_cache.egld_to_undelegate -= &amount;
         drop(storage_cache);
 
+        let mut provider = self.get_provider(&provider_address);
+        provider.funds_last_update_nonce = 0;
+        provider.funds_last_update_epoch = 0;
+        provider.stake_last_update_nonce = 0;
+        self.providers().insert(provider_address.clone(), provider);
+
         self.service_delegation_proxy_obj()
             .contract(provider_address.clone())
             .undelegate(&amount)
             .with_gas_limit(MIN_GAS_FOR_ASYNC_CALL)
             .async_call_promise()
             .with_callback(
-                ServiceModule::callbacks(self).undelegate_all_callback(provider_address, &amount),
+                ServiceModule::callbacks(self).undelegate_all_callback(&amount),
             )
             .with_extra_gas_for_callback(MIN_GAS_FOR_CALLBACK)
             .register_promise();
@@ -126,14 +132,9 @@ pub trait ServiceModule:
     #[promises_callback]
     fn undelegate_all_callback(
         &self,
-        provider_address: ManagedAddress,
         egld_to_undelegate: &BigUint,
         #[call_result] result: ManagedAsyncCallResult<()>,
     ) {
-        let mut provider = self.get_provider(&provider_address);
-        provider.funds_last_update_nonce = 0;
-        provider.funds_last_update_epoch = 0;
-        provider.stake_last_update_nonce = 0;
         match result {
             ManagedAsyncCallResult::Ok(()) => {}
             ManagedAsyncCallResult::Err(_) => {
@@ -141,7 +142,6 @@ pub trait ServiceModule:
                     .update(|value| *value += egld_to_undelegate);
             }
         }
-        self.providers().insert(provider_address, provider);
     }
 
     #[endpoint(claimRewards)]
@@ -165,12 +165,18 @@ pub trait ServiceModule:
                 break
             }
 
+            let mut provider = self.get_provider(&address);
+            provider.funds_last_update_nonce = 0;
+            provider.funds_last_update_epoch = 0;
+            provider.salsa_rewards = BigUint::zero();
+            self.providers().insert(address.clone(), provider);
+
             self.service_delegation_proxy_obj()
-                .contract(address.clone())
+                .contract(address)
                 .claim_rewards()
                 .with_gas_limit(MIN_GAS_FOR_ASYNC_CALL)
                 .async_call_promise()
-                .with_callback(ServiceModule::callbacks(self).claim_rewards_callback(address))
+                .with_callback(ServiceModule::callbacks(self).claim_rewards_callback())
                 .with_extra_gas_for_callback(MIN_GAS_FOR_CALLBACK)
                 .register_promise();
         }
@@ -179,12 +185,8 @@ pub trait ServiceModule:
     #[promises_callback]
     fn claim_rewards_callback(
         &self,
-        provider_address: ManagedAddress,
         #[call_result] result: ManagedAsyncCallResult<()>,
     ) {
-        let mut provider = self.get_provider(&provider_address);
-        provider.funds_last_update_nonce = 0;
-        provider.funds_last_update_epoch = 0;
         match result {
             ManagedAsyncCallResult::Ok(()) => {
                 let claimed_amount = self.call_value().egld_value().clone_value();
@@ -195,11 +197,9 @@ pub trait ServiceModule:
                 self.egld_to_delegate()
                     .update(|value| *value += left_amount);
                 self.send().direct_egld(&self.blockchain().get_owner_address(), &commission);
-                provider.salsa_rewards = BigUint::zero();
             }
             ManagedAsyncCallResult::Err(_) => {}
         }
-        self.providers().insert(provider_address, provider);
     }
 
     #[endpoint(withdrawAll)]
@@ -223,12 +223,18 @@ pub trait ServiceModule:
                 break
             }
 
+            let mut provider = self.get_provider(&address);
+            provider.funds_last_update_nonce = 0;
+            provider.funds_last_update_epoch = 0;
+            provider.salsa_withdrawable = BigUint::zero();
+            self.providers().insert(address.clone(), provider);
+
             self.service_delegation_proxy_obj()
-                .contract(address.clone())
+                .contract(address)
                 .withdraw()
                 .with_gas_limit(MIN_GAS_FOR_ASYNC_CALL)
                 .async_call_promise()
-                .with_callback(ServiceModule::callbacks(self).withdraw_all_callback(address))
+                .with_callback(ServiceModule::callbacks(self).withdraw_all_callback())
                 .with_extra_gas_for_callback(MIN_GAS_FOR_CALLBACK)
                 .register_promise();
         }
@@ -237,22 +243,16 @@ pub trait ServiceModule:
     #[promises_callback]
     fn withdraw_all_callback(
         &self,
-        provider_address: ManagedAddress,
         #[call_result] result: ManagedAsyncCallResult<()>,
     ) {
-        let mut provider = self.get_provider(&provider_address);
-        provider.funds_last_update_nonce = 0;
-        provider.funds_last_update_epoch = 0;
         match result {
             ManagedAsyncCallResult::Ok(()) => {
                 let withdrawn_amount = self.call_value().egld_value();
                 self.total_withdrawn_egld()
                     .update(|value| *value += withdrawn_amount.clone_value());
-                provider.salsa_withdrawable = BigUint::zero();
             }
             ManagedAsyncCallResult::Err(_) => {}
         }
-        self.providers().insert(provider_address, provider);
     }
 
     #[endpoint(computeWithdrawn)]
