@@ -37,7 +37,7 @@ pub trait ServiceModule:
             return BigUint::zero()
         }
 
-        let (provider_address, amount, _, _) =
+        let (provider_address, amount) =
             self.get_provider_to_delegate_and_amount(&storage_cache.egld_to_delegate);
         if amount == 0 {
             drop(storage_cache);
@@ -99,8 +99,8 @@ pub trait ServiceModule:
             return BigUint::zero()
         }
 
-        let (_, _, provider_address, amount) =
-            self.get_provider_to_delegate_and_amount(&storage_cache.egld_to_undelegate);
+        let (provider_address, amount) =
+            self.get_provider_to_undelegate_and_amount(&storage_cache.egld_to_undelegate);
         if amount == 0 {
             drop(storage_cache);
             return BigUint::zero()
@@ -297,29 +297,18 @@ pub trait ServiceModule:
     ) -> (
         ManagedAddress,
         BigUint,
-        ManagedAddress,
-        BigUint,
     ) {
-        let mut provider_to_delegate = self.empty_provider();
-        let mut provider_to_undelegate = self.empty_provider();
-        let mut uneligible_provider = self.empty_provider();
         if !self.refresh_providers() {
-            return (ManagedAddress::zero(), BigUint::zero(), ManagedAddress::zero(), BigUint::zero())
+            return (ManagedAddress::zero(), BigUint::zero())
         }
 
+        let mut provider_to_delegate = self.empty_provider();
+        let mut topup_set = false;
         let mut min_topup = BigUint::zero();
-        let mut max_topup_delegate = BigUint::zero();
-        let mut max_topup_undelegate = BigUint::zero();
+        let mut max_topup = BigUint::zero();
         let base_stake = BigUint::from(NODE_BASE_STAKE) * ONE_EGLD;
         for (_, provider) in self.providers().iter() {
-            if !provider.is_active() {
-                continue
-            }
-
-            if !provider.is_eligible() {
-                if provider.salsa_stake > 0 {
-                    uneligible_provider = provider.clone();
-                }
+            if !provider.is_active() || !provider.is_eligible() || !provider.has_free_space() {
                 continue
             }
 
@@ -329,33 +318,25 @@ pub trait ServiceModule:
             } else {
                 topup = BigUint::zero();
             }
-            if provider.has_free_space() {
-                if topup < min_topup || min_topup == 0 {
-                    min_topup = topup.clone();
-                    provider_to_delegate = provider.clone();
-                }
-                if topup > max_topup_delegate || max_topup_delegate == 0 {
-                    max_topup_delegate = topup.clone();
-                }
+            if topup < min_topup || !topup_set {
+                min_topup = topup.clone();
+                provider_to_delegate = provider.clone();
             }
-            if (topup > max_topup_undelegate || max_topup_undelegate == 0) && provider.salsa_stake > 0 {
-                max_topup_undelegate = topup;
-                provider_to_undelegate = provider.clone();
+            if topup > max_topup || !topup_set {
+                max_topup = topup.clone();
             }
+            topup_set = true;
         }
         let mut delegate_amount = BigUint::zero();
-        if provider_to_delegate.is_active() {
-            if max_topup_delegate < min_topup {
-                max_topup_delegate = min_topup.clone();
-            }
-            let dif_topup_delegate = &max_topup_delegate - &min_topup;
+        if topup_set {
+            let dif_topup_delegate = &max_topup - &min_topup;
             delegate_amount = amount.clone();
             if dif_topup_delegate > 0 {
                 let mut max_amount = &dif_topup_delegate * (provider_to_delegate.staked_nodes as u64);
                 if max_amount < MIN_EGLD {
                     max_amount = BigUint::from(MIN_EGLD);
                 }
-                if amount > &max_amount {
+                if delegate_amount > max_amount {
                     delegate_amount = max_amount;
                 }
             }
@@ -369,8 +350,54 @@ pub trait ServiceModule:
                 delegate_amount = BigUint::zero();
             }
         }
+
+        (provider_to_delegate.address, delegate_amount)
+    }
+
+    fn get_provider_to_undelegate_and_amount(
+        &self,
+        amount: &BigUint,
+    ) -> (
+        ManagedAddress,
+        BigUint,
+    ) {
+        if !self.refresh_providers() {
+            return (ManagedAddress::zero(), BigUint::zero())
+        }
+
+        let mut provider_to_undelegate = self.empty_provider();
+        let mut uneligible_provider = self.empty_provider();
+        let mut topup_set = false;
+        let mut provider_set = false;
+        let mut min_topup = BigUint::zero();
+        let mut max_topup = BigUint::zero();
+        let base_stake = BigUint::from(NODE_BASE_STAKE) * ONE_EGLD;
+        for (_, provider) in self.providers().iter() {
+            if !provider.is_active() || !provider.is_eligible() {
+                if provider.salsa_stake > 0 {
+                    uneligible_provider = provider.clone();
+                }
+                continue
+            }
+
+            let mut topup = &provider.total_stake / (provider.staked_nodes as u64);
+            if topup > base_stake {
+                topup -= &base_stake;
+            } else {
+                topup = BigUint::zero();
+            }
+            if topup < min_topup || !topup_set {
+                topup_set = true;
+                min_topup = topup.clone();
+            }
+            if (topup > max_topup || !provider_set) && provider.salsa_stake > 0 {
+                provider_set = true;
+                max_topup = topup;
+                provider_to_undelegate = provider.clone();
+            }
+        }
         let mut undelegate_amount = BigUint::zero();
-        if uneligible_provider.is_active() {
+        if uneligible_provider.salsa_stake > 0 {
             provider_to_undelegate = uneligible_provider.clone();
             undelegate_amount = if amount > &uneligible_provider.salsa_stake {
                 uneligible_provider.salsa_stake
@@ -378,18 +405,18 @@ pub trait ServiceModule:
                 amount.clone()
             };
         } else
-        if provider_to_undelegate.is_active() {
-            if max_topup_undelegate < min_topup {
-                max_topup_undelegate = min_topup.clone();
+        if provider_set {
+            if max_topup < min_topup {
+                max_topup = min_topup.clone();
             }
-            let dif_topup_undelegate = &max_topup_undelegate - &min_topup;
+            let dif_topup_undelegate = &max_topup - &min_topup;
             undelegate_amount = amount.clone();
             if dif_topup_undelegate > 0 {
                 let mut max_amount = dif_topup_undelegate * (provider_to_undelegate.staked_nodes as u64);
                 if max_amount < MIN_EGLD {
                     max_amount = BigUint::from(MIN_EGLD);
                 }
-                if amount > &max_amount {
+                if undelegate_amount > max_amount {
                     undelegate_amount = max_amount;
                 }
             }
@@ -405,7 +432,7 @@ pub trait ServiceModule:
             }
         }
 
-        (provider_to_delegate.address, delegate_amount, provider_to_undelegate.address, undelegate_amount)
+        (provider_to_undelegate.address, undelegate_amount)
     }
 
     // proxy
