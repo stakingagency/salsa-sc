@@ -30,7 +30,9 @@ pub trait SalsaContract<ContractReader>:
     fn init(&self) {}
 
     #[upgrade]
-    fn upgrade(&self) {}
+    fn upgrade(&self) {
+        self.state().set(State::Inactive);
+    }
 
     // endpoints: liquid delegation
 

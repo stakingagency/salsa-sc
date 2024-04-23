@@ -51,12 +51,10 @@ pub trait ProvidersModule:
 
         let current_nonce = self.blockchain().get_block_nonce();
         let current_epoch = self.blockchain().get_block_epoch();
-        if provider.is_active() {
-            require!(
-                provider.are_funds_up_to_date(current_nonce, current_epoch),
-                ERROR_PROVIDER_NOT_UP_TO_DATE
-            );
-        }
+        require!(
+            provider.are_funds_up_to_date(current_nonce, current_epoch),
+            ERROR_PROVIDER_NOT_UP_TO_DATE
+        );
 
         require!(
             provider.salsa_stake == 0 &&
