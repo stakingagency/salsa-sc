@@ -4,6 +4,7 @@ pub const MIN_GAS_FOR_ASYNC_CALL: u64 = 12_000_000;
 pub const MIN_GAS_FOR_CALLBACK: u64 = 12_000_000;
 pub const MIN_GAS_FOR_VIEW_CALL: u64 = 1_000_000;
 pub const MIN_GAS_FOR_VIEW_CALLBACK: u64 = 12_000_000;
+pub const MIN_GAS_FOR_GET_ALL_NODE_STATES_CALL: u64 = 40_000_000;
 pub const MAX_PERCENT: u64 = 10_000;
 pub const MIN_UNDELEGATE_NOW_FEE: u64 = 3;
 pub const MAX_UNBOND_PERIOD: u64 = 20;
@@ -17,6 +18,7 @@ pub const METACHAIN_SHARD_ID: u32 = u32::MAX;
 
 pub const PROVIDER_UPDATE_NONCES_DELTA: u64 = 300; // 30 minutes
 pub const NODE_BASE_STAKE: u64 = 2_500;
+pub const MAX_SALSA_FEE: u64 = 1000;
 pub const MAX_PROVIDER_FEE: u64 = 1200; // 12%
 pub const MAX_PROVIDERS: usize = 25;
 

@@ -238,7 +238,7 @@ pub trait ConfigModule:
     #[only_owner]
     #[endpoint(setServiceFee)]
     fn set_service_fee(&self, new_fee: u64) {
-        require!(new_fee < MAX_PERCENT, ERROR_INCORRECT_FEE);
+        require!(new_fee <= MAX_SALSA_FEE, ERROR_SALSA_FEE_TOO_HIGH);
 
         self.service_fee().set(new_fee);
     }
