@@ -13,6 +13,7 @@ pub const MAX_INHERITANCE_EPOCHS: u64 = 3653;
 pub const MAX_KNIGHT_USERS: usize = 10;
 pub const MAX_HEIR_USERS: usize = 10;
 pub const MIN_BLOCK_BETWEEN_DELEGATIONS: u64 = 10;
+pub const METACHAIN_SHARD_ID: u32 = u32::MAX;
 
 pub const PROVIDER_UPDATE_NONCES_DELTA: u64 = 300; // 30 minutes
 pub const NODE_BASE_STAKE: u64 = 2_500;

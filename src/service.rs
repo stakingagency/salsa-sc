@@ -213,9 +213,8 @@ pub trait ServiceModule:
         let current_nonce = self.blockchain().get_block_nonce();
         let current_epoch = self.blockchain().get_block_epoch();
         for (address, provider) in self.providers().iter() {
-            let is_active = provider.is_active();
             let is_up_to_date = provider.is_up_to_date(current_nonce, current_epoch);
-            if !is_active || !is_up_to_date || (provider.salsa_withdrawable == 0) {
+            if !is_up_to_date || (provider.salsa_withdrawable == 0) {
                 continue
             }
 

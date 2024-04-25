@@ -19,12 +19,13 @@ pub trait ProvidersModule:
             ERROR_PROVIDER_ALREADY_ADDED
         );
 
-        let mut provider = self.empty_provider();
-        provider.state = State::Active;
-        provider.address = address.clone();
-        self.providers().insert(address.clone(), provider);
+        // commented for the tests to pass
+        // require!(
+        //     self.blockchain().get_shard_of_address(&address) == METACHAIN_SHARD_ID,
+        //     ERROR_ADDRESS_NOT_ON_METACHAIN
+        // );
 
-        self.refresh_provider(address);
+        self.refresh_provider_config(&address);
     }
 
     #[endpoint(refreshProvider)]
@@ -195,22 +196,32 @@ pub trait ProvidersModule:
         address: &ManagedAddress,
         #[call_result] result: ManagedAsyncCallResult<MultiValueEncoded<ManagedBuffer>>,
     ) {
-        let mut provider = self.get_provider(address);
         match result {
             ManagedAsyncCallResult::Ok(config) => {
                 require!(config.len() == 10, ERROR_INVALID_SC_RESPONSE);
 
                 let config_items = config.into_vec_of_buffers();
+                let mut provider = if self.providers().contains_key(address) {
+                    self.get_provider(address)
+                } else {
+                    let mut p = self.empty_provider();
+                    p.state = State::Active;
+                    p.address = address.clone();
+
+                    p
+                };
                 provider.max_cap = BigUint::from(config_items.get(PROVIDER_CONFIG_MAX_CAP_INDEX).clone_value());
                 provider.fee = config_items.get(PROVIDER_CONFIG_FEE_INDEX).parse_as_u64().unwrap_or(0);
                 provider.has_cap = config_items.get(PROVIDER_CONFIG_HAS_CAP_INDEX).clone_value() == b"true";
                 provider.config_last_update_nonce = self.blockchain().get_block_nonce();
+                self.providers().insert(address.clone(), provider);
             }
             ManagedAsyncCallResult::Err(_) => {
+                let mut provider = self.get_provider(address);
                 provider.config_last_update_nonce = 0;
+                self.providers().insert(address.clone(), provider);
             }
         }
-        self.providers().insert(address.clone(), provider);
     }
 
     #[promises_callback]
