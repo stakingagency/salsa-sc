@@ -32,6 +32,14 @@ pub trait SalsaContract<ContractReader>:
     #[upgrade]
     fn upgrade(&self) {
         self.state().set(State::Inactive);
+        if !self.provider_address().is_empty() {
+            let old_provider = self.provider_address().get();
+            if self.providers().contains_key(&old_provider) {
+                self.provider_address().clear();
+            } else {
+                self.add_provider(old_provider);
+            }
+        }
     }
 
     // endpoints: liquid delegation
