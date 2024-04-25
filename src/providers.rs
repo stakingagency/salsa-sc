@@ -175,7 +175,7 @@ pub trait ProvidersModule:
         self.providers_delegation_proxy_obj()
             .contract(address.clone())
             .get_all_nodes_states()
-            .with_gas_limit(MIN_GAS_FOR_VIEW_CALL)
+            .with_gas_limit(MIN_GAS_FOR_GET_ALL_NODE_STATES_CALL)
             .async_call_promise()
             .with_callback(ProvidersModule::callbacks(self).get_all_nodes_states_callback(address))
             .with_extra_gas_for_callback(MIN_GAS_FOR_VIEW_CALLBACK)
@@ -309,11 +309,13 @@ pub trait ProvidersModule:
                 provider.salsa_undelegated = BigUint::from(funds_data.get(PROVIDER_FUNDS_UNDELEGATED_INDEX).clone_value());
                 provider.salsa_withdrawable = BigUint::from(funds_data.get(PROVIDER_FUNDS_WITHDRAWABLE_INDEX).clone_value());
             }
-            ManagedAsyncCallResult::Err(_) => {
-                provider.salsa_stake = BigUint::zero();
-                provider.salsa_rewards = BigUint::zero();
-                provider.salsa_undelegated = BigUint::zero();
-                provider.salsa_withdrawable = BigUint::zero();
+            ManagedAsyncCallResult::Err(err) => {
+                if err.err_msg.to_vec() == ERROR_NOT_DELEGATOR {
+                    provider.salsa_stake = BigUint::zero();
+                    provider.salsa_rewards = BigUint::zero();
+                    provider.salsa_undelegated = BigUint::zero();
+                    provider.salsa_withdrawable = BigUint::zero();
+                }
             }
         }
         self.providers().insert(address.clone(), provider);

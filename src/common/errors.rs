@@ -17,6 +17,7 @@ pub static ERROR_TOKEN_ALREADY_SET: &[u8] = b"Token already set";
 pub static ERROR_TOKEN_NOT_SET: &[u8] = b"Token not set";
 pub static ERROR_NOT_ENOUGH_LIQUID_SUPPLY: &[u8] = b"Not enough liquid token supply";
 pub static ERROR_INCORRECT_FEE: &[u8] = b"Fee must be less than 100% and higher than 0.03%";
+pub static ERROR_SALSA_FEE_TOO_HIGH: &[u8] = b"Fee too high";
 pub static ERROR_DUST_REMAINING: &[u8] = b"Can't leave dust";
 pub static ERROR_REMOVE_RESERVE_TOO_SOON: &[u8] = b"You can remove reserve only 1 epoch after add";
 pub static ERROR_FEE_CHANGED: &[u8] = b"Fee changed and you would receive less";
@@ -25,6 +26,7 @@ pub static ERROR_DELEGATE_TOO_SOON: &[u8] = b"Delegate called too soon";
 pub static ERROR_INVALID_SC_RESPONSE: &[u8] = b"Unexpected Delegation SC response";
 pub static ERROR_ADDRESS_NOT_ON_METACHAIN: &[u8] = b"Address not on metachain";
 pub static ERROR_TOO_MANY_PROVIDERS: &[u8] = b"Too many providers";
+pub static ERROR_NOT_DELEGATOR: &[u8] = b"view function works only for existing delegators";
 
 pub static ERROR_ARBITRAGE_ISSUE: &[u8] = b"Arbitrage issue";
 pub static ERROR_ONEDEX_SC: &[u8] = b"OneDex SC address not set";
