@@ -211,6 +211,13 @@ pub fn setup() -> ScenarioWorld {
             sc.set_undelegate_now_fee(UNDELEGATE_NOW_FEE);
             sc.add_provider(managed_address!(&Address::from_slice(delegation1_whitebox.address_expr.to_address().as_bytes())));
             sc.add_provider(managed_address!(&Address::from_slice(delegation2_whitebox.address_expr.to_address().as_bytes())));
+        }
+    );
+    world.whitebox_call(
+        &salsa_whitebox,
+        ScCallStep::new()
+            .from(OWNER_ADDRESS_EXPR),
+        |sc| {
             sc.set_state_active();
 
             sc.set_wrap_sc(managed_address!(&Address::from_slice(wrap_whitebox.address_expr.to_address().as_bytes())));
@@ -243,6 +250,8 @@ pub fn to_managed_biguint(value: &num_bigint::BigUint) -> BigUint<DebugApi> {
 #[test]
 fn test_init() {
     let mut world = setup();
+    set_block_nonce(&mut world, BLOCKS_PER_EPOCH);
+    refresh_providers_test(&mut world);
     check_provider_eligible(&mut world, DELEGATION1_ADDRESS_EXPR, true);
     check_provider_eligible(&mut world, DELEGATION2_ADDRESS_EXPR, true);
 }
