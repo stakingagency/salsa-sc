@@ -24,6 +24,7 @@ pub static ERROR_INSUFFICIENT_FUNDS: &[u8] = b"Insufficient funds";
 pub static ERROR_DELEGATE_TOO_SOON: &[u8] = b"Delegate called too soon";
 pub static ERROR_INVALID_SC_RESPONSE: &[u8] = b"Unexpected Delegation SC response";
 pub static ERROR_ADDRESS_NOT_ON_METACHAIN: &[u8] = b"Address not on metachain";
+pub static ERROR_TOO_MANY_PROVIDERS: &[u8] = b"Too many providers";
 
 pub static ERROR_ARBITRAGE_ISSUE: &[u8] = b"Arbitrage issue";
 pub static ERROR_ONEDEX_SC: &[u8] = b"OneDex SC address not set";
