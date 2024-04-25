@@ -207,6 +207,9 @@ pub trait ConfigModule:
     #[storage_mapper("state")]
     fn state(&self) -> SingleValueMapper<State>;
 
+    #[storage_mapper("provider_address")]
+    fn provider_address(&self) -> SingleValueMapper<ManagedAddress>;
+
     #[view(getProviders)]
     #[storage_mapper("providers")]
     fn providers(&self) -> MapMapper<ManagedAddress, ProviderConfig<Self::Api>>;
