@@ -19,6 +19,11 @@ pub trait ProvidersModule:
             ERROR_PROVIDER_ALREADY_ADDED
         );
 
+        require!(
+            self.providers().len() < MAX_PROVIDERS,
+            ERROR_TOO_MANY_PROVIDERS
+        );
+
         // commented for the tests to pass
         // require!(
         //     self.blockchain().get_shard_of_address(&address) == METACHAIN_SHARD_ID,
@@ -204,6 +209,11 @@ pub trait ProvidersModule:
                 let mut provider = if self.providers().contains_key(address) {
                     self.get_provider(address)
                 } else {
+                    require!(
+                        self.providers().len() < MAX_PROVIDERS,
+                        ERROR_TOO_MANY_PROVIDERS
+                    );
+
                     let mut p = self.empty_provider();
                     p.state = State::Active;
                     p.address = address.clone();
