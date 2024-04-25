@@ -340,6 +340,10 @@ pub trait ServiceModule:
                     delegate_amount = max_amount;
                 }
             }
+            let min_amount = self.get_min_delegate_amount(amount.clone());
+            if delegate_amount < min_amount {
+                delegate_amount = min_amount;
+            }
             if provider_to_delegate.has_cap {
                 let max_amount = provider_to_delegate.max_cap - provider_to_delegate.total_stake;
                 if delegate_amount > max_amount {
@@ -420,6 +424,10 @@ pub trait ServiceModule:
                     undelegate_amount = max_amount;
                 }
             }
+            let min_amount = self.get_min_delegate_amount(amount.clone());
+            if undelegate_amount < min_amount {
+                undelegate_amount = min_amount;
+            }
             if provider_to_undelegate.salsa_stake < undelegate_amount {
                 undelegate_amount = provider_to_undelegate.salsa_stake.clone();
             }
@@ -433,6 +441,21 @@ pub trait ServiceModule:
         }
 
         (provider_to_undelegate.address, undelegate_amount)
+    }
+
+    fn get_min_delegate_amount(&self, amount: BigUint) -> BigUint {
+        let min_amount = BigUint::from(MIN_DELEGATE_AMOUNT);
+        let min_amount_percent = &amount * MIN_DELEGATE_PERCENT / MAX_PERCENT;
+        let mut max = if min_amount > min_amount_percent {
+            min_amount
+        } else {
+            min_amount_percent
+        };
+        if max > amount {
+            max = amount;
+        }
+
+        max
     }
 
     // proxy

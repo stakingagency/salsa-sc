@@ -59,7 +59,7 @@ fn test_two_providers() {
     let mut world = setup();
 
     let mut nonce = BLOCKS_PER_EPOCH;
-    let extra = exp(10, 18);
+    let extra = exp(100, 18);
     let amount1 = get_amount_to_equal_topup(&mut world) + &extra;
 
     // delegate
@@ -248,7 +248,7 @@ fn test_undelegate_from_uneligible_provider() {
     let mut world = setup();
 
     let mut nonce = BLOCKS_PER_EPOCH;
-    let extra = exp(10, 18);
+    let extra = exp(100, 18);
     let amount1 = get_amount_to_equal_topup(&mut world) + &extra;
 
     // delegate
