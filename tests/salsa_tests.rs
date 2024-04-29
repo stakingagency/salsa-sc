@@ -22,7 +22,7 @@ use wrap_mock::WrapMock;
 use salsa::{
     common::{
         config::{ConfigModule, State},
-        consts::{MAX_HEIR_USERS, MAX_KNIGHT_USERS, MAX_PERCENT, NODE_BASE_STAKE},
+        consts::{MAX_HEIR_USERS, MAX_KNIGHT_USERS, MAX_PERCENT, MAX_PROVIDER_FEE, NODE_BASE_STAKE},
         errors::*
     },
     exchanges::{
@@ -209,6 +209,7 @@ pub fn setup() -> ScenarioWorld {
             sc.set_unbond_period(UNBOND_PERIOD);
             sc.set_service_fee(SERVICE_FEE);
             sc.set_undelegate_now_fee(UNDELEGATE_NOW_FEE);
+            sc.set_max_provider_fee(MAX_PROVIDER_FEE);
             sc.add_provider(managed_address!(&Address::from_slice(delegation1_whitebox.address_expr.to_address().as_bytes())));
             sc.add_provider(managed_address!(&Address::from_slice(delegation2_whitebox.address_expr.to_address().as_bytes())));
         }

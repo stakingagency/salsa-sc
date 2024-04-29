@@ -118,8 +118,8 @@ where M: ManagedTypeApi
         !self.has_cap || (self.max_cap > &self.total_stake + ONE_EGLD)
     }
 
-    pub fn is_eligible(&self) -> bool {
-        self.staked_nodes > 0 && self.fee <= MAX_PROVIDER_FEE
+    pub fn is_eligible(&self, max_fee: u64) -> bool {
+        self.staked_nodes > 0 && self.fee <= max_fee
     }
 
     pub fn is_config_up_to_date(&self, current_timestamp: u64) -> bool {
@@ -238,9 +238,21 @@ pub trait ConfigModule:
     #[only_owner]
     #[endpoint(setServiceFee)]
     fn set_service_fee(&self, new_fee: u64) {
-        require!(new_fee <= MAX_SALSA_FEE, ERROR_SALSA_FEE_TOO_HIGH);
+        require!(new_fee <= MAX_SALSA_FEE, ERROR_FEE_TOO_HIGH);
 
         self.service_fee().set(new_fee);
+    }
+
+    #[view(getMaxProviderFee)]
+    #[storage_mapper("max_provider_fee")]
+    fn max_provider_fee(&self) -> SingleValueMapper<u64>;
+
+    #[only_owner]
+    #[endpoint(setMaxProviderFee)]
+    fn set_max_provider_fee(&self, new_fee: u64) {
+        require!(new_fee <= MAX_PROVIDER_FEE, ERROR_FEE_TOO_HIGH);
+
+        self.max_provider_fee().set(new_fee);
     }
 
     // delegation
