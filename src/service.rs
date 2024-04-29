@@ -29,8 +29,6 @@ pub trait ServiceModule:
             ERROR_DELEGATE_TOO_SOON
         );
 
-        storage_cache.last_delegation_block = current_block;
-
         self.reduce_egld_to_delegate_undelegate(&mut storage_cache);
         if storage_cache.egld_to_delegate == 0 {
             drop(storage_cache);
@@ -45,6 +43,7 @@ pub trait ServiceModule:
         }
 
         storage_cache.egld_to_delegate -= &amount;
+        storage_cache.last_delegation_block = current_block;
         drop(storage_cache);
 
         let mut provider = self.get_provider(&provider_address);
@@ -307,7 +306,7 @@ pub trait ServiceModule:
         let mut max_topup = BigUint::zero();
         let base_stake = BigUint::from(NODE_BASE_STAKE) * ONE_EGLD;
         for (_, provider) in self.providers().iter() {
-            if !provider.is_active() || !provider.is_eligible() || !provider.has_free_space() {
+            if !provider.is_active() || !provider.is_eligible(self.max_provider_fee().get()) || !provider.has_free_space() {
                 continue
             }
 
@@ -376,7 +375,7 @@ pub trait ServiceModule:
         let mut max_topup = BigUint::zero();
         let base_stake = BigUint::from(NODE_BASE_STAKE) * ONE_EGLD;
         for (_, provider) in self.providers().iter() {
-            if !provider.is_active() || !provider.is_eligible() {
+            if !provider.is_active() || !provider.is_eligible(self.max_provider_fee().get()) {
                 if provider.salsa_stake > 0 {
                     uneligible_provider = provider.clone();
                 }

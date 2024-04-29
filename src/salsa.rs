@@ -27,11 +27,14 @@ pub trait SalsaContract<ContractReader>:
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[init]
-    fn init(&self) {}
+    fn init(&self) {
+        self.max_provider_fee().set_if_empty(MAX_PROVIDER_FEE);
+    }
 
     #[upgrade]
     fn upgrade(&self) {
         self.state().set(State::Inactive);
+        self.max_provider_fee().set_if_empty(MAX_PROVIDER_FEE);
         if !self.provider_address().is_empty() {
             let old_provider = self.provider_address().get();
             if self.providers().contains_key(&old_provider) {

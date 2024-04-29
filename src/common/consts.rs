@@ -19,7 +19,7 @@ pub const METACHAIN_SHARD_ID: u32 = u32::MAX;
 pub const PROVIDER_UPDATE_SECONDS_DELTA: u64 = 30 * 60; // 30 minutes
 pub const NODE_BASE_STAKE: u64 = 2_500;
 pub const MAX_SALSA_FEE: u64 = 1000;
-pub const MAX_PROVIDER_FEE: u64 = 1200; // 12%
+pub const MAX_PROVIDER_FEE: u64 = 2000; // 20%
 pub const MAX_PROVIDERS: usize = 25;
 
 pub const PROVIDER_CONFIG_FEE_INDEX: usize = 1;
