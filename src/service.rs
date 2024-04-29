@@ -48,9 +48,9 @@ pub trait ServiceModule:
         drop(storage_cache);
 
         let mut provider = self.get_provider(&provider_address);
-        provider.funds_last_update_nonce = 0;
+        provider.funds_last_update_timestamp = 0;
         provider.funds_last_update_epoch = 0;
-        provider.stake_last_update_nonce = 0;
+        provider.stake_last_update_timestamp = 0;
         self.providers().insert(provider_address.clone(), provider);
 
         self.service_delegation_proxy_obj()
@@ -110,9 +110,9 @@ pub trait ServiceModule:
         drop(storage_cache);
 
         let mut provider = self.get_provider(&provider_address);
-        provider.funds_last_update_nonce = 0;
+        provider.funds_last_update_timestamp = 0;
         provider.funds_last_update_epoch = 0;
-        provider.stake_last_update_nonce = 0;
+        provider.stake_last_update_timestamp = 0;
         self.providers().insert(provider_address.clone(), provider);
 
         self.service_delegation_proxy_obj()
@@ -152,11 +152,11 @@ pub trait ServiceModule:
             return
         }
 
-        let current_nonce = self.blockchain().get_block_nonce();
+        let current_timestamp = self.blockchain().get_block_timestamp();
         let current_epoch = self.blockchain().get_block_epoch();
         for (address, provider) in self.providers().iter() {
             let is_active = provider.is_active();
-            let is_up_to_date = provider.is_up_to_date(current_nonce, current_epoch);
+            let is_up_to_date = provider.is_up_to_date(current_timestamp, current_epoch);
             if !is_active || !is_up_to_date || (provider.salsa_rewards == 0) {
                 continue
             }
@@ -166,7 +166,7 @@ pub trait ServiceModule:
             }
 
             let mut provider = self.get_provider(&address);
-            provider.funds_last_update_nonce = 0;
+            provider.funds_last_update_timestamp = 0;
             provider.funds_last_update_epoch = 0;
             provider.salsa_rewards = BigUint::zero();
             self.providers().insert(address.clone(), provider);
@@ -210,10 +210,10 @@ pub trait ServiceModule:
             return
         }
 
-        let current_nonce = self.blockchain().get_block_nonce();
+        let current_timestamp = self.blockchain().get_block_timestamp();
         let current_epoch = self.blockchain().get_block_epoch();
         for (address, provider) in self.providers().iter() {
-            let is_up_to_date = provider.is_up_to_date(current_nonce, current_epoch);
+            let is_up_to_date = provider.is_up_to_date(current_timestamp, current_epoch);
             if !is_up_to_date || (provider.salsa_withdrawable == 0) {
                 continue
             }
@@ -223,7 +223,7 @@ pub trait ServiceModule:
             }
 
             let mut provider = self.get_provider(&address);
-            provider.funds_last_update_nonce = 0;
+            provider.funds_last_update_timestamp = 0;
             provider.funds_last_update_epoch = 0;
             provider.salsa_withdrawable = BigUint::zero();
             self.providers().insert(address.clone(), provider);

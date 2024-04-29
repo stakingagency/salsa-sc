@@ -100,10 +100,10 @@ pub struct ProviderConfig<M: ManagedTypeApi> {
     pub salsa_undelegated: BigUint<M>,
     pub salsa_withdrawable: BigUint<M>,
     pub salsa_rewards: BigUint<M>,
-    pub config_last_update_nonce: u64,
-    pub stake_last_update_nonce: u64,
-    pub nodes_last_update_nonce: u64,
-    pub funds_last_update_nonce: u64,
+    pub config_last_update_timestamp: u64,
+    pub stake_last_update_timestamp: u64,
+    pub nodes_last_update_timestamp: u64,
+    pub funds_last_update_timestamp: u64,
     pub funds_last_update_epoch: u64,
 }
 
@@ -122,28 +122,28 @@ where M: ManagedTypeApi
         self.staked_nodes > 0 && self.fee <= MAX_PROVIDER_FEE
     }
 
-    pub fn is_config_up_to_date(&self, current_nonce: u64) -> bool {
-        self.config_last_update_nonce + PROVIDER_UPDATE_NONCES_DELTA >= current_nonce
+    pub fn is_config_up_to_date(&self, current_timestamp: u64) -> bool {
+        self.config_last_update_timestamp + PROVIDER_UPDATE_SECONDS_DELTA >= current_timestamp
     }
 
-    pub fn is_stake_up_to_date(&self, current_nonce: u64) -> bool {
-        self.stake_last_update_nonce + PROVIDER_UPDATE_NONCES_DELTA >= current_nonce
+    pub fn is_stake_up_to_date(&self, current_timestamp: u64) -> bool {
+        self.stake_last_update_timestamp + PROVIDER_UPDATE_SECONDS_DELTA >= current_timestamp
     }
 
-    pub fn are_nodes_up_to_date(&self, current_nonce: u64) -> bool {
-        self.nodes_last_update_nonce + PROVIDER_UPDATE_NONCES_DELTA >= current_nonce
+    pub fn are_nodes_up_to_date(&self, current_timestamp: u64) -> bool {
+        self.nodes_last_update_timestamp + PROVIDER_UPDATE_SECONDS_DELTA >= current_timestamp
     }
 
-    pub fn are_funds_up_to_date(&self, current_nonce: u64, current_epoch: u64) -> bool {
-        self.funds_last_update_nonce + PROVIDER_UPDATE_NONCES_DELTA >= current_nonce &&
+    pub fn are_funds_up_to_date(&self, current_timestamp: u64, current_epoch: u64) -> bool {
+        self.funds_last_update_timestamp + PROVIDER_UPDATE_SECONDS_DELTA >= current_timestamp &&
         self.funds_last_update_epoch == current_epoch
     }
 
-    pub fn is_up_to_date(&self, current_nonce: u64, current_epoch: u64) -> bool {
-        self.is_config_up_to_date(current_nonce) &&
-        self.is_stake_up_to_date(current_nonce) &&
-        self.are_nodes_up_to_date(current_nonce) &&
-        self.are_funds_up_to_date(current_nonce, current_epoch)
+    pub fn is_up_to_date(&self, current_timestamp: u64, current_epoch: u64) -> bool {
+        self.is_config_up_to_date(current_timestamp) &&
+        self.is_stake_up_to_date(current_timestamp) &&
+        self.are_nodes_up_to_date(current_timestamp) &&
+        self.are_funds_up_to_date(current_timestamp, current_epoch)
     }
 }
 
@@ -376,20 +376,20 @@ pub trait ConfigModule:
 
     #[view(isProviderUpToDate)]
     fn view_provider_updated(&self, provider_address: &ManagedAddress) -> bool {
-        let current_nonce = self.blockchain().get_block_nonce();
+        let current_timestamp = self.blockchain().get_block_timestamp();
         let current_epoch = self.blockchain().get_block_epoch();
 
         let provider = self.providers().get(provider_address).unwrap();
-        provider.is_up_to_date(current_nonce, current_epoch)
+        provider.is_up_to_date(current_timestamp, current_epoch)
     }
 
     #[view(areProvidersUpToDate)]
     fn view_providers_updated(&self) -> bool {
-        let current_nonce = self.blockchain().get_block_nonce();
+        let current_timestamp = self.blockchain().get_block_timestamp();
         let current_epoch = self.blockchain().get_block_epoch();
         let mut result = false;
         for (_, provider) in self.providers().iter() {
-            if provider.is_up_to_date(current_nonce, current_epoch) {
+            if provider.is_up_to_date(current_timestamp, current_epoch) {
                 result = true;
                 continue
             }
