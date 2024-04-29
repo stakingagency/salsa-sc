@@ -92,7 +92,8 @@ pub trait ProvidersModule:
     }
 
     /**
-     * Refresh Providers - updates all providers infos and returns true if all are up to date and false otherwise
+     * Refresh Providers - updates all providers infos and returns true if all active providers are up-to-date and
+     * at least one provider is active, and false otherwise
      */
     #[endpoint(refreshProviders)]
     fn refresh_providers(&self) -> bool {
@@ -183,12 +184,13 @@ pub trait ProvidersModule:
     }
 
     fn refresh_provider_funds_data(&self, address: &ManagedAddress) {
+        let current_epoch = self.blockchain().get_block_epoch();
         self.providers_delegation_proxy_obj()
             .contract(address.clone())
             .get_delegator_funds_data(self.blockchain().get_sc_address())
             .with_gas_limit(MIN_GAS_FOR_VIEW_CALL)
             .async_call_promise()
-            .with_callback(ProvidersModule::callbacks(self).get_delegator_funds_data_callback(address))
+            .with_callback(ProvidersModule::callbacks(self).get_delegator_funds_data_callback(address, current_epoch))
             .with_extra_gas_for_callback(MIN_GAS_FOR_VIEW_CALLBACK)
             .register_promise();
     }
@@ -294,11 +296,12 @@ pub trait ProvidersModule:
     fn get_delegator_funds_data_callback(
         &self,
         address: &ManagedAddress,
+        current_epoch: u64,
         #[call_result] result: ManagedAsyncCallResult<MultiValueEncoded<ManagedBuffer>>,
     ) {
         let mut provider = self.get_provider(address);
         provider.funds_last_update_timestamp = self.blockchain().get_block_timestamp();
-        provider.funds_last_update_epoch = self.blockchain().get_block_epoch();
+        provider.funds_last_update_epoch = current_epoch;
         match result {
             ManagedAsyncCallResult::Ok(delegator_funds_data) => {
                 require!(delegator_funds_data.len() == 4, ERROR_INVALID_SC_RESPONSE);
@@ -310,7 +313,7 @@ pub trait ProvidersModule:
                 provider.salsa_withdrawable = BigUint::from(funds_data.get(PROVIDER_FUNDS_WITHDRAWABLE_INDEX).clone_value());
             }
             ManagedAsyncCallResult::Err(err) => {
-                if err.err_msg.to_vec() == ERROR_NOT_DELEGATOR {
+                if err.err_msg == ManagedBuffer::new_from_bytes(ERROR_NOT_DELEGATOR) {
                     provider.salsa_stake = BigUint::zero();
                     provider.salsa_rewards = BigUint::zero();
                     provider.salsa_undelegated = BigUint::zero();

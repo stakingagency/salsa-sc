@@ -13,7 +13,7 @@
         },
         "framework": {
             "name": "multiversx-sc",
-            "version": "0.47.4"
+            "version": "0.48.0"
         }
     },
     "name": "SalsaContract",
@@ -62,8 +62,7 @@
             "inputs": [
                 {
                     "name": "undelegate_amount",
-                    "type": "optional<BigUint>",
-                    "multi_arg": true
+                    "type": "Option<BigUint>"
                 },
                 {
                     "name": "without_arbitrage",
@@ -173,8 +172,7 @@
                 },
                 {
                     "name": "undelegate_amount",
-                    "type": "optional<BigUint>",
-                    "multi_arg": true
+                    "type": "Option<BigUint>"
                 },
                 {
                     "name": "without_arbitrage",
@@ -477,6 +475,28 @@
         },
         {
             "name": "setServiceFee",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "new_fee",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "getMaxProviderFee",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "setMaxProviderFee",
             "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [
@@ -1128,7 +1148,7 @@
         },
         {
             "docs": [
-                "    * Refresh Providers - updates all providers infos and returns true if all are up to date and false otherwise\\n     "
+                "    * Refresh Providers - updates all providers infos and returns true if all active providers are up-to-date and\\n     * at least one provider is active, and false otherwise\\n     "
             ],
             "name": "refreshProviders",
             "mutability": "mutable",
@@ -1301,19 +1321,19 @@
                     "type": "BigUint"
                 },
                 {
-                    "name": "config_last_update_nonce",
+                    "name": "config_last_update_timestamp",
                     "type": "u64"
                 },
                 {
-                    "name": "stake_last_update_nonce",
+                    "name": "stake_last_update_timestamp",
                     "type": "u64"
                 },
                 {
-                    "name": "nodes_last_update_nonce",
+                    "name": "nodes_last_update_timestamp",
                     "type": "u64"
                 },
                 {
-                    "name": "funds_last_update_nonce",
+                    "name": "funds_last_update_timestamp",
                     "type": "u64"
                 },
                 {
