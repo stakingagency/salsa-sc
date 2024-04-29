@@ -74,7 +74,7 @@ pub fn undelegate_test(
                 .no_expect(),
             |sc| {
                 sc.undelegate(
-                    OptionalValue::Some(to_managed_biguint(amount)),
+                    Option::Some(to_managed_biguint(amount)),
                     OptionalValue::Some(without_arbitrage)
                 );
             },
@@ -90,7 +90,7 @@ pub fn undelegate_test(
                 .esdt_transfer(TOKEN_ID_EXPR, 0, amount),
             |sc| {
                 sc.undelegate(
-                    OptionalValue::None,
+                    Option::None,
                     OptionalValue::Some(without_arbitrage)
                 );
             }
@@ -117,7 +117,7 @@ pub fn undelegate_now_test(
             |sc| {
                 sc.undelegate_now(
                     to_managed_biguint(min_amount_out),
-                    OptionalValue::Some(to_managed_biguint(amount)),
+                    Option::Some(to_managed_biguint(amount)),
                     OptionalValue::Some(without_arbitrage)
                 );
             },
@@ -134,7 +134,7 @@ pub fn undelegate_now_test(
             |sc| {
                 sc.undelegate_now(
                     to_managed_biguint(min_amount_out),
-                    OptionalValue::None,
+                    Option::None,
                     OptionalValue::Some(without_arbitrage)
                 );
             }
