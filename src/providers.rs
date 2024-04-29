@@ -55,10 +55,10 @@ pub trait ProvidersModule:
     fn remove_provider(&self, address: &ManagedAddress) {
         let provider = self.get_provider(address);
 
-        let current_nonce = self.blockchain().get_block_nonce();
+        let current_timestamp = self.blockchain().get_block_timestamp();
         let current_epoch = self.blockchain().get_block_epoch();
         require!(
-            provider.are_funds_up_to_date(current_nonce, current_epoch),
+            provider.are_funds_up_to_date(current_timestamp, current_epoch),
             ERROR_PROVIDER_NOT_UP_TO_DATE
         );
 
@@ -81,10 +81,10 @@ pub trait ProvidersModule:
     fn set_provider_state(&self, address: ManagedAddress, new_state: State) {
         let mut provider = self.get_provider(&address);
         if provider.state != new_state {
-            provider.config_last_update_nonce = 0;
-            provider.stake_last_update_nonce = 0;
-            provider.nodes_last_update_nonce = 0;
-            provider.funds_last_update_nonce = 0;
+            provider.config_last_update_timestamp = 0;
+            provider.stake_last_update_timestamp = 0;
+            provider.nodes_last_update_timestamp = 0;
+            provider.funds_last_update_timestamp = 0;
             provider.funds_last_update_epoch = 0;
         }
         provider.state = new_state;
@@ -96,12 +96,12 @@ pub trait ProvidersModule:
      */
     #[endpoint(refreshProviders)]
     fn refresh_providers(&self) -> bool {
-        let current_nonce = self.blockchain().get_block_nonce();
+        let current_timestamp = self.blockchain().get_block_timestamp();
         let current_epoch = self.blockchain().get_block_epoch();
         let mut result = false;
         let mut outdated = false;
         for (address, provider) in self.providers().iter() {
-            if provider.is_up_to_date(current_nonce, current_epoch) {
+            if provider.is_up_to_date(current_timestamp, current_epoch) {
                 if !outdated {
                     result = true;
                 }
@@ -115,28 +115,28 @@ pub trait ProvidersModule:
             result = false;
             outdated = true;
 
-            if !provider.is_config_up_to_date(current_nonce) {
+            if !provider.is_config_up_to_date(current_timestamp) {
                 if !self.enough_gas_left_for_view_call() {
                     break
                 }
                 self.refresh_provider_config(&address);
             }
 
-            if !provider.is_stake_up_to_date(current_nonce) {
+            if !provider.is_stake_up_to_date(current_timestamp) {
                 if !self.enough_gas_left_for_view_call() {
                     break
                 }
                 self.refresh_provider_stake(&address);
             }
 
-            if !provider.are_nodes_up_to_date(current_nonce) {
+            if !provider.are_nodes_up_to_date(current_timestamp) {
                 if !self.enough_gas_left_for_view_call() {
                     break
                 }
                 self.refresh_provider_nodes(&address);
             }
 
-            if !provider.are_funds_up_to_date(current_nonce, current_epoch) {
+            if !provider.are_funds_up_to_date(current_timestamp, current_epoch) {
                 if !self.enough_gas_left_for_view_call() {
                     break
                 }
@@ -223,12 +223,12 @@ pub trait ProvidersModule:
                 provider.max_cap = BigUint::from(config_items.get(PROVIDER_CONFIG_MAX_CAP_INDEX).clone_value());
                 provider.fee = config_items.get(PROVIDER_CONFIG_FEE_INDEX).parse_as_u64().unwrap_or(0);
                 provider.has_cap = config_items.get(PROVIDER_CONFIG_HAS_CAP_INDEX).clone_value() == b"true";
-                provider.config_last_update_nonce = self.blockchain().get_block_nonce();
+                provider.config_last_update_timestamp = self.blockchain().get_block_timestamp();
                 self.providers().insert(address.clone(), provider);
             }
             ManagedAsyncCallResult::Err(_) => {
                 let mut provider = self.get_provider(address);
-                provider.config_last_update_nonce = 0;
+                provider.config_last_update_timestamp = 0;
                 self.providers().insert(address.clone(), provider);
             }
         }
@@ -244,10 +244,10 @@ pub trait ProvidersModule:
         match result {
             ManagedAsyncCallResult::Ok(stake) => {
                 provider.total_stake = stake;
-                provider.stake_last_update_nonce = self.blockchain().get_block_nonce();
+                provider.stake_last_update_timestamp = self.blockchain().get_block_timestamp();
             }
             ManagedAsyncCallResult::Err(_) => {
-                provider.stake_last_update_nonce = 0;
+                provider.stake_last_update_timestamp = 0;
             }
         }
         self.providers().insert(address.clone(), provider);
@@ -281,10 +281,10 @@ pub trait ProvidersModule:
                     }
                 }
                 provider.staked_nodes = staked_nodes;
-                provider.nodes_last_update_nonce = self.blockchain().get_block_nonce();
+                provider.nodes_last_update_timestamp = self.blockchain().get_block_timestamp();
             }
             ManagedAsyncCallResult::Err(_) => {
-                provider.nodes_last_update_nonce = 0;
+                provider.nodes_last_update_timestamp = 0;
             }
         }
         self.providers().insert(address.clone(), provider);
@@ -297,7 +297,7 @@ pub trait ProvidersModule:
         #[call_result] result: ManagedAsyncCallResult<MultiValueEncoded<ManagedBuffer>>,
     ) {
         let mut provider = self.get_provider(address);
-        provider.funds_last_update_nonce = self.blockchain().get_block_nonce();
+        provider.funds_last_update_timestamp = self.blockchain().get_block_timestamp();
         provider.funds_last_update_epoch = self.blockchain().get_block_epoch();
         match result {
             ManagedAsyncCallResult::Ok(delegator_funds_data) => {
@@ -344,10 +344,10 @@ pub trait ProvidersModule:
             salsa_undelegated: BigUint::zero(),
             salsa_withdrawable: BigUint::zero(),
             salsa_rewards: BigUint::zero(),
-            config_last_update_nonce: 0,
-            stake_last_update_nonce: 0,
-            nodes_last_update_nonce: 0,
-            funds_last_update_nonce: 0,
+            config_last_update_timestamp: 0,
+            stake_last_update_timestamp: 0,
+            nodes_last_update_timestamp: 0,
+            funds_last_update_timestamp: 0,
             funds_last_update_epoch: 0,
         }
     }

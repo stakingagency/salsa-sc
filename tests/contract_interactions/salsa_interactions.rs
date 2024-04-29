@@ -10,6 +10,7 @@ pub fn set_block_nonce(
     world: &mut ScenarioWorld,
     block_nonce_expr: u64
 ) {
+    world.set_state_step(SetStateStep::new().block_timestamp(block_nonce_expr * BLOCK_TIME));
     world.set_state_step(SetStateStep::new().block_nonce(block_nonce_expr));
     world.set_state_step(SetStateStep::new().block_epoch(block_nonce_expr / BLOCKS_PER_EPOCH));
 }
