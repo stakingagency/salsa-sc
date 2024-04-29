@@ -104,15 +104,15 @@ pub trait SalsaContract<ContractReader>:
     #[endpoint(unDelegate)]
     fn undelegate(
         &self,
-        undelegate_amount: OptionalValue<BigUint>,
+        undelegate_amount: Option<BigUint>,
         without_arbitrage: OptionalValue<bool>,
     ) {
         self.update_last_accessed();
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         let amount = match undelegate_amount {
-            OptionalValue::Some(value) => value,
-            OptionalValue::None => BigUint::zero()
+            Option::Some(value) => value,
+            Option::None => BigUint::zero()
         };
         let caller = self.blockchain().get_caller();
         self.check_knight_activated(&caller);
@@ -416,15 +416,15 @@ pub trait SalsaContract<ContractReader>:
     fn undelegate_now(
         &self,
         min_amount_out: BigUint,
-        undelegate_amount: OptionalValue<BigUint>,
+        undelegate_amount: Option<BigUint>,
         without_arbitrage: OptionalValue<bool>,
     ) {
         self.update_last_accessed();
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         let amount = match undelegate_amount {
-            OptionalValue::Some(value) => value,
-            OptionalValue::None => BigUint::zero()
+            Option::Some(value) => value,
+            Option::None => BigUint::zero()
         };
         let caller = self.blockchain().get_caller();
         self.check_no_knight_set(&caller);
