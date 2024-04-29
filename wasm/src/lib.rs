@@ -5,10 +5,10 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           89
+// Endpoints:                           91
 // Async Callback:                       1
 // Promise callbacks:                    8
-// Total number of exported functions:  99
+// Total number of exported functions: 101
 
 #![no_std]
 #![allow(internal_features)]
@@ -50,6 +50,8 @@ multiversx_sc_wasm_adapter::endpoints! {
         setUnbondPeriod => set_unbond_period
         getServiceFee => service_fee
         setServiceFee => set_service_fee
+        getMaxProviderFee => max_provider_fee
+        setMaxProviderFee => set_max_provider_fee
         getUserUndelegations => luser_undelegations
         getTotalEgldStaked => total_egld_staked
         getUserWithdrawnEgld => user_withdrawn_egld
