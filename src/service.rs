@@ -221,11 +221,11 @@ pub trait ServiceModule:
                 break
             }
 
-            let mut provider = self.get_provider(&address);
-            provider.funds_last_update_timestamp = 0;
-            provider.funds_last_update_epoch = 0;
-            provider.salsa_withdrawable = BigUint::zero();
-            self.providers().insert(address.clone(), provider);
+            // let mut provider = self.get_provider(&address);
+            // provider.funds_last_update_timestamp = 0;
+            // provider.funds_last_update_epoch = 0;
+            // provider.salsa_withdrawable = BigUint::zero();
+            // self.providers().insert(address.clone(), provider);
 
             self.service_delegation_proxy_obj()
                 .contract(address)
@@ -301,7 +301,7 @@ pub trait ServiceModule:
         }
 
         let mut provider_to_delegate = self.empty_provider();
-        let mut topup_set = false;
+        let mut min_topup_set = false;
         let mut min_topup = BigUint::zero();
         let mut max_topup = BigUint::zero();
         let base_stake = BigUint::from(NODE_BASE_STAKE) * ONE_EGLD;
@@ -316,17 +316,17 @@ pub trait ServiceModule:
             } else {
                 topup = BigUint::zero();
             }
-            if topup < min_topup || !topup_set {
+            if topup < min_topup || !min_topup_set {
                 min_topup = topup.clone();
                 provider_to_delegate = provider.clone();
             }
-            if topup > max_topup || !topup_set {
+            if topup > max_topup || !min_topup_set {
                 max_topup = topup.clone();
             }
-            topup_set = true;
+            min_topup_set = true;
         }
         let mut delegate_amount = BigUint::zero();
-        if topup_set {
+        if min_topup_set {
             let dif_topup_delegate = &max_topup - &min_topup;
             delegate_amount = amount.clone();
             if dif_topup_delegate > 0 {
@@ -334,13 +334,13 @@ pub trait ServiceModule:
                 if max_amount < MIN_EGLD {
                     max_amount = BigUint::from(MIN_EGLD);
                 }
+                let min_amount = self.get_min_delegate_amount(amount.clone());
+                if max_amount < min_amount {
+                    max_amount = min_amount;
+                }
                 if delegate_amount > max_amount {
                     delegate_amount = max_amount;
                 }
-            }
-            let min_amount = self.get_min_delegate_amount(amount.clone());
-            if delegate_amount < min_amount {
-                delegate_amount = min_amount;
             }
             if provider_to_delegate.has_cap {
                 let max_amount = provider_to_delegate.max_cap - provider_to_delegate.total_stake;
@@ -368,16 +368,37 @@ pub trait ServiceModule:
         }
 
         let mut provider_to_undelegate = self.empty_provider();
-        let mut uneligible_provider = self.empty_provider();
-        let mut topup_set = false;
-        let mut provider_set = false;
+        let mut undelegate_amount = BigUint::zero();
+        let mut min_topup_set = false;
+        let mut max_topup_set = false;
         let mut min_topup = BigUint::zero();
         let mut max_topup = BigUint::zero();
         let base_stake = BigUint::from(NODE_BASE_STAKE) * ONE_EGLD;
         for (_, provider) in self.providers().iter() {
+            let mut topup = &provider.total_stake / (provider.staked_nodes as u64);
+            if topup > base_stake {
+                topup -= &base_stake;
+            } else {
+                topup = BigUint::zero();
+            }
+            if topup < min_topup || !min_topup_set {
+                min_topup_set = true;
+                min_topup = topup.clone();
+            }
+        }
+        for (_, provider) in self.providers().iter() {
             if !provider.is_active() || !provider.is_eligible(self.max_provider_fee().get()) {
                 if provider.salsa_stake > 0 {
-                    uneligible_provider = provider.clone();
+                    let amount_to_undelegate = self.compute_amount_to_undelegate(
+                        amount,
+                        &provider.salsa_stake,
+                        &BigUint::zero(),
+                        &BigUint::zero(),
+                        0,
+                    );
+                    if amount_to_undelegate > 0 {
+                        return (provider.address, amount_to_undelegate);
+                    }
                 }
                 continue
             }
@@ -388,57 +409,61 @@ pub trait ServiceModule:
             } else {
                 topup = BigUint::zero();
             }
-            if topup < min_topup || !topup_set {
-                topup_set = true;
-                min_topup = topup.clone();
-            }
-            if (topup > max_topup || !provider_set) && provider.salsa_stake > 0 {
-                provider_set = true;
-                max_topup = topup;
-                provider_to_undelegate = provider.clone();
-            }
-        }
-        let mut undelegate_amount = BigUint::zero();
-        if uneligible_provider.salsa_stake > 0 {
-            provider_to_undelegate = uneligible_provider.clone();
-            undelegate_amount = if amount > &uneligible_provider.salsa_stake {
-                uneligible_provider.salsa_stake
-            } else {
-                amount.clone()
-            };
-        } else
-        if provider_set {
-            if max_topup < min_topup {
-                max_topup = min_topup.clone();
-            }
-            let dif_topup_undelegate = &max_topup - &min_topup;
-            undelegate_amount = amount.clone();
-            if dif_topup_undelegate > 0 {
-                let mut max_amount = dif_topup_undelegate * (provider_to_undelegate.staked_nodes as u64);
-                if max_amount < MIN_EGLD {
-                    max_amount = BigUint::from(MIN_EGLD);
+            if (topup > max_topup || !max_topup_set) && provider.salsa_stake > 0 {
+                let amount_to_undelegate = self.compute_amount_to_undelegate(
+                    amount,
+                    &provider.salsa_stake,
+                    &min_topup,
+                    &topup,
+                    provider.staked_nodes.clone() as u64,
+                );
+                if amount_to_undelegate > 0 {
+                    max_topup_set = true;
+                    max_topup = topup;
+                    provider_to_undelegate = provider.clone();
+                    undelegate_amount = amount_to_undelegate;
                 }
-                if undelegate_amount > max_amount {
-                    undelegate_amount = max_amount;
-                }
-            }
-            let min_amount = self.get_min_delegate_amount(amount.clone());
-            if undelegate_amount < min_amount {
-                undelegate_amount = min_amount;
-            }
-            if provider_to_undelegate.salsa_stake < undelegate_amount {
-                undelegate_amount = provider_to_undelegate.salsa_stake.clone();
-            }
-            let diff = &provider_to_undelegate.salsa_stake - &undelegate_amount;
-            if diff < MIN_EGLD && diff > 0 {
-                undelegate_amount = provider_to_undelegate.salsa_stake - MIN_EGLD;
-            }
-            if undelegate_amount < MIN_EGLD {
-                undelegate_amount = BigUint::zero();
             }
         }
 
         (provider_to_undelegate.address, undelegate_amount)
+    }
+
+    fn compute_amount_to_undelegate(
+        &self,
+        amount: &BigUint,
+        salsa_stake: &BigUint,
+        min_topup: &BigUint,
+        max_topup: &BigUint,
+        staked_nodes: u64,
+    ) -> BigUint {
+        let mut undelegate_amount = amount.clone();
+        let diff_topup = max_topup - min_topup;
+        if diff_topup > 0 {
+            let mut max_amount = diff_topup * staked_nodes;
+            if max_amount < MIN_EGLD {
+                max_amount = BigUint::from(MIN_EGLD);
+            }
+            let min_amount = self.get_min_delegate_amount(amount.clone());
+            if undelegate_amount > max_amount {
+                undelegate_amount = max_amount;
+            }
+            if undelegate_amount < min_amount {
+                undelegate_amount = min_amount;
+            }
+        }
+        if salsa_stake < &undelegate_amount {
+            undelegate_amount = salsa_stake.clone();
+        }
+        let diff = salsa_stake - &undelegate_amount;
+        if diff < MIN_EGLD && diff > 0 {
+            undelegate_amount = salsa_stake - MIN_EGLD;
+        }
+        if undelegate_amount < MIN_EGLD {
+            undelegate_amount = BigUint::zero();
+        }
+
+        undelegate_amount
     }
 
     fn get_min_delegate_amount(&self, amount: BigUint) -> BigUint {
