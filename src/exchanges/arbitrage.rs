@@ -153,6 +153,8 @@ pub trait ArbitrageModule:
                 storage_cache.liquid_supply -= &profit;
             }
             storage_cache.egld_to_undelegate += &sold_amount;
+            self.total_undelegation_requested()
+                .update(|value| *value += &sold_amount);
             storage_cache.available_egld_reserve -= &sold_amount;
             let current_epoch = self.blockchain().get_block_epoch();
             let unbond_epoch = current_epoch + storage_cache.unbond_period;

@@ -13,7 +13,7 @@
         },
         "framework": {
             "name": "multiversx-sc",
-            "version": "0.48.1"
+            "version": "0.48.0"
         }
     },
     "name": "SalsaContract",
@@ -875,7 +875,17 @@
         {
             "name": "withdrawAll",
             "mutability": "mutable",
-            "inputs": [],
+            "inputs": [
+                {
+                    "name": "gas",
+                    "type": "Option<u64>"
+                },
+                {
+                    "name": "providers_to_withdraw_from",
+                    "type": "variadic<Address>",
+                    "multi_arg": true
+                }
+            ],
             "outputs": []
         },
         {
@@ -1158,6 +1168,43 @@
                     "type": "bool"
                 }
             ]
+        },
+        {
+            "name": "createChallenge",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "updateChallenge",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "canEmergentlyUndelegate",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "emergentlyUndelegate",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "provider_address",
+                    "type": "Address"
+                },
+                {
+                    "name": "gas",
+                    "type": "Option<u64>"
+                }
+            ],
+            "outputs": []
         }
     ],
     "promisesCallbackNames": [
@@ -1168,7 +1215,8 @@
         "get_contract_config_callback",
         "get_total_active_stake_callback",
         "get_all_nodes_states_callback",
-        "get_delegator_funds_data_callback"
+        "get_delegator_funds_data_callback",
+        "emergently_undelegate_all_callback"
     ],
     "esdtAttributes": [],
     "hasCallback": true,
