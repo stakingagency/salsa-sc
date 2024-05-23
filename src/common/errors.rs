@@ -53,3 +53,7 @@ pub static ERROR_INHERIT_YOURSELF: &[u8] = b"You can't be your own heir";
 pub static ERROR_HEIR_ALREADY_SET: &[u8] = b"Heir already set";
 pub static ERROR_TOO_MANY_HEIR_USERS: &[u8] = b"Heir has too many users";
 pub static ERROR_CANCEL_HEIR_WHILE_KNIGHT_SET: &[u8] = b"You can't remove your heir while knight is set";
+
+pub static ERROR_CHALLENGE_EXISTS: &[u8] = b"Challenge already exists";
+pub static ERROR_NO_CHALLENGE: &[u8] = b"No challenge exists";
+pub static ERROR_CAN_NOT_UNDELEGATE: &[u8] = b"Can not emergently undelegate";

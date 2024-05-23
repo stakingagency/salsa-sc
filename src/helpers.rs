@@ -250,8 +250,12 @@ pub trait HelpersModule:
                 storage_cache.egld_to_delegate -= &storage_cache.egld_to_undelegate;
                 self.total_withdrawn_egld()
                     .update(|value| *value += &storage_cache.egld_to_undelegate);
+                self.total_undelegated()
+                    .update(|value| *value += &storage_cache.egld_to_undelegate);
                 storage_cache.egld_to_undelegate = BigUint::zero();
             } else {
+                self.total_undelegated()
+                    .update(|value| *value += &storage_cache.egld_to_delegate);
                 storage_cache.egld_to_undelegate -= &storage_cache.egld_to_delegate;
                 self.total_withdrawn_egld()
                     .update(|value| *value += &storage_cache.egld_to_delegate);

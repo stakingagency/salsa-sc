@@ -10,6 +10,7 @@ pub mod exchanges;
 pub mod knights;
 pub mod heirs;
 pub mod providers;
+pub mod challenge;
 
 use crate::{common::config::*, common::{consts::*, storage_cache::StorageCache}, common::errors::*};
 
@@ -24,6 +25,7 @@ pub trait SalsaContract<ContractReader>:
     + knights::KnightsModule
     + heirs::HeirsModule
     + providers::ProvidersModule
+    + challenge::ChallengeModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[init]
@@ -43,6 +45,7 @@ pub trait SalsaContract<ContractReader>:
                 self.add_provider(old_provider);
             }
         }
+        self.total_undelegation_requested().set_if_empty(self.egld_to_undelegate().get());
     }
 
     // endpoints: liquid delegation
@@ -168,6 +171,8 @@ pub trait SalsaContract<ContractReader>:
         self.reduce_egld_to_delegate_undelegate(&mut storage_cache);
         self.burn_liquid_token(&payment_amount);
         storage_cache.egld_to_undelegate += &egld_to_undelegate;
+        self.total_undelegation_requested()
+            .update(|value| *value += &egld_to_undelegate);
         let current_epoch = self.blockchain().get_block_epoch();
         let unbond_period = current_epoch + storage_cache.unbond_period;
         self.add_user_undelegation(user, egld_to_undelegate, unbond_period);
@@ -509,6 +514,8 @@ pub trait SalsaContract<ContractReader>:
 
         // update storage
         storage_cache.egld_to_undelegate += &egld_to_undelegate;
+        self.total_undelegation_requested()
+            .update(|value| *value += &egld_to_undelegate);
         storage_cache.available_egld_reserve -= &egld_to_undelegate_with_fee;
         storage_cache.egld_reserve += &egld_to_undelegate - &egld_to_undelegate_with_fee;
 

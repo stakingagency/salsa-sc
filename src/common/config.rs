@@ -147,6 +147,19 @@ where M: ManagedTypeApi
     }
 }
 
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
+pub struct Challenge<M: ManagedTypeApi> {
+    pub end_epoch: u64,
+    pub target_undelegated: BigUint<M>,
+    pub status: ChallengeStatus,
+}
+
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
+pub enum ChallengeStatus {
+    Pending,
+    Failed,
+}
+
 #[multiversx_sc::module]
 pub trait ConfigModule:
   multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
@@ -456,6 +469,17 @@ pub trait ConfigModule:
     #[storage_mapper("heir_users")]
     fn heir_users(&self, heir: &ManagedAddress) -> UnorderedSetMapper<ManagedAddress>;
 
+    // challenge
+
+    #[storage_mapper("challenge")]
+    fn challenge(&self) -> SingleValueMapper<Challenge<Self::Api>>;
+
+    #[storage_mapper("total_undelegated")]
+    fn total_undelegated(&self) -> SingleValueMapper<BigUint>;
+
+    #[storage_mapper("total_undelegation_requested")]
+    fn total_undelegation_requested(&self) -> SingleValueMapper<BigUint>;
+    
     // global view functions
 
     #[view(getContractInfo)]
