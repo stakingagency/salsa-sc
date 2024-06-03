@@ -201,6 +201,12 @@ pub trait ConfigModule:
         require!(!self.unbond_period().is_empty(), ERROR_UNBOND_PERIOD_NOT_SET);
         require!(self.undelegate_now_fee().get() >= MIN_UNDELEGATE_NOW_FEE, ERROR_INCORRECT_FEE);
 
+        if !self.provider_address().is_empty() {
+            let old_provider_address = self.provider_address().get();
+            let old_provider = self.providers().get(&old_provider_address).unwrap();
+            require!(old_provider.salsa_stake > 0, ERROR_PROVIDER_NOT_FOUND);
+        }
+
         self.state().set(State::Active);
     }
 

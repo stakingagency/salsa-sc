@@ -67,7 +67,12 @@ pub trait ChallengeModule:
         require!(self.can_emergently_undelegate(), ERROR_CAN_NOT_UNDELEGATE);
 
         let mut storage_cache = StorageCache::new(self);
-        let amount = storage_cache.egld_to_undelegate.clone();
+        let provider = self.get_provider(&provider_address);
+        let amount = if storage_cache.egld_to_undelegate.clone() < provider.salsa_stake {
+            storage_cache.egld_to_undelegate.clone()
+        } else {
+            provider.salsa_stake
+        };
         storage_cache.egld_to_undelegate = BigUint::zero();
         drop(storage_cache);
         self.challenge_delegation_proxy_obj()
@@ -92,7 +97,6 @@ pub trait ChallengeModule:
             ManagedAsyncCallResult::Ok(()) => {
                 self.total_undelegated()
                     .update(|value| *value += egld_to_undelegate);
-                self.challenge().clear();
             }
             ManagedAsyncCallResult::Err(_) => {
                 self.egld_to_undelegate()
