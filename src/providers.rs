@@ -31,6 +31,7 @@ pub trait ProvidersModule:
         // );
 
         self.refresh_provider_config(&address);
+        self.refresh_provider_funds_data(&address);
     }
 
     #[endpoint(refreshProvider)]
@@ -299,7 +300,20 @@ pub trait ProvidersModule:
         current_epoch: u64,
         #[call_result] result: ManagedAsyncCallResult<MultiValueEncoded<ManagedBuffer>>,
     ) {
-        let mut provider = self.get_provider(address);
+        let mut provider = if self.providers().contains_key(address) {
+            self.get_provider(address)
+        } else {
+            require!(
+                self.providers().len() < MAX_PROVIDERS,
+                ERROR_TOO_MANY_PROVIDERS
+            );
+
+            let mut p = self.empty_provider();
+            p.state = State::Active;
+            p.address = address.clone();
+
+            p
+        };
         provider.funds_last_update_timestamp = self.blockchain().get_block_timestamp();
         provider.funds_last_update_epoch = current_epoch;
         match result {
@@ -314,7 +328,7 @@ pub trait ProvidersModule:
             }
             ManagedAsyncCallResult::Err(err) => {
                 if err.err_msg == ManagedBuffer::new_from_bytes(ERROR_NOT_DELEGATOR) {
-                    provider.salsa_stake = BigUint::zero();
+                    // provider.salsa_stake = BigUint::zero();
                     provider.salsa_rewards = BigUint::zero();
                     provider.salsa_undelegated = BigUint::zero();
                     provider.salsa_withdrawable = BigUint::zero();
