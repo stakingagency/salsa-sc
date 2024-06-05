@@ -341,12 +341,14 @@ pub trait ServiceModule:
         }
 
         let mut provider_to_delegate = self.empty_provider();
+        let min_amount = self.get_min_delegate_amount(amount.clone());
         let mut min_topup_set = false;
         let mut min_topup = BigUint::zero();
         let mut max_topup = BigUint::zero();
         let base_stake = BigUint::from(NODE_BASE_STAKE) * ONE_EGLD;
         for (_, provider) in self.providers().iter() {
-            if !provider.is_active() || !provider.is_eligible(self.max_provider_fee().get()) || !provider.has_free_space() {
+            let has_free_space = !provider.has_cap || (provider.max_cap >= &provider.total_stake + &min_amount);
+            if !provider.is_active() || !provider.is_eligible(self.max_provider_fee().get()) || !has_free_space {
                 continue
             }
 
@@ -374,7 +376,6 @@ pub trait ServiceModule:
                 if max_amount < MIN_EGLD {
                     max_amount = BigUint::from(MIN_EGLD);
                 }
-                let min_amount = self.get_min_delegate_amount(amount.clone());
                 if max_amount < min_amount {
                     max_amount = min_amount;
                 }
