@@ -59,7 +59,7 @@ fn test_two_providers() {
     let mut world = setup();
 
     let mut nonce = BLOCKS_PER_EPOCH;
-    let extra = exp(10, 18);
+    let extra = exp(100, 18);
     let amount1 = get_amount_to_equal_topup(&mut world) + &extra;
 
     // delegate
@@ -145,7 +145,7 @@ fn test_delegate_to_uneligible_providers() {
     let mut world = setup();
 
     let mut nonce = BLOCKS_PER_EPOCH;
-    let amount = exp(10, 18);
+    let amount = exp(100, 18);
 
     // set high fees so delegation should not be possible
     let delegation1_whitebox = WhiteboxContract::new(DELEGATION1_ADDRESS_EXPR, delegation_mock::contract_obj);
@@ -192,7 +192,7 @@ fn test_delegate_to_uneligible_provider() {
     let mut world = setup();
 
     let mut nonce = BLOCKS_PER_EPOCH;
-    let amount = exp(10, 18);
+    let amount = exp(100, 18);
 
     // get eligible provider to delegate
     set_block_nonce(&mut world, nonce);
@@ -201,7 +201,7 @@ fn test_delegate_to_uneligible_provider() {
     let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
     world.whitebox_query(
         &salsa_whitebox, |sc| {
-            let (to_delegate, _, _, _) =
+            let (to_delegate, _) =
                 sc.get_provider_to_delegate_and_amount(&to_managed_biguint(&amount));
             provider_to_delegate = to_delegate.to_address();
         }
@@ -236,7 +236,7 @@ fn test_delegate_to_uneligible_provider() {
     refresh_providers_test(&mut world);
     world.whitebox_query(
         &salsa_whitebox, |sc| {
-            let (to_delegate, _, _, _) =
+            let (to_delegate, _) =
                 sc.get_provider_to_delegate_and_amount(&to_managed_biguint(&amount));
             assert!(provider_to_delegate != to_delegate.to_address());
         }
@@ -248,7 +248,7 @@ fn test_undelegate_from_uneligible_provider() {
     let mut world = setup();
 
     let mut nonce = BLOCKS_PER_EPOCH;
-    let extra = exp(10, 18);
+    let extra = exp(100, 18);
     let amount1 = get_amount_to_equal_topup(&mut world) + &extra;
 
     // delegate
@@ -283,8 +283,8 @@ fn test_undelegate_from_uneligible_provider() {
     let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
     world.whitebox_query(
         &salsa_whitebox, |sc| {
-            let (_, _, to_undelegate, _) =
-                sc.get_provider_to_delegate_and_amount(&to_managed_biguint(&amount2));
+            let (to_undelegate, _) =
+                sc.get_provider_to_undelegate_and_amount(&to_managed_biguint(&amount2));
             provider_to_undelegate = to_undelegate.to_address();
         }
     );
@@ -318,8 +318,8 @@ fn test_undelegate_from_uneligible_provider() {
     refresh_providers_test(&mut world);
     world.whitebox_query(
         &salsa_whitebox, |sc| {
-            let (_, _, to_undelegate, _) =
-                sc.get_provider_to_delegate_and_amount(&to_managed_biguint(&amount2));
+            let (to_undelegate, _) =
+                sc.get_provider_to_undelegate_and_amount(&to_managed_biguint(&amount2));
             assert!(provider_to_undelegate != to_undelegate.to_address());
         }
     );

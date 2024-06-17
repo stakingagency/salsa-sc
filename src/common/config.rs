@@ -100,10 +100,10 @@ pub struct ProviderConfig<M: ManagedTypeApi> {
     pub salsa_undelegated: BigUint<M>,
     pub salsa_withdrawable: BigUint<M>,
     pub salsa_rewards: BigUint<M>,
-    pub config_last_update_nonce: u64,
-    pub stake_last_update_nonce: u64,
-    pub nodes_last_update_nonce: u64,
-    pub funds_last_update_nonce: u64,
+    pub config_last_update_timestamp: u64,
+    pub stake_last_update_timestamp: u64,
+    pub nodes_last_update_timestamp: u64,
+    pub funds_last_update_timestamp: u64,
     pub funds_last_update_epoch: u64,
 }
 
@@ -118,33 +118,46 @@ where M: ManagedTypeApi
         !self.has_cap || (self.max_cap > &self.total_stake + ONE_EGLD)
     }
 
-    pub fn is_eligible(&self) -> bool {
-        self.staked_nodes > 0 && self.fee <= MAX_PROVIDER_FEE
+    pub fn is_eligible(&self, max_fee: u64) -> bool {
+        self.staked_nodes > 0 && self.fee <= max_fee
     }
 
-    pub fn is_config_up_to_date(&self, current_nonce: u64) -> bool {
-        self.config_last_update_nonce + PROVIDER_UPDATE_NONCES_DELTA >= current_nonce
+    pub fn is_config_up_to_date(&self, current_timestamp: u64) -> bool {
+        self.config_last_update_timestamp + PROVIDER_UPDATE_SECONDS_DELTA >= current_timestamp
     }
 
-    pub fn is_stake_up_to_date(&self, current_nonce: u64) -> bool {
-        self.stake_last_update_nonce + PROVIDER_UPDATE_NONCES_DELTA >= current_nonce
+    pub fn is_stake_up_to_date(&self, current_timestamp: u64) -> bool {
+        self.stake_last_update_timestamp + PROVIDER_UPDATE_SECONDS_DELTA >= current_timestamp
     }
 
-    pub fn are_nodes_up_to_date(&self, current_nonce: u64) -> bool {
-        self.nodes_last_update_nonce + PROVIDER_UPDATE_NONCES_DELTA >= current_nonce
+    pub fn are_nodes_up_to_date(&self, current_timestamp: u64) -> bool {
+        self.nodes_last_update_timestamp + PROVIDER_UPDATE_SECONDS_DELTA >= current_timestamp
     }
 
-    pub fn are_funds_up_to_date(&self, current_nonce: u64, current_epoch: u64) -> bool {
-        self.funds_last_update_nonce + PROVIDER_UPDATE_NONCES_DELTA >= current_nonce &&
+    pub fn are_funds_up_to_date(&self, current_timestamp: u64, current_epoch: u64) -> bool {
+        self.funds_last_update_timestamp + PROVIDER_UPDATE_SECONDS_DELTA >= current_timestamp &&
         self.funds_last_update_epoch == current_epoch
     }
 
-    pub fn is_up_to_date(&self, current_nonce: u64, current_epoch: u64) -> bool {
-        self.is_config_up_to_date(current_nonce) &&
-        self.is_stake_up_to_date(current_nonce) &&
-        self.are_nodes_up_to_date(current_nonce) &&
-        self.are_funds_up_to_date(current_nonce, current_epoch)
+    pub fn is_up_to_date(&self, current_timestamp: u64, current_epoch: u64) -> bool {
+        self.is_config_up_to_date(current_timestamp) &&
+        self.is_stake_up_to_date(current_timestamp) &&
+        self.are_nodes_up_to_date(current_timestamp) &&
+        self.are_funds_up_to_date(current_timestamp, current_epoch)
     }
+}
+
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
+pub struct Challenge<M: ManagedTypeApi> {
+    pub end_epoch: u64,
+    pub target_undelegated: BigUint<M>,
+    pub status: ChallengeStatus,
+}
+
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
+pub enum ChallengeStatus {
+    Pending,
+    Failed,
 }
 
 #[multiversx_sc::module]
@@ -207,6 +220,9 @@ pub trait ConfigModule:
     #[storage_mapper("state")]
     fn state(&self) -> SingleValueMapper<State>;
 
+    #[storage_mapper("provider_address")]
+    fn provider_address(&self) -> SingleValueMapper<ManagedAddress>;
+
     #[view(getProviders)]
     #[storage_mapper("providers")]
     fn providers(&self) -> MapMapper<ManagedAddress, ProviderConfig<Self::Api>>;
@@ -235,9 +251,21 @@ pub trait ConfigModule:
     #[only_owner]
     #[endpoint(setServiceFee)]
     fn set_service_fee(&self, new_fee: u64) {
-        require!(new_fee < MAX_PERCENT, ERROR_INCORRECT_FEE);
+        require!(new_fee <= MAX_SALSA_FEE, ERROR_FEE_TOO_HIGH);
 
         self.service_fee().set(new_fee);
+    }
+
+    #[view(getMaxProviderFee)]
+    #[storage_mapper("max_provider_fee")]
+    fn max_provider_fee(&self) -> SingleValueMapper<u64>;
+
+    #[only_owner]
+    #[endpoint(setMaxProviderFee)]
+    fn set_max_provider_fee(&self, new_fee: u64) {
+        require!(new_fee <= MAX_PROVIDER_FEE, ERROR_FEE_TOO_HIGH);
+
+        self.max_provider_fee().set(new_fee);
     }
 
     // delegation
@@ -373,20 +401,20 @@ pub trait ConfigModule:
 
     #[view(isProviderUpToDate)]
     fn view_provider_updated(&self, provider_address: &ManagedAddress) -> bool {
-        let current_nonce = self.blockchain().get_block_nonce();
+        let current_timestamp = self.blockchain().get_block_timestamp();
         let current_epoch = self.blockchain().get_block_epoch();
 
         let provider = self.providers().get(provider_address).unwrap();
-        provider.is_up_to_date(current_nonce, current_epoch)
+        provider.is_up_to_date(current_timestamp, current_epoch)
     }
 
     #[view(areProvidersUpToDate)]
     fn view_providers_updated(&self) -> bool {
-        let current_nonce = self.blockchain().get_block_nonce();
+        let current_timestamp = self.blockchain().get_block_timestamp();
         let current_epoch = self.blockchain().get_block_epoch();
         let mut result = false;
         for (_, provider) in self.providers().iter() {
-            if provider.is_up_to_date(current_nonce, current_epoch) {
+            if provider.is_up_to_date(current_timestamp, current_epoch) {
                 result = true;
                 continue
             }
@@ -441,6 +469,17 @@ pub trait ConfigModule:
     #[storage_mapper("heir_users")]
     fn heir_users(&self, heir: &ManagedAddress) -> UnorderedSetMapper<ManagedAddress>;
 
+    // challenge
+
+    #[storage_mapper("challenge")]
+    fn challenge(&self) -> SingleValueMapper<Challenge<Self::Api>>;
+
+    #[storage_mapper("total_undelegated")]
+    fn total_undelegated(&self) -> SingleValueMapper<BigUint>;
+
+    #[storage_mapper("total_undelegation_requested")]
+    fn total_undelegation_requested(&self) -> SingleValueMapper<BigUint>;
+    
     // global view functions
 
     #[view(getContractInfo)]

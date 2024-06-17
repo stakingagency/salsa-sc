@@ -19,6 +19,17 @@ pub trait ProvidersModule:
             ERROR_PROVIDER_ALREADY_ADDED
         );
 
+        require!(
+            self.providers().len() < MAX_PROVIDERS,
+            ERROR_TOO_MANY_PROVIDERS
+        );
+
+        // commented for the tests to pass
+        // require!(
+        //     self.blockchain().get_shard_of_address(&address) == METACHAIN_SHARD_ID,
+        //     ERROR_ADDRESS_NOT_ON_METACHAIN
+        // );
+
         let mut provider = self.empty_provider();
         provider.state = State::Active;
         provider.address = address.clone();
@@ -49,14 +60,12 @@ pub trait ProvidersModule:
     fn remove_provider(&self, address: &ManagedAddress) {
         let provider = self.get_provider(address);
 
-        let current_nonce = self.blockchain().get_block_nonce();
+        let current_timestamp = self.blockchain().get_block_timestamp();
         let current_epoch = self.blockchain().get_block_epoch();
-        if provider.is_active() {
-            require!(
-                provider.are_funds_up_to_date(current_nonce, current_epoch),
-                ERROR_PROVIDER_NOT_UP_TO_DATE
-            );
-        }
+        require!(
+            provider.are_funds_up_to_date(current_timestamp, current_epoch),
+            ERROR_PROVIDER_NOT_UP_TO_DATE
+        );
 
         require!(
             provider.salsa_stake == 0 &&
@@ -77,10 +86,10 @@ pub trait ProvidersModule:
     fn set_provider_state(&self, address: ManagedAddress, new_state: State) {
         let mut provider = self.get_provider(&address);
         if provider.state != new_state {
-            provider.config_last_update_nonce = 0;
-            provider.stake_last_update_nonce = 0;
-            provider.nodes_last_update_nonce = 0;
-            provider.funds_last_update_nonce = 0;
+            provider.config_last_update_timestamp = 0;
+            provider.stake_last_update_timestamp = 0;
+            provider.nodes_last_update_timestamp = 0;
+            provider.funds_last_update_timestamp = 0;
             provider.funds_last_update_epoch = 0;
         }
         provider.state = new_state;
@@ -88,16 +97,17 @@ pub trait ProvidersModule:
     }
 
     /**
-     * Refresh Providers - updates all providers infos and returns true if all are up to date and false otherwise
+     * Refresh Providers - updates all providers infos and returns true if all active providers are up-to-date and
+     * at least one provider is active, and false otherwise
      */
     #[endpoint(refreshProviders)]
     fn refresh_providers(&self) -> bool {
-        let current_nonce = self.blockchain().get_block_nonce();
+        let current_timestamp = self.blockchain().get_block_timestamp();
         let current_epoch = self.blockchain().get_block_epoch();
         let mut result = false;
         let mut outdated = false;
         for (address, provider) in self.providers().iter() {
-            if provider.is_up_to_date(current_nonce, current_epoch) {
+            if provider.is_up_to_date(current_timestamp, current_epoch) {
                 if !outdated {
                     result = true;
                 }
@@ -111,28 +121,28 @@ pub trait ProvidersModule:
             result = false;
             outdated = true;
 
-            if !provider.is_config_up_to_date(current_nonce) {
+            if !provider.is_config_up_to_date(current_timestamp) {
                 if !self.enough_gas_left_for_view_call() {
                     break
                 }
                 self.refresh_provider_config(&address);
             }
 
-            if !provider.is_stake_up_to_date(current_nonce) {
+            if !provider.is_stake_up_to_date(current_timestamp) {
                 if !self.enough_gas_left_for_view_call() {
                     break
                 }
                 self.refresh_provider_stake(&address);
             }
 
-            if !provider.are_nodes_up_to_date(current_nonce) {
+            if !provider.are_nodes_up_to_date(current_timestamp) {
                 if !self.enough_gas_left_for_view_call() {
                     break
                 }
                 self.refresh_provider_nodes(&address);
             }
 
-            if !provider.are_funds_up_to_date(current_nonce, current_epoch) {
+            if !provider.are_funds_up_to_date(current_timestamp, current_epoch) {
                 if !self.enough_gas_left_for_view_call() {
                     break
                 }
@@ -171,7 +181,7 @@ pub trait ProvidersModule:
         self.providers_delegation_proxy_obj()
             .contract(address.clone())
             .get_all_nodes_states()
-            .with_gas_limit(MIN_GAS_FOR_VIEW_CALL)
+            .with_gas_limit(MIN_GAS_FOR_GET_ALL_NODE_STATES_CALL)
             .async_call_promise()
             .with_callback(ProvidersModule::callbacks(self).get_all_nodes_states_callback(address))
             .with_extra_gas_for_callback(MIN_GAS_FOR_VIEW_CALLBACK)
@@ -179,12 +189,13 @@ pub trait ProvidersModule:
     }
 
     fn refresh_provider_funds_data(&self, address: &ManagedAddress) {
+        let current_epoch = self.blockchain().get_block_epoch();
         self.providers_delegation_proxy_obj()
             .contract(address.clone())
             .get_delegator_funds_data(self.blockchain().get_sc_address())
             .with_gas_limit(MIN_GAS_FOR_VIEW_CALL)
             .async_call_promise()
-            .with_callback(ProvidersModule::callbacks(self).get_delegator_funds_data_callback(address))
+            .with_callback(ProvidersModule::callbacks(self).get_delegator_funds_data_callback(address, current_epoch))
             .with_extra_gas_for_callback(MIN_GAS_FOR_VIEW_CALLBACK)
             .register_promise();
     }
@@ -206,10 +217,10 @@ pub trait ProvidersModule:
                 provider.max_cap = BigUint::from(config_items.get(PROVIDER_CONFIG_MAX_CAP_INDEX).clone_value());
                 provider.fee = config_items.get(PROVIDER_CONFIG_FEE_INDEX).parse_as_u64().unwrap_or(0);
                 provider.has_cap = config_items.get(PROVIDER_CONFIG_HAS_CAP_INDEX).clone_value() == b"true";
-                provider.config_last_update_nonce = self.blockchain().get_block_nonce();
+                provider.config_last_update_timestamp = self.blockchain().get_block_timestamp();
             }
             ManagedAsyncCallResult::Err(_) => {
-                provider.config_last_update_nonce = 0;
+                provider.config_last_update_timestamp = 0;
             }
         }
         self.providers().insert(address.clone(), provider);
@@ -225,10 +236,10 @@ pub trait ProvidersModule:
         match result {
             ManagedAsyncCallResult::Ok(stake) => {
                 provider.total_stake = stake;
-                provider.stake_last_update_nonce = self.blockchain().get_block_nonce();
+                provider.stake_last_update_timestamp = self.blockchain().get_block_timestamp();
             }
             ManagedAsyncCallResult::Err(_) => {
-                provider.stake_last_update_nonce = 0;
+                provider.stake_last_update_timestamp = 0;
             }
         }
         self.providers().insert(address.clone(), provider);
@@ -262,10 +273,10 @@ pub trait ProvidersModule:
                     }
                 }
                 provider.staked_nodes = staked_nodes;
-                provider.nodes_last_update_nonce = self.blockchain().get_block_nonce();
+                provider.nodes_last_update_timestamp = self.blockchain().get_block_timestamp();
             }
             ManagedAsyncCallResult::Err(_) => {
-                provider.nodes_last_update_nonce = 0;
+                provider.nodes_last_update_timestamp = 0;
             }
         }
         self.providers().insert(address.clone(), provider);
@@ -275,26 +286,29 @@ pub trait ProvidersModule:
     fn get_delegator_funds_data_callback(
         &self,
         address: &ManagedAddress,
+        current_epoch: u64,
         #[call_result] result: ManagedAsyncCallResult<MultiValueEncoded<ManagedBuffer>>,
     ) {
         let mut provider = self.get_provider(address);
-        provider.funds_last_update_nonce = self.blockchain().get_block_nonce();
-        provider.funds_last_update_epoch = self.blockchain().get_block_epoch();
+        provider.funds_last_update_timestamp = self.blockchain().get_block_timestamp();
+        provider.funds_last_update_epoch = current_epoch;
         match result {
             ManagedAsyncCallResult::Ok(delegator_funds_data) => {
                 require!(delegator_funds_data.len() == 4, ERROR_INVALID_SC_RESPONSE);
 
                 let funds_data = delegator_funds_data.into_vec_of_buffers();
-                provider.salsa_stake = BigUint::from(funds_data.get(PROVIDER_FUNDS_DELEGATED_INDEX).clone_value());
+                // provider.salsa_stake = BigUint::from(funds_data.get(PROVIDER_FUNDS_DELEGATED_INDEX).clone_value());
                 provider.salsa_rewards = BigUint::from(funds_data.get(PROVIDER_FUNDS_REWARDS_INDEX).clone_value());
                 provider.salsa_undelegated = BigUint::from(funds_data.get(PROVIDER_FUNDS_UNDELEGATED_INDEX).clone_value());
                 provider.salsa_withdrawable = BigUint::from(funds_data.get(PROVIDER_FUNDS_WITHDRAWABLE_INDEX).clone_value());
             }
-            ManagedAsyncCallResult::Err(_) => {
-                provider.salsa_stake = BigUint::zero();
-                provider.salsa_rewards = BigUint::zero();
-                provider.salsa_undelegated = BigUint::zero();
-                provider.salsa_withdrawable = BigUint::zero();
+            ManagedAsyncCallResult::Err(err) => {
+                if err.err_msg == ManagedBuffer::new_from_bytes(ERROR_NOT_DELEGATOR) {
+                    // provider.salsa_stake = BigUint::zero();
+                    provider.salsa_rewards = BigUint::zero();
+                    provider.salsa_undelegated = BigUint::zero();
+                    provider.salsa_withdrawable = BigUint::zero();
+                }
             }
         }
         self.providers().insert(address.clone(), provider);
@@ -323,10 +337,10 @@ pub trait ProvidersModule:
             salsa_undelegated: BigUint::zero(),
             salsa_withdrawable: BigUint::zero(),
             salsa_rewards: BigUint::zero(),
-            config_last_update_nonce: 0,
-            stake_last_update_nonce: 0,
-            nodes_last_update_nonce: 0,
-            funds_last_update_nonce: 0,
+            config_last_update_timestamp: 0,
+            stake_last_update_timestamp: 0,
+            nodes_last_update_timestamp: 0,
+            funds_last_update_timestamp: 0,
             funds_last_update_epoch: 0,
         }
     }

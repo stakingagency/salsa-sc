@@ -129,7 +129,7 @@ pub fn check_provider_eligible(
         &salsa_whitebox, |sc| {
             let provider_info =
                 sc.get_provider(&managed_address!(&AddressValue::from(provider).to_address()));
-            assert_eq!(provider_info.is_eligible(), state);
+            assert_eq!(provider_info.is_eligible(sc.max_provider_fee().get()), state);
         }
     );
 }
