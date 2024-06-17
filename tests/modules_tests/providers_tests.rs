@@ -145,7 +145,7 @@ fn test_delegate_to_uneligible_providers() {
     let mut world = setup();
 
     let mut nonce = BLOCKS_PER_EPOCH;
-    let amount = exp(10, 18);
+    let amount = exp(100, 18);
 
     // set high fees so delegation should not be possible
     let delegation1_whitebox = WhiteboxContract::new(DELEGATION1_ADDRESS_EXPR, delegation_mock::contract_obj);
@@ -192,7 +192,7 @@ fn test_delegate_to_uneligible_provider() {
     let mut world = setup();
 
     let mut nonce = BLOCKS_PER_EPOCH;
-    let amount = exp(10, 18);
+    let amount = exp(100, 18);
 
     // get eligible provider to delegate
     set_block_nonce(&mut world, nonce);

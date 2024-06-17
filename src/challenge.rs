@@ -56,10 +56,7 @@ pub trait ChallengeModule:
 
     #[endpoint(emergentlyUndelegate)]
     fn emergently_undelegate(&self, provider_address: ManagedAddress, gas: Option<u64>) {
-        let mut gas_for_async_undelegate = match gas {
-            Option::Some(value) => value,
-            Option::None => 0
-        };
+        let mut gas_for_async_undelegate = gas.unwrap_or(0);
         if gas_for_async_undelegate < MIN_GAS_FOR_ASYNC_CALL {
             gas_for_async_undelegate = MIN_GAS_FOR_ASYNC_CALL;
         }

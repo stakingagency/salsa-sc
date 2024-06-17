@@ -42,8 +42,8 @@ pub trait ServiceModule:
             return BigUint::zero()
         }
 
-        storage_cache.egld_to_delegate -= &amount;
         storage_cache.last_delegation_block = current_block;
+        storage_cache.egld_to_delegate -= &amount;
         drop(storage_cache);
 
         let mut provider = self.get_provider(&provider_address);
@@ -82,7 +82,7 @@ pub trait ServiceModule:
                     .update(|value| *value += egld_to_delegate);
                 let mut provider = self.get_provider(&provider_address);
                 provider.salsa_stake -= egld_to_delegate;
-                self.providers().insert(provider_address.clone(), provider);
+                self.providers().insert(provider_address, provider);
             }
         }
     }
@@ -156,7 +156,7 @@ pub trait ServiceModule:
                     .update(|value| *value += egld_to_undelegate);
                 let mut provider = self.get_provider(&provider_address);
                 provider.salsa_stake += egld_to_undelegate;
-                self.providers().insert(provider_address.clone(), provider);
+                self.providers().insert(provider_address, provider);
             }
         }
     }
@@ -189,7 +189,7 @@ pub trait ServiceModule:
             self.providers().insert(address.clone(), provider);
 
             self.service_delegation_proxy_obj()
-                .contract(address)
+                .contract(address.clone())
                 .claim_rewards()
                 .with_gas_limit(MIN_GAS_FOR_ASYNC_CALL)
                 .async_call_promise()
@@ -223,22 +223,23 @@ pub trait ServiceModule:
     fn withdraw_all(&self, gas: Option<u64>, providers_to_withdraw_from: MultiValueEncoded<ManagedAddress>) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
-        let mut gas_for_async_withdraw = match gas {
-            Option::Some(value) => value,
-            Option::None => 0
-        };
+        let mut gas_for_async_withdraw = gas.unwrap_or(0);
         if gas_for_async_withdraw < MIN_GAS_FOR_ASYNC_CALL {
             gas_for_async_withdraw = MIN_GAS_FOR_ASYNC_CALL;
         }
 
-        if providers_to_withdraw_from.len() > 0 {
+        if !providers_to_withdraw_from.is_empty() {
             for address in providers_to_withdraw_from.into_iter() {
+                if !self.providers().contains_key(&address) {
+                    continue
+                }
+
                 self.service_delegation_proxy_obj()
-                    .contract(address)
+                    .contract(address.clone())
                     .withdraw()
                     .with_gas_limit(gas_for_async_withdraw)
                     .async_call_promise()
-                    .with_callback(ServiceModule::callbacks(self).withdraw_all_callback())
+                    .with_callback(ServiceModule::callbacks(self).withdraw_all_callback(address))
                     .with_extra_gas_for_callback(MIN_GAS_FOR_CALLBACK)
                     .register_promise();
             }
@@ -252,8 +253,9 @@ pub trait ServiceModule:
         let current_timestamp = self.blockchain().get_block_timestamp();
         let current_epoch = self.blockchain().get_block_epoch();
         for (address, provider) in self.providers().iter() {
+            let is_active = provider.is_active();
             let is_up_to_date = provider.is_up_to_date(current_timestamp, current_epoch);
-            if !is_up_to_date || (provider.salsa_withdrawable == 0) {
+            if !is_active || !is_up_to_date || (provider.salsa_withdrawable == 0) {
                 continue
             }
 
@@ -261,18 +263,12 @@ pub trait ServiceModule:
                 break
             }
 
-            let mut provider = self.get_provider(&address);
-            provider.funds_last_update_timestamp = 0;
-            provider.funds_last_update_epoch = 0;
-            provider.salsa_withdrawable = BigUint::zero();
-            self.providers().insert(address.clone(), provider);
-
             self.service_delegation_proxy_obj()
-                .contract(address)
+                .contract(address.clone())
                 .withdraw()
                 .with_gas_limit(gas_for_async_withdraw)
                 .async_call_promise()
-                .with_callback(ServiceModule::callbacks(self).withdraw_all_callback())
+                .with_callback(ServiceModule::callbacks(self).withdraw_all_callback(address))
                 .with_extra_gas_for_callback(MIN_GAS_FOR_CALLBACK)
                 .register_promise();
         }
@@ -281,6 +277,7 @@ pub trait ServiceModule:
     #[promises_callback]
     fn withdraw_all_callback(
         &self,
+        provider_address: ManagedAddress,
         #[call_result] result: ManagedAsyncCallResult<()>,
     ) {
         match result {
@@ -288,6 +285,9 @@ pub trait ServiceModule:
                 let withdrawn_amount = self.call_value().egld_value();
                 self.total_withdrawn_egld()
                     .update(|value| *value += withdrawn_amount.clone_value());
+                let mut provider = self.get_provider(&provider_address);
+                provider.salsa_withdrawable = BigUint::zero();
+                self.providers().insert(provider_address, provider);
             }
             ManagedAsyncCallResult::Err(_) => {}
         }
@@ -456,7 +456,7 @@ pub trait ServiceModule:
                     &provider.salsa_stake,
                     &min_topup,
                     &topup,
-                    provider.staked_nodes.clone() as u64,
+                    provider.staked_nodes as u64,
                 );
                 if amount_to_undelegate > 0 {
                     max_topup_set = true;

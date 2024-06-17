@@ -25,25 +25,27 @@ pub trait SalsaContract<ContractReader>:
     + knights::KnightsModule
     + heirs::HeirsModule
     + providers::ProvidersModule
-    + challenge::ChallengeModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[init]
-    fn init(&self) {
-        self.max_provider_fee().set_if_empty(MAX_PROVIDER_FEE);
-    }
+    fn init(&self) {}
 
     #[upgrade]
     fn upgrade(&self) {
         self.state().set(State::Inactive);
         self.max_provider_fee().set_if_empty(MAX_PROVIDER_FEE);
         if !self.provider_address().is_empty() {
-            let old_provider = self.provider_address().get();
-            if self.providers().contains_key(&old_provider) {
-                self.provider_address().clear();
-            } else {
-                self.add_provider(old_provider);
-            }
+            require!(
+                self.egld_to_delegate().is_empty() && self.egld_to_undelegate().is_empty(),
+                "eGLD pending (un)delegation"
+            );
+
+            let mut old_provider = self.empty_provider();
+            let old_provider_address = self.provider_address().take();
+            old_provider.address = old_provider_address.clone();
+            old_provider.salsa_stake = self.total_egld_staked().get();
+            old_provider.state = State::Active;
+            self.providers().insert(old_provider_address, old_provider);
         }
         self.total_undelegation_requested().set_if_empty(self.egld_to_undelegate().get());
     }

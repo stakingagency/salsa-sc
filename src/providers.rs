@@ -30,8 +30,12 @@ pub trait ProvidersModule:
         //     ERROR_ADDRESS_NOT_ON_METACHAIN
         // );
 
-        self.refresh_provider_config(&address);
-        self.refresh_provider_funds_data(&address);
+        let mut provider = self.empty_provider();
+        provider.state = State::Active;
+        provider.address = address.clone();
+        self.providers().insert(address.clone(), provider);
+
+        self.refresh_provider(address);
     }
 
     #[endpoint(refreshProvider)]
@@ -204,37 +208,22 @@ pub trait ProvidersModule:
         address: &ManagedAddress,
         #[call_result] result: ManagedAsyncCallResult<MultiValueEncoded<ManagedBuffer>>,
     ) {
+        let mut provider = self.get_provider(address);
         match result {
             ManagedAsyncCallResult::Ok(config) => {
                 require!(config.len() == 10, ERROR_INVALID_SC_RESPONSE);
 
                 let config_items = config.into_vec_of_buffers();
-                let mut provider = if self.providers().contains_key(address) {
-                    self.get_provider(address)
-                } else {
-                    require!(
-                        self.providers().len() < MAX_PROVIDERS,
-                        ERROR_TOO_MANY_PROVIDERS
-                    );
-
-                    let mut p = self.empty_provider();
-                    p.state = State::Active;
-                    p.address = address.clone();
-
-                    p
-                };
                 provider.max_cap = BigUint::from(config_items.get(PROVIDER_CONFIG_MAX_CAP_INDEX).clone_value());
                 provider.fee = config_items.get(PROVIDER_CONFIG_FEE_INDEX).parse_as_u64().unwrap_or(0);
                 provider.has_cap = config_items.get(PROVIDER_CONFIG_HAS_CAP_INDEX).clone_value() == b"true";
                 provider.config_last_update_timestamp = self.blockchain().get_block_timestamp();
-                self.providers().insert(address.clone(), provider);
             }
             ManagedAsyncCallResult::Err(_) => {
-                let mut provider = self.get_provider(address);
                 provider.config_last_update_timestamp = 0;
-                self.providers().insert(address.clone(), provider);
             }
         }
+        self.providers().insert(address.clone(), provider);
     }
 
     #[promises_callback]
@@ -300,20 +289,7 @@ pub trait ProvidersModule:
         current_epoch: u64,
         #[call_result] result: ManagedAsyncCallResult<MultiValueEncoded<ManagedBuffer>>,
     ) {
-        let mut provider = if self.providers().contains_key(address) {
-            self.get_provider(address)
-        } else {
-            require!(
-                self.providers().len() < MAX_PROVIDERS,
-                ERROR_TOO_MANY_PROVIDERS
-            );
-
-            let mut p = self.empty_provider();
-            p.state = State::Active;
-            p.address = address.clone();
-
-            p
-        };
+        let mut provider = self.get_provider(address);
         provider.funds_last_update_timestamp = self.blockchain().get_block_timestamp();
         provider.funds_last_update_epoch = current_epoch;
         match result {
@@ -321,7 +297,7 @@ pub trait ProvidersModule:
                 require!(delegator_funds_data.len() == 4, ERROR_INVALID_SC_RESPONSE);
 
                 let funds_data = delegator_funds_data.into_vec_of_buffers();
-                provider.salsa_stake = BigUint::from(funds_data.get(PROVIDER_FUNDS_DELEGATED_INDEX).clone_value());
+                // provider.salsa_stake = BigUint::from(funds_data.get(PROVIDER_FUNDS_DELEGATED_INDEX).clone_value());
                 provider.salsa_rewards = BigUint::from(funds_data.get(PROVIDER_FUNDS_REWARDS_INDEX).clone_value());
                 provider.salsa_undelegated = BigUint::from(funds_data.get(PROVIDER_FUNDS_UNDELEGATED_INDEX).clone_value());
                 provider.salsa_withdrawable = BigUint::from(funds_data.get(PROVIDER_FUNDS_WITHDRAWABLE_INDEX).clone_value());

@@ -5,10 +5,10 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           95
+// Endpoints:                           91
 // Async Callback:                       1
-// Promise callbacks:                    9
-// Total number of exported functions: 106
+// Promise callbacks:                    8
+// Total number of exported functions: 101
 
 #![no_std]
 #![allow(internal_features)]
@@ -112,10 +112,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         removeProvider => remove_provider
         setProviderState => set_provider_state
         refreshProviders => refresh_providers
-        createChallenge => create_challenge
-        updateChallenge => update_challenge
-        canEmergentlyUndelegate => can_emergently_undelegate
-        emergentlyUndelegate => emergently_undelegate
         delegate_all_callback => delegate_all_callback
         undelegate_all_callback => undelegate_all_callback
         claim_rewards_callback => claim_rewards_callback
@@ -124,7 +120,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         get_total_active_stake_callback => get_total_active_stake_callback
         get_all_nodes_states_callback => get_all_nodes_states_callback
         get_delegator_funds_data_callback => get_delegator_funds_data_callback
-        emergently_undelegate_all_callback => emergently_undelegate_all_callback
     )
 }
 
