@@ -14,7 +14,6 @@ pub const MAX_INHERITANCE_EPOCHS: u64 = 3653;
 pub const MAX_KNIGHT_USERS: usize = 10;
 pub const MAX_HEIR_USERS: usize = 10;
 pub const MIN_BLOCK_BETWEEN_DELEGATIONS: u64 = 10;
-pub const METACHAIN_SHARD_ID: u32 = u32::MAX;
 
 pub const PROVIDER_UPDATE_SECONDS_DELTA: u64 = 30 * 60; // 30 minutes
 pub const NODE_BASE_STAKE: u64 = 2_500;
@@ -25,7 +24,7 @@ pub const MAX_PROVIDERS: usize = 25;
 pub const PROVIDER_CONFIG_FEE_INDEX: usize = 1;
 pub const PROVIDER_CONFIG_MAX_CAP_INDEX: usize = 2;
 pub const PROVIDER_CONFIG_HAS_CAP_INDEX: usize = 5;
-pub const PROVIDER_FUNDS_DELEGATED_INDEX: usize = 0;
+// pub const PROVIDER_FUNDS_DELEGATED_INDEX: usize = 0;
 pub const PROVIDER_FUNDS_REWARDS_INDEX: usize = 1;
 pub const PROVIDER_FUNDS_UNDELEGATED_INDEX: usize = 2;
 pub const PROVIDER_FUNDS_WITHDRAWABLE_INDEX: usize = 3;
