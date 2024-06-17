@@ -4,6 +4,7 @@ pub const MIN_GAS_FOR_ASYNC_CALL: u64 = 12_000_000;
 pub const MIN_GAS_FOR_CALLBACK: u64 = 12_000_000;
 pub const MIN_GAS_FOR_VIEW_CALL: u64 = 1_000_000;
 pub const MIN_GAS_FOR_VIEW_CALLBACK: u64 = 12_000_000;
+pub const MIN_GAS_FOR_GET_ALL_NODE_STATES_CALL: u64 = 40_000_000;
 pub const MAX_PERCENT: u64 = 10_000;
 pub const MIN_UNDELEGATE_NOW_FEE: u64 = 3;
 pub const MAX_UNBOND_PERIOD: u64 = 20;
@@ -14,14 +15,21 @@ pub const MAX_KNIGHT_USERS: usize = 10;
 pub const MAX_HEIR_USERS: usize = 10;
 pub const MIN_BLOCK_BETWEEN_DELEGATIONS: u64 = 10;
 
-pub const PROVIDER_UPDATE_NONCES_DELTA: u64 = 300; // 30 minutes
+pub const PROVIDER_UPDATE_SECONDS_DELTA: u64 = 30 * 60; // 30 minutes
 pub const NODE_BASE_STAKE: u64 = 2_500;
-pub const MAX_PROVIDER_FEE: u64 = 1200; // 12%
+pub const MAX_SALSA_FEE: u64 = 1000;
+pub const MAX_PROVIDER_FEE: u64 = 2000; // 20%
+pub const MAX_PROVIDERS: usize = 25;
 
 pub const PROVIDER_CONFIG_FEE_INDEX: usize = 1;
 pub const PROVIDER_CONFIG_MAX_CAP_INDEX: usize = 2;
 pub const PROVIDER_CONFIG_HAS_CAP_INDEX: usize = 5;
-pub const PROVIDER_FUNDS_DELEGATED_INDEX: usize = 0;
+// pub const PROVIDER_FUNDS_DELEGATED_INDEX: usize = 0;
 pub const PROVIDER_FUNDS_REWARDS_INDEX: usize = 1;
 pub const PROVIDER_FUNDS_UNDELEGATED_INDEX: usize = 2;
 pub const PROVIDER_FUNDS_WITHDRAWABLE_INDEX: usize = 3;
+pub const MIN_DELEGATE_AMOUNT: u128 = 50_000_000_000_000_000_000;
+pub const MIN_DELEGATE_PERCENT: u64 = 500;
+
+pub const CHALLENGE_DURATION: u64 = 5; // 5 epochs
+pub const MIN_DURATION_USERS_CAN_UNDELEGATE: u64 = 5; // 5 epochs

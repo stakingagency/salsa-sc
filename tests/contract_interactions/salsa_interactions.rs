@@ -10,6 +10,7 @@ pub fn set_block_nonce(
     world: &mut ScenarioWorld,
     block_nonce_expr: u64
 ) {
+    world.set_state_step(SetStateStep::new().block_timestamp(block_nonce_expr * BLOCK_TIME));
     world.set_state_step(SetStateStep::new().block_nonce(block_nonce_expr));
     world.set_state_step(SetStateStep::new().block_epoch(block_nonce_expr / BLOCKS_PER_EPOCH));
 }
@@ -74,7 +75,7 @@ pub fn undelegate_test(
                 .no_expect(),
             |sc| {
                 sc.undelegate(
-                    OptionalValue::Some(to_managed_biguint(amount)),
+                    Option::Some(to_managed_biguint(amount)),
                     OptionalValue::Some(without_arbitrage)
                 );
             },
@@ -90,7 +91,7 @@ pub fn undelegate_test(
                 .esdt_transfer(TOKEN_ID_EXPR, 0, amount),
             |sc| {
                 sc.undelegate(
-                    OptionalValue::None,
+                    Option::None,
                     OptionalValue::Some(without_arbitrage)
                 );
             }
@@ -117,7 +118,7 @@ pub fn undelegate_now_test(
             |sc| {
                 sc.undelegate_now(
                     to_managed_biguint(min_amount_out),
-                    OptionalValue::Some(to_managed_biguint(amount)),
+                    Option::Some(to_managed_biguint(amount)),
                     OptionalValue::Some(without_arbitrage)
                 );
             },
@@ -134,7 +135,7 @@ pub fn undelegate_now_test(
             |sc| {
                 sc.undelegate_now(
                     to_managed_biguint(min_amount_out),
-                    OptionalValue::None,
+                    Option::None,
                     OptionalValue::Some(without_arbitrage)
                 );
             }

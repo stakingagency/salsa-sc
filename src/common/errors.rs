@@ -1,5 +1,4 @@
 pub static ERROR_INSUFFICIENT_AMOUNT: &[u8] = b"Insufficient amount";
-pub static ERROR_INSUFFICIENT_GAS: &[u8] = b"Insufficient gas remaining for the callback";
 pub static ERROR_NOT_ACTIVE: &[u8] = b"Not active";
 pub static ERROR_ACTIVE: &[u8] = b"Active state";
 pub static ERROR_BAD_PAYMENT_TOKEN: &[u8] = b"Bad payment token";
@@ -18,15 +17,18 @@ pub static ERROR_TOKEN_ALREADY_SET: &[u8] = b"Token already set";
 pub static ERROR_TOKEN_NOT_SET: &[u8] = b"Token not set";
 pub static ERROR_NOT_ENOUGH_LIQUID_SUPPLY: &[u8] = b"Not enough liquid token supply";
 pub static ERROR_INCORRECT_FEE: &[u8] = b"Fee must be less than 100% and higher than 0.03%";
+pub static ERROR_FEE_TOO_HIGH: &[u8] = b"Fee too high";
 pub static ERROR_DUST_REMAINING: &[u8] = b"Can't leave dust";
 pub static ERROR_REMOVE_RESERVE_TOO_SOON: &[u8] = b"You can remove reserve only 1 epoch after add";
 pub static ERROR_FEE_CHANGED: &[u8] = b"Fee changed and you would receive less";
 pub static ERROR_INSUFFICIENT_FUNDS: &[u8] = b"Insufficient funds";
 pub static ERROR_DELEGATE_TOO_SOON: &[u8] = b"Delegate called too soon";
 pub static ERROR_INVALID_SC_RESPONSE: &[u8] = b"Unexpected Delegation SC response";
+pub static ERROR_ADDRESS_NOT_ON_METACHAIN: &[u8] = b"Address not on metachain";
+pub static ERROR_TOO_MANY_PROVIDERS: &[u8] = b"Too many providers";
+pub static ERROR_NOT_DELEGATOR: &[u8] = b"view function works only for existing delegators";
 
 pub static ERROR_ARBITRAGE_ISSUE: &[u8] = b"Arbitrage issue";
-pub static ERROR_ARBITRAGE_NOT_ACTIVE: &[u8] = b"Arbitrage not active";
 pub static ERROR_ONEDEX_SC: &[u8] = b"OneDex SC address not set";
 pub static ERROR_ONEDEX_PAIR_ID: &[u8] = b"OneDex pair ID not set";
 pub static ERROR_XEXCHANGE_SC: &[u8] = b"xExchange SC address not set";
@@ -51,3 +53,7 @@ pub static ERROR_INHERIT_YOURSELF: &[u8] = b"You can't be your own heir";
 pub static ERROR_HEIR_ALREADY_SET: &[u8] = b"Heir already set";
 pub static ERROR_TOO_MANY_HEIR_USERS: &[u8] = b"Heir has too many users";
 pub static ERROR_CANCEL_HEIR_WHILE_KNIGHT_SET: &[u8] = b"You can't remove your heir while knight is set";
+
+pub static ERROR_CHALLENGE_EXISTS: &[u8] = b"Challenge already exists";
+pub static ERROR_NO_CHALLENGE: &[u8] = b"No challenge exists";
+pub static ERROR_CAN_NOT_UNDELEGATE: &[u8] = b"Can not emergently undelegate";

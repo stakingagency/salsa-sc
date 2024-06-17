@@ -1,3 +1,4 @@
+use multiversx_sc::types::MultiValueEncoded;
 use multiversx_sc_scenario::{scenario_model::ScCallStep, ScenarioWorld, WhiteboxContract};
 use salsa::service::ServiceModule;
 
@@ -64,7 +65,7 @@ pub fn withdraw_all_test(
             .from(CALLER_ADDRESS_EXPR)
             .gas_limit(GAS_LIMIT_WITHDRAW_ALL),
         |sc| {
-            sc.withdraw_all();
+            sc.withdraw_all(Option::None, MultiValueEncoded::new());
         }
     );
 }

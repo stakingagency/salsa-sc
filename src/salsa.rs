@@ -10,6 +10,7 @@ pub mod exchanges;
 pub mod knights;
 pub mod heirs;
 pub mod providers;
+pub mod challenge;
 
 use crate::{common::config::*, common::{consts::*, storage_cache::StorageCache}, common::errors::*};
 
@@ -30,7 +31,24 @@ pub trait SalsaContract<ContractReader>:
     fn init(&self) {}
 
     #[upgrade]
-    fn upgrade(&self) {}
+    fn upgrade(&self) {
+        self.state().set(State::Inactive);
+        self.max_provider_fee().set_if_empty(MAX_PROVIDER_FEE);
+        if !self.provider_address().is_empty() {
+            require!(
+                self.egld_to_delegate().is_empty() && self.egld_to_undelegate().is_empty(),
+                "eGLD pending (un)delegation"
+            );
+
+            let mut old_provider = self.empty_provider();
+            let old_provider_address = self.provider_address().take();
+            old_provider.address = old_provider_address.clone();
+            old_provider.salsa_stake = self.total_egld_staked().get();
+            old_provider.state = State::Active;
+            self.providers().insert(old_provider_address, old_provider);
+        }
+        self.total_undelegation_requested().set_if_empty(self.egld_to_undelegate().get());
+    }
 
     // endpoints: liquid delegation
 
@@ -94,15 +112,15 @@ pub trait SalsaContract<ContractReader>:
     #[endpoint(unDelegate)]
     fn undelegate(
         &self,
-        undelegate_amount: OptionalValue<BigUint>,
+        undelegate_amount: Option<BigUint>,
         without_arbitrage: OptionalValue<bool>,
     ) {
         self.update_last_accessed();
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         let amount = match undelegate_amount {
-            OptionalValue::Some(value) => value,
-            OptionalValue::None => BigUint::zero()
+            Option::Some(value) => value,
+            Option::None => BigUint::zero()
         };
         let caller = self.blockchain().get_caller();
         self.check_knight_activated(&caller);
@@ -155,6 +173,8 @@ pub trait SalsaContract<ContractReader>:
         self.reduce_egld_to_delegate_undelegate(&mut storage_cache);
         self.burn_liquid_token(&payment_amount);
         storage_cache.egld_to_undelegate += &egld_to_undelegate;
+        self.total_undelegation_requested()
+            .update(|value| *value += &egld_to_undelegate);
         let current_epoch = self.blockchain().get_block_epoch();
         let unbond_period = current_epoch + storage_cache.unbond_period;
         self.add_user_undelegation(user, egld_to_undelegate, unbond_period);
@@ -406,15 +426,15 @@ pub trait SalsaContract<ContractReader>:
     fn undelegate_now(
         &self,
         min_amount_out: BigUint,
-        undelegate_amount: OptionalValue<BigUint>,
+        undelegate_amount: Option<BigUint>,
         without_arbitrage: OptionalValue<bool>,
     ) {
         self.update_last_accessed();
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
         let amount = match undelegate_amount {
-            OptionalValue::Some(value) => value,
-            OptionalValue::None => BigUint::zero()
+            Option::Some(value) => value,
+            Option::None => BigUint::zero()
         };
         let caller = self.blockchain().get_caller();
         self.check_no_knight_set(&caller);
@@ -496,6 +516,8 @@ pub trait SalsaContract<ContractReader>:
 
         // update storage
         storage_cache.egld_to_undelegate += &egld_to_undelegate;
+        self.total_undelegation_requested()
+            .update(|value| *value += &egld_to_undelegate);
         storage_cache.available_egld_reserve -= &egld_to_undelegate_with_fee;
         storage_cache.egld_reserve += &egld_to_undelegate - &egld_to_undelegate_with_fee;
 
