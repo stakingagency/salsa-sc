@@ -160,7 +160,6 @@ pub trait ProvidersModule:
             .contract(address.clone())
             .get_contract_config()
             .with_gas_limit(MIN_GAS_FOR_VIEW_CALL)
-            .async_call_promise()
             .with_callback(ProvidersModule::callbacks(self).get_contract_config_callback(address))
             .with_extra_gas_for_callback(MIN_GAS_FOR_VIEW_CALLBACK)
             .register_promise();
@@ -171,7 +170,6 @@ pub trait ProvidersModule:
             .contract(address.clone())
             .get_total_active_stake()
             .with_gas_limit(MIN_GAS_FOR_VIEW_CALL)
-            .async_call_promise()
             .with_callback(ProvidersModule::callbacks(self).get_total_active_stake_callback(address))
             .with_extra_gas_for_callback(MIN_GAS_FOR_VIEW_CALLBACK)
             .register_promise();
@@ -182,7 +180,6 @@ pub trait ProvidersModule:
             .contract(address.clone())
             .get_all_nodes_states()
             .with_gas_limit(MIN_GAS_FOR_GET_ALL_NODE_STATES_CALL)
-            .async_call_promise()
             .with_callback(ProvidersModule::callbacks(self).get_all_nodes_states_callback(address))
             .with_extra_gas_for_callback(MIN_GAS_FOR_VIEW_CALLBACK)
             .register_promise();
@@ -194,7 +191,6 @@ pub trait ProvidersModule:
             .contract(address.clone())
             .get_delegator_funds_data(self.blockchain().get_sc_address())
             .with_gas_limit(MIN_GAS_FOR_VIEW_CALL)
-            .async_call_promise()
             .with_callback(ProvidersModule::callbacks(self).get_delegator_funds_data_callback(address, current_epoch))
             .with_extra_gas_for_callback(MIN_GAS_FOR_VIEW_CALLBACK)
             .register_promise();

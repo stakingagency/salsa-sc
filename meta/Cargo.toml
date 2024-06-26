@@ -11,7 +11,7 @@ authors = [ "DrDelphi" ]
 path = ".."
 
 [dependencies.multiversx-sc]
-version = "0.48.0"
+version = "0.50.5"
 
 [dependencies.multiversx-sc-meta]
-version = "0.48.0"
+version = "0.50.5"

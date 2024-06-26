@@ -57,7 +57,6 @@ pub trait ServiceModule:
             .delegate()
             .with_gas_limit(MIN_GAS_FOR_ASYNC_CALL)
             .with_egld_transfer(amount.clone())
-            .async_call_promise()
             .with_callback(
                 ServiceModule::callbacks(self).delegate_all_callback(provider_address, &amount),
             )
@@ -128,7 +127,6 @@ pub trait ServiceModule:
             .contract(provider_address.clone())
             .undelegate(&amount)
             .with_gas_limit(MIN_GAS_FOR_ASYNC_CALL)
-            .async_call_promise()
             .with_callback(
                 ServiceModule::callbacks(self).undelegate_all_callback(provider_address, &amount),
             )
@@ -191,7 +189,6 @@ pub trait ServiceModule:
                 .contract(address.clone())
                 .claim_rewards()
                 .with_gas_limit(MIN_GAS_FOR_ASYNC_CALL)
-                .async_call_promise()
                 .with_callback(ServiceModule::callbacks(self).claim_rewards_callback())
                 .with_extra_gas_for_callback(MIN_GAS_FOR_CALLBACK)
                 .register_promise();
@@ -237,7 +234,6 @@ pub trait ServiceModule:
                     .contract(address.clone())
                     .withdraw()
                     .with_gas_limit(gas_for_async_withdraw)
-                    .async_call_promise()
                     .with_callback(ServiceModule::callbacks(self).withdraw_all_callback(address))
                     .with_extra_gas_for_callback(MIN_GAS_FOR_CALLBACK)
                     .register_promise();
@@ -266,7 +262,6 @@ pub trait ServiceModule:
                 .contract(address.clone())
                 .withdraw()
                 .with_gas_limit(gas_for_async_withdraw)
-                .async_call_promise()
                 .with_callback(ServiceModule::callbacks(self).withdraw_all_callback(address))
                 .with_extra_gas_for_callback(MIN_GAS_FOR_CALLBACK)
                 .register_promise();

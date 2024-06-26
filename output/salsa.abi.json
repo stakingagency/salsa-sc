@@ -1,11 +1,11 @@
 {
     "buildInfo": {
         "rustc": {
-            "version": "1.76.0-nightly",
-            "commitHash": "d86d65bbc19b928387f68427fcc3a0da498d8a19",
-            "commitDate": "2023-12-10",
+            "version": "1.81.0-nightly",
+            "commitHash": "fda509e817abeeecb5b76bc1de844f355675c81e",
+            "commitDate": "2024-06-25",
             "channel": "Nightly",
-            "short": "rustc 1.76.0-nightly (d86d65bbc 2023-12-10)"
+            "short": "rustc 1.81.0-nightly (fda509e81 2024-06-25)"
         },
         "contractCrate": {
             "name": "salsa",
@@ -13,7 +13,7 @@
         },
         "framework": {
             "name": "multiversx-sc",
-            "version": "0.48.1"
+            "version": "0.50.5"
         }
     },
     "name": "SalsaContract",
@@ -21,13 +21,11 @@
         "inputs": [],
         "outputs": []
     },
+    "upgradeConstructor": {
+        "inputs": [],
+        "outputs": []
+    },
     "endpoints": [
-        {
-            "name": "upgrade",
-            "mutability": "mutable",
-            "inputs": [],
-            "outputs": []
-        },
         {
             "docs": [
                 "    * Delegate\\n     "

@@ -169,7 +169,6 @@ pub trait PairLogicModule:
                     can_add_special_roles: true,
                 },
             )
-            .async_call()
             .with_callback(
                 self.callbacks()
                 .issue_lp_token_callback(
@@ -230,7 +229,6 @@ pub trait PairLogicModule:
                 &self.pair_lp_token_id(pair_id).get(),
                 roles[..].iter().cloned(),
             )
-            .async_call()
             .call_and_exit()
     }
 
