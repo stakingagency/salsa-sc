@@ -50,7 +50,6 @@ pub trait ServiceModule:
         provider.funds_last_update_timestamp = 0;
         provider.funds_last_update_epoch = 0;
         provider.stake_last_update_timestamp = 0;
-        provider.salsa_stake += &amount;
         self.providers().insert(provider_address.clone(), provider);
 
         self.service_delegation_proxy_obj()
@@ -76,13 +75,14 @@ pub trait ServiceModule:
         #[call_result] result: ManagedAsyncCallResult<()>,
     ) {
         match result {
-            ManagedAsyncCallResult::Ok(()) => {}
+            ManagedAsyncCallResult::Ok(()) => {
+                let mut provider = self.get_provider(&provider_address);
+                provider.salsa_stake += egld_to_delegate;
+                self.providers().insert(provider_address, provider);
+            }
             ManagedAsyncCallResult::Err(_) => {
                 self.egld_to_delegate()
                     .update(|value| *value += egld_to_delegate);
-                let mut provider = self.get_provider(&provider_address);
-                provider.salsa_stake -= egld_to_delegate;
-                self.providers().insert(provider_address, provider);
             }
         }
     }
@@ -122,7 +122,6 @@ pub trait ServiceModule:
         provider.funds_last_update_timestamp = 0;
         provider.funds_last_update_epoch = 0;
         provider.stake_last_update_timestamp = 0;
-        provider.salsa_stake -= &amount;
         self.providers().insert(provider_address.clone(), provider);
 
         self.service_delegation_proxy_obj()
@@ -150,13 +149,13 @@ pub trait ServiceModule:
             ManagedAsyncCallResult::Ok(()) => {
                 self.total_undelegated()
                     .update(|value| *value += egld_to_undelegate);
+                let mut provider = self.get_provider(&provider_address);
+                provider.salsa_stake -= egld_to_undelegate;
+                self.providers().insert(provider_address, provider);
             }
             ManagedAsyncCallResult::Err(_) => {
                 self.egld_to_undelegate()
                     .update(|value| *value += egld_to_undelegate);
-                let mut provider = self.get_provider(&provider_address);
-                provider.salsa_stake += egld_to_undelegate;
-                self.providers().insert(provider_address, provider);
             }
         }
     }
