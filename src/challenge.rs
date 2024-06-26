@@ -70,7 +70,7 @@ pub trait ChallengeModule:
         } else {
             provider.salsa_stake
         };
-        storage_cache.egld_to_undelegate = BigUint::zero();
+        storage_cache.egld_to_undelegate -= &amount;
         drop(storage_cache);
         self.challenge_delegation_proxy_obj()
             .contract(provider_address)
@@ -78,7 +78,7 @@ pub trait ChallengeModule:
             .with_gas_limit(gas_for_async_undelegate)
             .async_call_promise()
             .with_callback(
-                ChallengeModule::callbacks(self).emergently_undelegate_all_callback(&amount),
+                ChallengeModule::callbacks(self).emergently_undelegate_all_callback(provider.address, &amount),
             )
             .with_extra_gas_for_callback(MIN_GAS_FOR_CALLBACK)
             .register_promise();
@@ -87,6 +87,7 @@ pub trait ChallengeModule:
     #[promises_callback]
     fn emergently_undelegate_all_callback(
         &self,
+        provider_address: ManagedAddress,
         egld_to_undelegate: &BigUint,
         #[call_result] result: ManagedAsyncCallResult<()>,
     ) {
@@ -94,6 +95,9 @@ pub trait ChallengeModule:
             ManagedAsyncCallResult::Ok(()) => {
                 self.total_undelegated()
                     .update(|value| *value += egld_to_undelegate);
+                let mut provider = self.get_provider(&provider_address);
+                provider.salsa_stake -= egld_to_undelegate;
+                self.providers().insert(provider_address, provider);
             }
             ManagedAsyncCallResult::Err(_) => {
                 self.egld_to_undelegate()

@@ -24,11 +24,11 @@ pub trait ProvidersModule:
             ERROR_TOO_MANY_PROVIDERS
         );
 
-        // commented for the tests to pass
-        // require!(
-        //     self.blockchain().get_shard_of_address(&address) == METACHAIN_SHARD_ID,
-        //     ERROR_ADDRESS_NOT_ON_METACHAIN
-        // );
+        // comment for the tests to pass
+        require!(
+            self.blockchain().get_shard_of_address(&address) == METACHAIN_SHARD_ID,
+            ERROR_ADDRESS_NOT_ON_METACHAIN
+        );
 
         let mut provider = self.empty_provider();
         provider.state = State::Active;
@@ -297,14 +297,12 @@ pub trait ProvidersModule:
                 require!(delegator_funds_data.len() == 4, ERROR_INVALID_SC_RESPONSE);
 
                 let funds_data = delegator_funds_data.into_vec_of_buffers();
-                // provider.salsa_stake = BigUint::from(funds_data.get(PROVIDER_FUNDS_DELEGATED_INDEX).clone_value());
                 provider.salsa_rewards = BigUint::from(funds_data.get(PROVIDER_FUNDS_REWARDS_INDEX).clone_value());
                 provider.salsa_undelegated = BigUint::from(funds_data.get(PROVIDER_FUNDS_UNDELEGATED_INDEX).clone_value());
                 provider.salsa_withdrawable = BigUint::from(funds_data.get(PROVIDER_FUNDS_WITHDRAWABLE_INDEX).clone_value());
             }
             ManagedAsyncCallResult::Err(err) => {
                 if err.err_msg == ManagedBuffer::new_from_bytes(ERROR_NOT_DELEGATOR) {
-                    // provider.salsa_stake = BigUint::zero();
                     provider.salsa_rewards = BigUint::zero();
                     provider.salsa_undelegated = BigUint::zero();
                     provider.salsa_withdrawable = BigUint::zero();
