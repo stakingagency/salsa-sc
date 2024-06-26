@@ -46,7 +46,6 @@ use multiversx_sc_scenario::{
 
 pub fn world() -> ScenarioWorld {
     let mut blockchain = ScenarioWorld::new();
-    blockchain.set_current_dir_from_workspace(".");
 
     blockchain.register_contract(
         SALSA_PATH_EXPR,

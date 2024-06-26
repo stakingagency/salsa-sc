@@ -76,7 +76,6 @@ pub trait ChallengeModule:
             .contract(provider_address)
             .undelegate(&amount)
             .with_gas_limit(gas_for_async_undelegate)
-            .async_call_promise()
             .with_callback(
                 ChallengeModule::callbacks(self).emergently_undelegate_all_callback(provider.address, &amount),
             )
