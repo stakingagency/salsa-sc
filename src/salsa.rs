@@ -42,11 +42,13 @@ pub trait SalsaContract<ContractReader>:
 
             let mut old_provider = self.empty_provider();
             let old_provider_address = self.provider_address().take();
-            old_provider.address = old_provider_address.clone();
-            old_provider.salsa_stake = self.total_egld_staked().get();
-            old_provider.state = State::Active;
-            self.providers().insert(old_provider_address, old_provider);
-        }
+            if !self.providers().contains_key(&old_provider_address) {
+                old_provider.address = old_provider_address.clone();
+                old_provider.salsa_stake = self.total_egld_staked().get();
+                old_provider.state = State::Active;
+                self.providers().insert(old_provider_address, old_provider);
+            }
+    }
         self.total_undelegation_requested().set_if_empty(self.egld_to_undelegate().get());
     }
 
@@ -108,7 +110,6 @@ pub trait SalsaContract<ContractReader>:
      * Undelegate
      */
     #[payable("*")]
-    #[allow_multiple_var_args]
     #[endpoint(unDelegate)]
     fn undelegate(
         &self,
@@ -421,7 +422,6 @@ pub trait SalsaContract<ContractReader>:
      * Undelegate now
      */
     #[payable("*")]
-    #[allow_multiple_var_args]
     #[endpoint(unDelegateNow)]
     fn undelegate_now(
         &self,
