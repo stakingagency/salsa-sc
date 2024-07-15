@@ -32,7 +32,7 @@ where
             lp_balance,
         };
         let is_active = pair.enabled && (pair.state == State::Active);
-        let fee = sc_ref.get_onedex_fee();
+        let fee = pair.total_fee_percentage;
         
         OnedexCache {
             pair_id: sc_ref.onedex_pair_id().get(),

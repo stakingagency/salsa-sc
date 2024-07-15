@@ -30,7 +30,9 @@ pub trait ViewModule:
             second_token_reserve: self.pair_second_token_reserve(pair_id).get(),
             lp_token_supply: self.pair_lp_token_supply(pair_id).get(),
 
-            lp_token_roles_are_set
+            lp_token_roles_are_set,
+
+            total_fee_percentage: 100
         }
     }
 }
