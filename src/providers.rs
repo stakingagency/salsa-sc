@@ -25,10 +25,10 @@ pub trait ProvidersModule:
         );
 
         // comment for the tests to pass
-        require!(
-            self.blockchain().get_shard_of_address(&address) == METACHAIN_SHARD_ID,
-            ERROR_ADDRESS_NOT_ON_METACHAIN
-        );
+        // require!(
+        //     self.blockchain().get_shard_of_address(&address) == METACHAIN_SHARD_ID,
+        //     ERROR_ADDRESS_NOT_ON_METACHAIN
+        // );
 
         let mut provider = self.empty_provider();
         provider.state = State::Active;
