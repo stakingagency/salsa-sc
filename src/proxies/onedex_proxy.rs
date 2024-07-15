@@ -27,7 +27,9 @@ pub struct Pair<M: ManagedTypeApi> {
     pub second_token_reserve: BigUint<M>,
     pub lp_token_supply: BigUint<M>,
 
-    pub lp_token_roles_are_set: bool
+    pub lp_token_roles_are_set: bool,
+
+    pub total_fee_percentage: u64
 }
 
 #[multiversx_sc::proxy]
