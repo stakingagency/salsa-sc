@@ -31,26 +31,7 @@ pub trait SalsaContract<ContractReader>:
     fn init(&self) {}
 
     #[upgrade]
-    fn upgrade(&self) {
-        self.state().set(State::Inactive);
-        self.max_provider_fee().set_if_empty(MAX_PROVIDER_FEE);
-        if !self.provider_address().is_empty() {
-            require!(
-                self.egld_to_delegate().is_empty() && self.egld_to_undelegate().is_empty(),
-                "eGLD pending (un)delegation"
-            );
-
-            let mut old_provider = self.empty_provider();
-            let old_provider_address = self.provider_address().take();
-            if !self.providers().contains_key(&old_provider_address) {
-                old_provider.address = old_provider_address.clone();
-                old_provider.salsa_stake = self.total_egld_staked().get();
-                old_provider.state = State::Active;
-                self.providers().insert(old_provider_address, old_provider);
-            }
-    }
-        self.total_undelegation_requested().set_if_empty(self.egld_to_undelegate().get());
-    }
+    fn upgrade(&self) {}
 
     // endpoints: liquid delegation
 
@@ -366,14 +347,14 @@ pub trait SalsaContract<ContractReader>:
             ERROR_REMOVE_RESERVE_TOO_SOON
         );
 
+        self.compute_withdrawn();
+
         let mut storage_cache = StorageCache::new(self);
         let old_reserve_points = self.users_reserve_points(&caller).get();
         let old_reserve =
             self.compute_reserve_egld_amount(&old_reserve_points, &storage_cache.egld_reserve, &storage_cache.reserve_points);
         require!(old_reserve > 0, ERROR_USER_NOT_PROVIDER);
         require!(old_reserve >= amount, ERROR_NOT_ENOUGH_FUNDS);
-
-        self.compute_withdrawn();
 
         let mut egld_to_remove = amount.clone();
         let mut points_to_remove =
