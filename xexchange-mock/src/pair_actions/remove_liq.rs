@@ -52,7 +52,7 @@ pub trait RemoveLiquidityModule:
         );
 
         let mut remove_liq_context = RemoveLiquidityContext::new(
-            payment.amount,
+            payment.amount.clone(),
             first_token_amount_min,
             second_token_amount_min,
         );
@@ -72,8 +72,8 @@ pub trait RemoveLiquidityModule:
         let output_payments =
             self.build_remove_liq_output_payments(&storage_cache, &remove_liq_context);
 
-        let first_payment_after = output_payments.get(0);
-        let second_payment_after = output_payments.get(1);
+        let first_payment_after = output_payments.get(0).clone();
+        let second_payment_after = output_payments.get(1).clone();
         require!(
             first_payment_after.amount >= remove_liq_context.first_token_amount_min,
             ERROR_SLIPPAGE_ON_REMOVE

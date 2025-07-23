@@ -52,7 +52,6 @@ pub trait ServiceModule:
             .delegate()
             .with_gas_limit(MIN_GAS_FOR_ASYNC_CALL)
             .with_egld_transfer(amount.clone())
-            .async_call_promise()
             .with_callback(
                 ServiceModule::callbacks(self).delegate_all_callback(provider_address, &amount),
             )
@@ -113,7 +112,6 @@ pub trait ServiceModule:
             .contract(provider_address.clone())
             .undelegate(&amount)
             .with_gas_limit(MIN_GAS_FOR_ASYNC_CALL)
-            .async_call_promise()
             .with_callback(
                 ServiceModule::callbacks(self).undelegate_all_callback(provider_address, &amount),
             )
@@ -169,7 +167,6 @@ pub trait ServiceModule:
                 .contract(address.clone())
                 .claim_rewards()
                 .with_gas_limit(MIN_GAS_FOR_ASYNC_CALL)
-                .async_call_promise()
                 .with_callback(ServiceModule::callbacks(self).claim_rewards_callback(address))
                 .with_extra_gas_for_callback(MIN_GAS_FOR_CALLBACK)
                 .register_promise();
@@ -187,7 +184,7 @@ pub trait ServiceModule:
         provider.funds_last_update_epoch = 0;
         match result {
             ManagedAsyncCallResult::Ok(()) => {
-                let claimed_amount = self.call_value().egld_value().clone_value();
+                let claimed_amount = self.call_value().egld().clone_value();
                 let commission = &claimed_amount * self.service_fee().get() / MAX_PERCENT;
                 let left_amount = &claimed_amount - &commission;
                 self.total_egld_staked()
@@ -227,7 +224,6 @@ pub trait ServiceModule:
                 .contract(address.clone())
                 .withdraw()
                 .with_gas_limit(MIN_GAS_FOR_ASYNC_CALL)
-                .async_call_promise()
                 .with_callback(ServiceModule::callbacks(self).withdraw_all_callback(address))
                 .with_extra_gas_for_callback(MIN_GAS_FOR_CALLBACK)
                 .register_promise();
@@ -245,7 +241,7 @@ pub trait ServiceModule:
         provider.funds_last_update_epoch = 0;
         match result {
             ManagedAsyncCallResult::Ok(()) => {
-                let withdrawn_amount = self.call_value().egld_value();
+                let withdrawn_amount = self.call_value().egld();
                 self.total_withdrawn_egld()
                     .update(|value| *value += withdrawn_amount.clone_value());
                 provider.salsa_withdrawable = BigUint::zero();

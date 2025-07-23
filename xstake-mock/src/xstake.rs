@@ -146,8 +146,8 @@ pub trait XStakeMock<ContractReader>:
                     break
                 }
             }
-            _ = stake.rewards.set(i, &rewards);
-            _ = stake.remaining_rewards.set(i, &remaining_rewards);
+            _ = stake.rewards.set(i, rewards);
+            _ = stake.remaining_rewards.set(i, remaining_rewards);
         }
         require!(found_tokens > 0, ERROR_NO_REWARD_ADDED);
         require!(found_tokens == payments.len(), ERROR_UNKNOWN_TOKEN);
@@ -171,7 +171,7 @@ pub trait XStakeMock<ContractReader>:
             let mut rewards = stake.rewards.get(i).clone_value();
             let mut remaining_rewards = stake.remaining_rewards.get(i).clone_value();
             for j in 0..payments.len() {
-                let mut payment = payments.get(j);
+                let mut payment = payments.get(j).clone();
                 require!(payment.amount > 0, ERROR_ZERO_VALUE_TRANSFER);
 
                 if stake.reward_tokens.get(i).clone_value() == payment.token_identifier {
@@ -185,8 +185,8 @@ pub trait XStakeMock<ContractReader>:
                     break
                 }
             }
-            _ = stake.rewards.set(i, &rewards);
-            _ = stake.remaining_rewards.set(i, &remaining_rewards);
+            _ = stake.rewards.set(i, rewards);
+            _ = stake.remaining_rewards.set(i, remaining_rewards);
         }
         require!(found_tokens > 0, ERROR_NO_REWARD_WITHDRAWN);
         require!(found_tokens == payments.len(), ERROR_UNKNOWN_TOKEN);

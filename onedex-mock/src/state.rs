@@ -1,14 +1,16 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Debug)]
+#[type_abi]
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, PartialEq, Debug)]
 pub enum State {
     Inactive,
     Active,
     ActiveButNoSwap,
 }
 
-#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, Debug)]
+#[type_abi]
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, Debug)]
 pub struct Pair<M: ManagedTypeApi> {
     pub pair_id: usize,
     pub state: State,

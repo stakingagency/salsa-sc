@@ -8,10 +8,10 @@ pub trait TokenSendModule {
         destination: &ManagedAddress,
         payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
     ) {
-        let mut non_zero_payments = ManagedVec::new();
+        let mut non_zero_payments: ManagedVec<EsdtTokenPayment> = ManagedVec::new();
         for payment in payments {
             if payment.amount > 0u32 {
-                non_zero_payments.push(payment);
+                non_zero_payments.push(payment.clone());
             }
         }
 

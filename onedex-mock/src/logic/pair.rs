@@ -20,7 +20,7 @@ pub trait PairLogicModule:
         &self,
         pair_id: usize
     ) {
-        let registering_cost = self.call_value().egld_value().clone_value();
+        let registering_cost = self.call_value().egld().clone_value();
 
         require!(
             registering_cost == self.registering_cost().get(),
@@ -122,7 +122,7 @@ pub trait PairLogicModule:
         self.require_pair_owner_or_admin(pair_id);
 
         let caller = self.blockchain().get_caller();
-        let issue_cost = self.call_value().egld_value();
+        let issue_cost = self.call_value().egld();
 
         require!(
             self.pair_lp_token_id(pair_id).is_empty(),
@@ -169,14 +169,13 @@ pub trait PairLogicModule:
                     can_add_special_roles: true,
                 },
             )
-            .async_call()
             .with_callback(
                 self.callbacks()
                 .issue_lp_token_callback(
                     &caller,
                     pair_id
                 ))
-            .call_and_exit()
+            .async_call_and_exit()
     }
 
     #[callback]
@@ -197,7 +196,7 @@ pub trait PairLogicModule:
                 self.lp_token_pair_id_map().insert(token_identifier, pair_id);
             },
             ManagedAsyncCallResult::Err(_) => {
-                let issue_cost = self.call_value().egld_value();
+                let issue_cost = self.call_value().egld();
                 
                 self.send()
                     .direct_egld(caller, &issue_cost);
@@ -230,8 +229,7 @@ pub trait PairLogicModule:
                 &self.pair_lp_token_id(pair_id).get(),
                 roles[..].iter().cloned(),
             )
-            .async_call()
-            .call_and_exit()
+            .async_call_and_exit()
     }
 
 

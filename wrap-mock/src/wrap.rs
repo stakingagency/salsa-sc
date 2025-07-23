@@ -12,7 +12,7 @@ pub trait WrapMock<ContractReader> {
     #[payable("EGLD")]
     #[endpoint(wrapEgld)]
     fn wrap_egld(&self) -> EsdtTokenPayment<Self::Api> {
-        let payment_amount = self.call_value().egld_value().clone_value();
+        let payment_amount = self.call_value().egld().clone_value();
         require!(payment_amount > 0u32, "Payment must be more than 0");
 
         let wrapped_egld_token_id = self.wrapped_egld_token_id().get();
@@ -30,8 +30,8 @@ pub trait WrapMock<ContractReader> {
         let (payment_token, payment_amount) = self.call_value().single_fungible_esdt();
         let wrapped_egld_token_id = self.wrapped_egld_token_id().get();
 
-        require!(payment_token == wrapped_egld_token_id, "Wrong esdt token");
-        require!(payment_amount > 0u32, "Must pay more than 0 tokens!");
+        require!(payment_token.clone_value() == wrapped_egld_token_id, "Wrong esdt token");
+        require!(payment_amount.clone_value() > 0u32, "Must pay more than 0 tokens!");
 
         let caller = self.blockchain().get_caller();
         self.send().direct_egld(&caller, &payment_amount);
