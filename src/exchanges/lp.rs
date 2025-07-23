@@ -525,7 +525,7 @@ pub trait LpModule:
             let egld_per_lp = &one * &lp.egld_reserve / &lp.lp_supply;
             if best_price > egld_per_lp || best_price == 0 {
                 best_price = egld_per_lp;
-                best_exchange = lp.exchange;
+                best_exchange = lp.exchange.clone();
                 lp_to_remove = amount * &lp.lp_supply / &lp.egld_reserve;
                 lp_to_remove += BigUint::from(1u64);
             }
@@ -547,7 +547,7 @@ pub trait LpModule:
             let legld_per_lp = &one * &lp.liquid_reserve / &lp.lp_supply;
             if best_price > legld_per_lp || best_price == 0 {
                 best_price = legld_per_lp;
-                best_exchange = lp.exchange;
+                best_exchange = lp.exchange.clone();
                 lp_to_remove = amount * &lp.lp_supply / &lp.liquid_reserve;
                 lp_to_remove += BigUint::from(1u64);
             }

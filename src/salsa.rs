@@ -50,7 +50,7 @@ pub trait SalsaContract<ContractReader>:
         self.update_last_accessed();
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
-        let amount = self.call_value().egld_value();
+        let amount = self.call_value().egld();
         let delegate_amount = amount.clone_value();
         require!(
             delegate_amount >= MIN_EGLD,
@@ -311,7 +311,7 @@ pub trait SalsaContract<ContractReader>:
         let current_epoch = self.blockchain().get_block_epoch();
         self.add_reserve_epoch(&caller).set(current_epoch);
 
-        let reserve_amount = self.call_value().egld_value();
+        let reserve_amount = self.call_value().egld();
         require!(
             reserve_amount.clone_value() >= MIN_EGLD,
             ERROR_INSUFFICIENT_AMOUNT

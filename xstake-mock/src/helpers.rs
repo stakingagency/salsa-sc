@@ -33,9 +33,9 @@ pub trait HelpersModule:
                 let new_rps = &new_claimable_rewards * RATIO_MULTIPLIER / &staked;
                 let rps = stake.rps.get(i).clone_value();
 
-                _ = stake.rps.set(i, &(rps + new_rps));
-                _ = stake.claimable_rewards.set(i, &(claimable_rewards + &new_claimable_rewards));
-                _ = stake.remaining_rewards.set(i, &(remaining_rewards - new_claimable_rewards));
+                _ = stake.rps.set(i, rps + new_rps);
+                _ = stake.claimable_rewards.set(i, claimable_rewards + &new_claimable_rewards);
+                _ = stake.remaining_rewards.set(i, remaining_rewards - new_claimable_rewards);
             }
         }
         stake.last_rps_update_nonce = current_nonce;
@@ -53,8 +53,8 @@ pub trait HelpersModule:
             let user_rps = user_stake.rps.get(i).clone_value();
             let rps = stake.rps.get(i).clone_value();
             let reward = &staked * &(&rps - &user_rps) / RATIO_MULTIPLIER;
-            _ = user_stake.rps.set(i, &rps);
-            _ = user_stake.rewards.set(i, &(old_reward + &reward));
+            _ = user_stake.rps.set(i, rps);
+            _ = user_stake.rewards.set(i, old_reward + &reward);
         }
     }
 }

@@ -27,7 +27,7 @@ pub trait DelegationMock<ContractReader> {
     #[endpoint(delegate)]
     fn delegate(&self) {
         let caller = self.blockchain().get_caller();
-        let payment_amount = self.call_value().egld_value();
+        let payment_amount = self.call_value().egld();
         let delegation = self.address_deposit(&caller).get();
         if delegation == 0 {
             self.address_last_claim_epoch(&caller).set(self.blockchain().get_block_epoch());

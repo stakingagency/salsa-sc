@@ -52,7 +52,7 @@ pub trait UserModule:
         for i in 0..stake.stake_tokens.len() {
             let mut staked = stake.staked.get(i).clone_value();
             for j in 0..payments.len() {
-                let mut payment = payments.get(j);
+                let mut payment = payments.get(j).clone();
                 if stake.stake_tokens.get(i).clone_value() == payment.token_identifier {
                     let new_stake = &stake.stake_ratios.get(i).clone_value() * &min_ratio / RATIO_MULTIPLIER;
                     payment.amount -= &new_stake;
@@ -60,11 +60,11 @@ pub trait UserModule:
                         refunds.push(payment);
                     }
                     staked += &new_stake;
-                    _ = user_stake.staked.set(i, &(user_stake.staked.get(i).clone_value() + new_stake));
+                    _ = user_stake.staked.set(i, user_stake.staked.get(i).clone_value() + new_stake);
                     break
                 }
             }
-            _ = stake.staked.set(i, &staked);
+            _ = stake.staked.set(i, staked);
         }
         if !refunds.is_empty() {
             self.send().direct_multi(&caller, &refunds);
@@ -112,7 +112,7 @@ pub trait UserModule:
         for i in 0..stake.stake_tokens.len() {
             let mut staked = stake.staked.get(i).clone_value();
             for j in 0..payments.len() {
-                let mut payment = payments.get(j);
+                let mut payment = payments.get(j).clone();
                 if stake.stake_tokens.get(i).clone_value() == payment.token_identifier {
                     let unstake = &stake.stake_ratios.get(i).clone_value() * &min_ratio / RATIO_MULTIPLIER;
                     require!(staked >= unstake, ERROR_NOT_ENOUGH_STAKE);
@@ -124,11 +124,11 @@ pub trait UserModule:
                     if new_user_stake > 0 {
                         user_still_has_funds = true;
                     }
-                    _ = user_stake.staked.set(i, &new_user_stake);
+                    _ = user_stake.staked.set(i, new_user_stake);
                     break
                 }
             }
-            _ = stake.staked.set(i, &staked);
+            _ = stake.staked.set(i, staked);
         }
         self.stake(stake_id).set(&stake);
         self.send().direct_multi(&caller, &unstake_payments);
@@ -147,7 +147,7 @@ pub trait UserModule:
                 user_has_rewards = true;
                 let token = stake.reward_tokens.get(i).clone_value();
                 claim_payments.push(EsdtTokenPayment::new(token, 0, reward));
-                _ = user_stake.rewards.set(i, &BigUint::zero());
+                _ = user_stake.rewards.set(i, BigUint::zero());
             }
             if user_has_rewards {
                 self.send().direct_multi(&caller, &claim_payments);
@@ -182,7 +182,7 @@ pub trait UserModule:
             user_has_rewards = true;
             let token = stake.reward_tokens.get(i).clone_value();
             claim_payments.push(EsdtTokenPayment::new(token, 0, reward));
-            _ = user_stake.rewards.set(i, &BigUint::zero());
+            _ = user_stake.rewards.set(i, BigUint::zero());
         }
         require!(user_has_rewards, ERROR_NOTHING_TO_CLAIM);
 

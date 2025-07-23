@@ -11,7 +11,8 @@ pub type AddLiquidityResultType<BigUint> =
 pub type RemoveLiquidityResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
-#[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Copy, Clone, Debug)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, PartialEq, Copy, Clone, Debug)]
 pub enum State {
     Inactive,
     Active,

@@ -1,3 +1,3 @@
 fn main() {
-    multiversx_sc_meta::cli_main::<xstake_mock::AbiProvider>();
+    multiversx_sc_meta_lib::cli_main::<xstake_mock::AbiProvider>();
 }
