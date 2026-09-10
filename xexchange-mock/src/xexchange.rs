@@ -44,9 +44,11 @@ pub trait XexchangeMock<ContractReader>:
         );
         require!(first_token_id != second_token_id, ERROR_SAME_TOKENS);
 
-        let lp_token_id = self.lp_token_identifier().get();
-        require!(first_token_id != lp_token_id, ERROR_POOL_TOKEN_IS_PLT);
-        require!(second_token_id != lp_token_id, ERROR_POOL_TOKEN_IS_PLT);
+        if !self.lp_token_identifier().is_empty() {
+            let lp_token_id = self.lp_token_identifier().get();
+            require!(first_token_id != lp_token_id, ERROR_POOL_TOKEN_IS_PLT);
+            require!(second_token_id != lp_token_id, ERROR_POOL_TOKEN_IS_PLT);
+        }
 
         self.set_fee_percents(TOTAL_FEE, SPECIAL_FEE);
         self.state().set(State::Inactive);

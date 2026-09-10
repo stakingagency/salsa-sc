@@ -1,19 +1,12 @@
 {
     "buildInfo": {
-        "rustc": {
-            "version": "1.81.0-nightly",
-            "commitHash": "fda509e817abeeecb5b76bc1de844f355675c81e",
-            "commitDate": "2024-06-25",
-            "channel": "Nightly",
-            "short": "rustc 1.81.0-nightly (fda509e81 2024-06-25)"
-        },
         "contractCrate": {
             "name": "salsa",
             "version": "0.0.2"
         },
         "framework": {
             "name": "multiversx-sc",
-            "version": "0.50.5"
+            "version": "0.66.2"
         }
     },
     "name": "SalsaContract",
@@ -53,6 +46,7 @@
                 "    * Undelegate\\n     "
             ],
             "name": "unDelegate",
+            "rustMethodName": "undelegate",
             "mutability": "mutable",
             "payableInTokens": [
                 "*"
@@ -84,6 +78,7 @@
                 "    * Add to custody\\n     "
             ],
             "name": "addToCustody",
+            "rustMethodName": "add_to_custody",
             "mutability": "mutable",
             "payableInTokens": [
                 "*"
@@ -102,6 +97,7 @@
                 "    * Remove from custody\\n     "
             ],
             "name": "removeFromCustody",
+            "rustMethodName": "remove_from_custody",
             "mutability": "mutable",
             "inputs": [
                 {
@@ -121,6 +117,7 @@
                 "    * Add reserve\\n     "
             ],
             "name": "addReserve",
+            "rustMethodName": "add_reserve",
             "mutability": "mutable",
             "payableInTokens": [
                 "EGLD"
@@ -139,6 +136,7 @@
                 "    * Remove reserve\\n     "
             ],
             "name": "removeReserve",
+            "rustMethodName": "remove_reserve",
             "mutability": "mutable",
             "inputs": [
                 {
@@ -158,6 +156,7 @@
                 "    * Undelegate now\\n     "
             ],
             "name": "unDelegateNow",
+            "rustMethodName": "undelegate_now",
             "mutability": "mutable",
             "payableInTokens": [
                 "*"
@@ -181,6 +180,7 @@
         },
         {
             "name": "unDelegateKnight",
+            "rustMethodName": "undelegate_knight",
             "mutability": "mutable",
             "inputs": [
                 {
@@ -204,6 +204,7 @@
                 "    * Undelegate now knight\\n     "
             ],
             "name": "unDelegateNowKnight",
+            "rustMethodName": "undelegate_now_knight",
             "mutability": "mutable",
             "inputs": [
                 {
@@ -231,6 +232,7 @@
                 "    * Withdraw knight\\n     "
             ],
             "name": "withdrawKnight",
+            "rustMethodName": "withdraw_knight",
             "mutability": "mutable",
             "inputs": [
                 {
@@ -245,6 +247,7 @@
                 "    * Remove reserve knight\\n     "
             ],
             "name": "removeReserveKnight",
+            "rustMethodName": "remove_reserve_knight",
             "mutability": "mutable",
             "inputs": [
                 {
@@ -268,6 +271,7 @@
                 "    * Undelegate heir\\n     "
             ],
             "name": "unDelegateHeir",
+            "rustMethodName": "undelegate_heir",
             "mutability": "mutable",
             "inputs": [
                 {
@@ -291,6 +295,7 @@
                 "    * Undelegate now heir\\n     "
             ],
             "name": "unDelegateNowHeir",
+            "rustMethodName": "undelegate_now_heir",
             "mutability": "mutable",
             "inputs": [
                 {
@@ -318,6 +323,7 @@
                 "    * Withdraw heir\\n     "
             ],
             "name": "withdrawHeir",
+            "rustMethodName": "withdraw_heir",
             "mutability": "mutable",
             "inputs": [
                 {
@@ -332,6 +338,7 @@
                 "    * Remove reserve heir\\n     "
             ],
             "name": "removeReserveHeir",
+            "rustMethodName": "remove_reserve_heir",
             "mutability": "mutable",
             "inputs": [
                 {
@@ -355,12 +362,14 @@
                 "    * Helpers\\n     "
             ],
             "name": "reduceEgldToDelegateUndelegate",
+            "rustMethodName": "call_reduce_egld_to_delegate_undelegate",
             "mutability": "mutable",
             "inputs": [],
             "outputs": []
         },
         {
             "name": "registerLiquidToken",
+            "rustMethodName": "register_liquid_token",
             "onlyOwner": true,
             "mutability": "mutable",
             "payableInTokens": [
@@ -384,6 +393,7 @@
         },
         {
             "name": "getLiquidTokenId",
+            "rustMethodName": "liquid_token_id",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
@@ -394,6 +404,7 @@
         },
         {
             "name": "getLiquidTokenSupply",
+            "rustMethodName": "liquid_token_supply",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
@@ -404,6 +415,7 @@
         },
         {
             "name": "setStateActive",
+            "rustMethodName": "set_state_active",
             "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [],
@@ -411,6 +423,7 @@
         },
         {
             "name": "setStateInactive",
+            "rustMethodName": "set_state_inactive",
             "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [],
@@ -418,6 +431,7 @@
         },
         {
             "name": "getState",
+            "rustMethodName": "state",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
@@ -428,6 +442,7 @@
         },
         {
             "name": "getProviders",
+            "rustMethodName": "providers",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
@@ -439,6 +454,7 @@
         },
         {
             "name": "getUnbondPeriod",
+            "rustMethodName": "unbond_period",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
@@ -449,6 +465,7 @@
         },
         {
             "name": "setUnbondPeriod",
+            "rustMethodName": "set_unbond_period",
             "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [
@@ -461,6 +478,7 @@
         },
         {
             "name": "getServiceFee",
+            "rustMethodName": "service_fee",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
@@ -471,6 +489,7 @@
         },
         {
             "name": "setServiceFee",
+            "rustMethodName": "set_service_fee",
             "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [
@@ -483,6 +502,7 @@
         },
         {
             "name": "getMaxProviderFee",
+            "rustMethodName": "max_provider_fee",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
@@ -493,6 +513,7 @@
         },
         {
             "name": "setMaxProviderFee",
+            "rustMethodName": "set_max_provider_fee",
             "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [
@@ -505,6 +526,7 @@
         },
         {
             "name": "getUserUndelegations",
+            "rustMethodName": "luser_undelegations",
             "mutability": "readonly",
             "inputs": [
                 {
@@ -521,6 +543,7 @@
         },
         {
             "name": "getTotalEgldStaked",
+            "rustMethodName": "total_egld_staked",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
@@ -531,6 +554,7 @@
         },
         {
             "name": "getUserWithdrawnEgld",
+            "rustMethodName": "user_withdrawn_egld",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
@@ -541,6 +565,7 @@
         },
         {
             "name": "getTotalWithdrawnEgld",
+            "rustMethodName": "total_withdrawn_egld",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
@@ -551,6 +576,7 @@
         },
         {
             "name": "getTotalUserUndelegations",
+            "rustMethodName": "ltotal_user_undelegations",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
@@ -562,6 +588,7 @@
         },
         {
             "name": "getEgldReserve",
+            "rustMethodName": "egld_reserve",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
@@ -572,6 +599,7 @@
         },
         {
             "name": "getReservePoints",
+            "rustMethodName": "reserve_points",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
@@ -582,6 +610,7 @@
         },
         {
             "name": "getAvailableEgldReserve",
+            "rustMethodName": "available_egld_reserve",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
@@ -592,6 +621,7 @@
         },
         {
             "name": "getReserveUndelegations",
+            "rustMethodName": "lreserve_undelegations",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
@@ -603,6 +633,7 @@
         },
         {
             "name": "getUsersReservePoints",
+            "rustMethodName": "users_reserve_points",
             "mutability": "readonly",
             "inputs": [
                 {
@@ -618,6 +649,7 @@
         },
         {
             "name": "setUndelegateNowFee",
+            "rustMethodName": "set_undelegate_now_fee",
             "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [
@@ -630,6 +662,7 @@
         },
         {
             "name": "getUndelegateNowFee",
+            "rustMethodName": "undelegate_now_fee",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
@@ -640,6 +673,7 @@
         },
         {
             "name": "getReservePointsAmount",
+            "rustMethodName": "get_reserve_points_amount",
             "mutability": "readonly",
             "inputs": [
                 {
@@ -655,6 +689,7 @@
         },
         {
             "name": "getReserveEgldAmount",
+            "rustMethodName": "get_reserve_egld_amount",
             "mutability": "readonly",
             "inputs": [
                 {
@@ -670,6 +705,7 @@
         },
         {
             "name": "getUserReserve",
+            "rustMethodName": "get_user_reserve",
             "mutability": "readonly",
             "inputs": [
                 {
@@ -685,6 +721,7 @@
         },
         {
             "name": "getTokenPrice",
+            "rustMethodName": "token_price",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
@@ -695,6 +732,7 @@
         },
         {
             "name": "isProviderUpToDate",
+            "rustMethodName": "view_provider_updated",
             "mutability": "readonly",
             "inputs": [
                 {
@@ -710,6 +748,7 @@
         },
         {
             "name": "areProvidersUpToDate",
+            "rustMethodName": "view_providers_updated",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
@@ -720,6 +759,7 @@
         },
         {
             "name": "setWrapSC",
+            "rustMethodName": "set_wrap_sc",
             "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [
@@ -732,6 +772,7 @@
         },
         {
             "name": "getLegldInCustody",
+            "rustMethodName": "legld_in_custody",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
@@ -742,6 +783,7 @@
         },
         {
             "name": "getUserDelegation",
+            "rustMethodName": "user_delegation",
             "mutability": "readonly",
             "inputs": [
                 {
@@ -757,6 +799,7 @@
         },
         {
             "name": "getUserKnight",
+            "rustMethodName": "user_knight",
             "mutability": "readonly",
             "inputs": [
                 {
@@ -772,6 +815,7 @@
         },
         {
             "name": "getKnightUsers",
+            "rustMethodName": "knight_users",
             "mutability": "readonly",
             "inputs": [
                 {
@@ -788,6 +832,7 @@
         },
         {
             "name": "getUserHeir",
+            "rustMethodName": "user_heir",
             "mutability": "readonly",
             "inputs": [
                 {
@@ -803,6 +848,7 @@
         },
         {
             "name": "getHeirUsers",
+            "rustMethodName": "heir_users",
             "mutability": "readonly",
             "inputs": [
                 {
@@ -819,6 +865,7 @@
         },
         {
             "name": "getContractInfo",
+            "rustMethodName": "get_contract_info",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
@@ -829,6 +876,7 @@
         },
         {
             "name": "getUserInfo",
+            "rustMethodName": "get_user_info",
             "mutability": "readonly",
             "inputs": [
                 {
@@ -844,6 +892,7 @@
         },
         {
             "name": "delegateAll",
+            "rustMethodName": "delegate_all",
             "mutability": "mutable",
             "inputs": [],
             "outputs": [
@@ -854,6 +903,7 @@
         },
         {
             "name": "unDelegateAll",
+            "rustMethodName": "undelegate_all",
             "mutability": "mutable",
             "inputs": [],
             "outputs": [
@@ -864,12 +914,14 @@
         },
         {
             "name": "claimRewards",
+            "rustMethodName": "claim_rewards",
             "mutability": "mutable",
             "inputs": [],
             "outputs": []
         },
         {
             "name": "withdrawAll",
+            "rustMethodName": "withdraw_all",
             "mutability": "mutable",
             "inputs": [
                 {
@@ -886,12 +938,14 @@
         },
         {
             "name": "computeWithdrawn",
+            "rustMethodName": "compute_withdrawn",
             "mutability": "mutable",
             "inputs": [],
             "outputs": []
         },
         {
             "name": "setArbitrageActive",
+            "rustMethodName": "set_arbitrage_active",
             "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [],
@@ -899,6 +953,7 @@
         },
         {
             "name": "setArbitrageInactive",
+            "rustMethodName": "set_arbitrage_inactive",
             "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [],
@@ -906,6 +961,7 @@
         },
         {
             "name": "getArbitrageState",
+            "rustMethodName": "arbitrage",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
@@ -919,12 +975,14 @@
                 "    * Trigger arbitrage\\n     "
             ],
             "name": "triggerArbitrage",
+            "rustMethodName": "trigger_arbitrage",
             "mutability": "mutable",
             "inputs": [],
             "outputs": []
         },
         {
             "name": "setOnedexArbitrageActive",
+            "rustMethodName": "set_onedex_arbitrage_active",
             "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [],
@@ -932,6 +990,7 @@
         },
         {
             "name": "setOnedexArbitrageInactive",
+            "rustMethodName": "set_onedex_arbitrage_inactive",
             "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [],
@@ -939,6 +998,7 @@
         },
         {
             "name": "getOnedexArbitrageState",
+            "rustMethodName": "onedex_arbitrage",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
@@ -949,6 +1009,7 @@
         },
         {
             "name": "setOnedexSC",
+            "rustMethodName": "set_onedex_sc",
             "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [
@@ -961,6 +1022,7 @@
         },
         {
             "name": "setOnedexPairId",
+            "rustMethodName": "set_onedex_pair_id",
             "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [
@@ -973,6 +1035,7 @@
         },
         {
             "name": "setXexchangeArbitrageActive",
+            "rustMethodName": "set_xexchange_arbitrage_active",
             "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [],
@@ -980,6 +1043,7 @@
         },
         {
             "name": "setXexchangeArbitrageInactive",
+            "rustMethodName": "set_xexchange_arbitrage_inactive",
             "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [],
@@ -987,6 +1051,7 @@
         },
         {
             "name": "getXexchangeArbitrageState",
+            "rustMethodName": "xexchange_arbitrage",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
@@ -997,6 +1062,7 @@
         },
         {
             "name": "setXexchangeSC",
+            "rustMethodName": "set_xexchange_sc",
             "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [
@@ -1009,6 +1075,7 @@
         },
         {
             "name": "setKnight",
+            "rustMethodName": "set_knight",
             "mutability": "mutable",
             "inputs": [
                 {
@@ -1020,18 +1087,21 @@
         },
         {
             "name": "cancelKnight",
+            "rustMethodName": "cancel_knight",
             "mutability": "mutable",
             "inputs": [],
             "outputs": []
         },
         {
             "name": "activateKnight",
+            "rustMethodName": "activate_knight",
             "mutability": "mutable",
             "inputs": [],
             "outputs": []
         },
         {
             "name": "deactivateKnight",
+            "rustMethodName": "deactivate_knight",
             "mutability": "mutable",
             "inputs": [
                 {
@@ -1043,6 +1113,7 @@
         },
         {
             "name": "confirmKnight",
+            "rustMethodName": "confirm_knight",
             "mutability": "mutable",
             "inputs": [
                 {
@@ -1054,6 +1125,7 @@
         },
         {
             "name": "removeKnight",
+            "rustMethodName": "remove_knight",
             "mutability": "mutable",
             "inputs": [
                 {
@@ -1065,6 +1137,7 @@
         },
         {
             "name": "setHeir",
+            "rustMethodName": "set_heir",
             "mutability": "mutable",
             "inputs": [
                 {
@@ -1080,12 +1153,14 @@
         },
         {
             "name": "cancelHeir",
+            "rustMethodName": "cancel_heir",
             "mutability": "mutable",
             "inputs": [],
             "outputs": []
         },
         {
             "name": "removeHeir",
+            "rustMethodName": "remove_heir",
             "mutability": "mutable",
             "inputs": [
                 {
@@ -1097,12 +1172,14 @@
         },
         {
             "name": "updateLastAccessed",
+            "rustMethodName": "update_last_accessed",
             "mutability": "mutable",
             "inputs": [],
             "outputs": []
         },
         {
             "name": "addProvider",
+            "rustMethodName": "add_provider",
             "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [
@@ -1115,6 +1192,7 @@
         },
         {
             "name": "refreshProvider",
+            "rustMethodName": "refresh_provider",
             "mutability": "mutable",
             "inputs": [
                 {
@@ -1126,6 +1204,7 @@
         },
         {
             "name": "removeProvider",
+            "rustMethodName": "remove_provider",
             "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [
@@ -1138,6 +1217,7 @@
         },
         {
             "name": "setProviderState",
+            "rustMethodName": "set_provider_state",
             "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [
@@ -1157,6 +1237,7 @@
                 "    * Refresh Providers - updates all providers infos and returns true if all active providers are up-to-date and\\n     * at least one provider is active, and false otherwise\\n     "
             ],
             "name": "refreshProviders",
+            "rustMethodName": "refresh_providers",
             "mutability": "mutable",
             "inputs": [],
             "outputs": [

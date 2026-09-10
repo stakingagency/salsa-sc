@@ -1,9 +1,9 @@
 [package]
 name = "onedex-mock-meta"
 version = "0.0.0"
-edition = "2021"
+edition = "2024"
 publish = false
-authors = [ "DrDelphi <drdelphi@gmail.com>",]
+authors = ["DrDelphi <drdelphi@gmail.com>"]
 
 [dev-dependencies]
 
@@ -11,7 +11,7 @@ authors = [ "DrDelphi <drdelphi@gmail.com>",]
 path = ".."
 
 [dependencies.multiversx-sc]
-version = "0.50.5"
+version = "0.66.2"
 
-[dependencies.multiversx-sc-meta]
-version = "0.50.5"
+[dependencies.multiversx-sc-meta-lib]
+version = "0.66.2"

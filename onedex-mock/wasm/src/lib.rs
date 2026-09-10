@@ -5,13 +5,11 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           53
+// Endpoints:                           40
 // Async Callback:                       1
-// Total number of exported functions:  55
+// Total number of exported functions:  42
 
 #![no_std]
-#![allow(internal_features)]
-#![feature(lang_items)]
 
 multiversx_sc_wasm_adapter::allocator!();
 multiversx_sc_wasm_adapter::panic_handler!();
@@ -20,18 +18,7 @@ multiversx_sc_wasm_adapter::endpoints! {
     onedex_mock
     (
         init => init
-        upgrade => upgrade
-        setConfig => set_config
-        setTotalFeePercent => set_total_fee_percent
-        setSpecialFeePercent => set_special_fee_percent
-        setStakingRewardFeePercent => set_staking_reward_fee_percent
-        setStakingRewardAddress => set_staking_reward_address
-        setTreasuryAddress => set_treasury_address
-        setBurnerAddress => set_burner_address
-        setUnwrapAddress => set_unwrap_address
-        setRegisteringCost => set_registering_cost
         addMainPair => add_main_pair
-        removeMainPair => remove_main_pair
         getMainPairTokens => main_pair_tokens
         getTotalFeePercent => total_fee_percent
         getSpecialFeePercent => special_fee_percent
@@ -41,7 +28,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         getBurnerAddreess => burner_address
         getUnwrapAddreess => unwrap_address
         getRegisteringCost => registering_cost
-        getPaused => paused
         getPairIds => pair_ids
         getLastPairId => last_pair_id
         getLpTokenPairIdMap => lp_token_pair_id_map
@@ -71,7 +57,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         getAmountOut => get_amount_out_view
         getMultiPathAmountIn => get_multi_path_amount_in
         getAmountIn => get_amount_in_view
-        viewPairs => view_pairs
         viewPair => view_pair
     )
 }

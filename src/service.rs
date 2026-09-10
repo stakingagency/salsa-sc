@@ -37,7 +37,7 @@ pub trait ServiceModule:
 
         let (provider_address, amount) =
             self.get_provider_to_delegate_and_amount(&storage_cache.egld_to_delegate);
-        if amount == 0 {
+        if amount == 0 || !self.enough_gas_left_for_async_call(MIN_GAS_FOR_ASYNC_CALL) {
             drop(storage_cache);
             return BigUint::zero()
         }
@@ -109,7 +109,7 @@ pub trait ServiceModule:
 
         let (provider_address, amount) =
             self.get_provider_to_undelegate_and_amount(&storage_cache.egld_to_undelegate);
-        if amount == 0 {
+        if amount == 0 || !self.enough_gas_left_for_async_call(MIN_GAS_FOR_ASYNC_CALL) {
             drop(storage_cache);
             return BigUint::zero()
         }
@@ -162,11 +162,9 @@ pub trait ServiceModule:
     fn claim_rewards(&self) {
         require!(self.is_state_active(), ERROR_NOT_ACTIVE);
 
-        if !self.refresh_providers() {
-            return
-        }
+        self.refresh_providers();
 
-        let current_timestamp = self.blockchain().get_block_timestamp();
+        let current_timestamp = self.blockchain().get_block_timestamp_seconds().as_u64_seconds();
         let current_epoch = self.blockchain().get_block_epoch();
         for (address, provider) in self.providers().iter() {
             let is_active = provider.is_active();
@@ -175,7 +173,7 @@ pub trait ServiceModule:
                 continue
             }
 
-            if !self.enough_gas_left_for_async_call() {
+            if !self.enough_gas_left_for_async_call(MIN_GAS_FOR_ASYNC_CALL) {
                 break
             }
 
@@ -202,7 +200,7 @@ pub trait ServiceModule:
     ) {
         match result {
             ManagedAsyncCallResult::Ok(()) => {
-                let claimed_amount = self.call_value().egld_value().clone_value();
+                let claimed_amount = self.call_value().egld().clone_value();
                 let commission = &claimed_amount * self.service_fee().get() / MAX_PERCENT;
                 let left_amount = &claimed_amount - &commission;
                 self.total_egld_staked()
@@ -230,6 +228,10 @@ pub trait ServiceModule:
                     continue
                 }
 
+                if !self.enough_gas_left_for_async_call(gas_for_async_withdraw) {
+                    break
+                }
+
                 self.service_delegation_proxy_obj()
                     .contract(address.clone())
                     .withdraw()
@@ -241,11 +243,9 @@ pub trait ServiceModule:
             return
         }
 
-        if !self.refresh_providers() {
-            return
-        }
+        self.refresh_providers();
 
-        let current_timestamp = self.blockchain().get_block_timestamp();
+        let current_timestamp = self.blockchain().get_block_timestamp_seconds().as_u64_seconds();
         let current_epoch = self.blockchain().get_block_epoch();
         for (address, provider) in self.providers().iter() {
             let is_active = provider.is_active();
@@ -254,7 +254,7 @@ pub trait ServiceModule:
                 continue
             }
 
-            if !self.enough_gas_left_for_async_call() {
+            if !self.enough_gas_left_for_async_call(gas_for_async_withdraw) {
                 break
             }
 
@@ -276,7 +276,7 @@ pub trait ServiceModule:
     ) {
         match result {
             ManagedAsyncCallResult::Ok(()) => {
-                let withdrawn_amount = self.call_value().egld_value();
+                let withdrawn_amount = self.call_value().egld();
                 self.total_withdrawn_egld()
                     .update(|value| *value += withdrawn_amount.clone_value());
                 let mut provider = self.get_provider(&provider_address);

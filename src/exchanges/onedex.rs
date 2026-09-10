@@ -76,7 +76,8 @@ pub trait OnedexModule:
         let pair: Pair<Self::Api> = self.onedex_proxy_obj()
             .contract(onedex_sc_address)
             .view_pair(pair_id)
-            .execute_on_dest_context();
+            .returns(ReturnsResult)
+            .sync_call();
 
         pair
     }
@@ -86,7 +87,8 @@ pub trait OnedexModule:
         let fee: u64 = self.onedex_proxy_obj()
             .contract(onedex_sc_address)
             .total_fee_percent()
-            .execute_on_dest_context();
+            .returns(ReturnsResult)
+            .sync_call();
 
         fee
     }
@@ -106,7 +108,8 @@ pub trait OnedexModule:
         self.onedex_proxy_obj()
             .contract(onedex_cache.sc_address.clone())
             .get_amount_out_view(&first_token, &second_token, in_amount)
-            .execute_on_dest_context()
+            .returns(ReturnsResult)
+            .sync_call()
     }
 
     fn do_arbitrage_on_onedex(
@@ -155,7 +158,7 @@ pub trait OnedexModule:
                 .contract(onedex_cache.sc_address.clone())
                 .swap_multi_tokens_fixed_input(out_amount, false, path)
                 .with_egld_transfer(in_amount.clone())
-                .execute_on_dest_context::<()>();
+                .sync_call();
         } else {
             path.push(liquid_token_id.clone());
             path.push(wegld_id);
@@ -165,7 +168,7 @@ pub trait OnedexModule:
                 .contract(onedex_cache.sc_address.clone())
                 .swap_multi_tokens_fixed_input(out_amount, true, path)
                 .with_esdt_transfer(payment)
-                .execute_on_dest_context::<()>();
+                .sync_call();
         }
     }
 

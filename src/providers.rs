@@ -60,7 +60,7 @@ pub trait ProvidersModule:
     fn remove_provider(&self, address: &ManagedAddress) {
         let provider = self.get_provider(address);
 
-        let current_timestamp = self.blockchain().get_block_timestamp();
+        let current_timestamp = self.blockchain().get_block_timestamp_seconds().as_u64_seconds();
         let current_epoch = self.blockchain().get_block_epoch();
         require!(
             provider.are_funds_up_to_date(current_timestamp, current_epoch),
@@ -102,7 +102,7 @@ pub trait ProvidersModule:
      */
     #[endpoint(refreshProviders)]
     fn refresh_providers(&self) -> bool {
-        let current_timestamp = self.blockchain().get_block_timestamp();
+        let current_timestamp = self.blockchain().get_block_timestamp_seconds().as_u64_seconds();
         let current_epoch = self.blockchain().get_block_epoch();
         let mut result = false;
         let mut outdated = false;
@@ -136,7 +136,7 @@ pub trait ProvidersModule:
             }
 
             if !provider.are_nodes_up_to_date(current_timestamp) {
-                if !self.enough_gas_left_for_view_call() {
+                if !self.enough_gas_left_for_nodes_call() {
                     break
                 }
                 self.refresh_provider_nodes(&address);
@@ -213,7 +213,7 @@ pub trait ProvidersModule:
                 provider.max_cap = BigUint::from(config_items.get(PROVIDER_CONFIG_MAX_CAP_INDEX).clone_value());
                 provider.fee = config_items.get(PROVIDER_CONFIG_FEE_INDEX).parse_as_u64().unwrap_or(0);
                 provider.has_cap = config_items.get(PROVIDER_CONFIG_HAS_CAP_INDEX).clone_value() == b"true";
-                provider.config_last_update_timestamp = self.blockchain().get_block_timestamp();
+                provider.config_last_update_timestamp = self.blockchain().get_block_timestamp_seconds().as_u64_seconds();
             }
             ManagedAsyncCallResult::Err(_) => {
                 provider.config_last_update_timestamp = 0;
@@ -232,7 +232,7 @@ pub trait ProvidersModule:
         match result {
             ManagedAsyncCallResult::Ok(stake) => {
                 provider.total_stake = stake;
-                provider.stake_last_update_timestamp = self.blockchain().get_block_timestamp();
+                provider.stake_last_update_timestamp = self.blockchain().get_block_timestamp_seconds().as_u64_seconds();
             }
             ManagedAsyncCallResult::Err(_) => {
                 provider.stake_last_update_timestamp = 0;
@@ -269,7 +269,7 @@ pub trait ProvidersModule:
                     }
                 }
                 provider.staked_nodes = staked_nodes;
-                provider.nodes_last_update_timestamp = self.blockchain().get_block_timestamp();
+                provider.nodes_last_update_timestamp = self.blockchain().get_block_timestamp_seconds().as_u64_seconds();
             }
             ManagedAsyncCallResult::Err(_) => {
                 provider.nodes_last_update_timestamp = 0;
@@ -286,7 +286,7 @@ pub trait ProvidersModule:
         #[call_result] result: ManagedAsyncCallResult<MultiValueEncoded<ManagedBuffer>>,
     ) {
         let mut provider = self.get_provider(address);
-        provider.funds_last_update_timestamp = self.blockchain().get_block_timestamp();
+        provider.funds_last_update_timestamp = self.blockchain().get_block_timestamp_seconds().as_u64_seconds();
         provider.funds_last_update_epoch = current_epoch;
         match result {
             ManagedAsyncCallResult::Ok(delegator_funds_data) => {
@@ -310,12 +310,24 @@ pub trait ProvidersModule:
 
     // helpers
 
-    fn enough_gas_left_for_view_call(&self) -> bool {
-        self.blockchain().get_gas_left() > MIN_GAS_FOR_VIEW_CALL + MIN_GAS_FOR_VIEW_CALLBACK
+    fn enough_gas_for_promise(&self, call_gas: u64, callback_gas: u64) -> bool {
+        self.blockchain().get_gas_left()
+            > call_gas + callback_gas + GAS_OVERHEAD_PER_PROMISE + GAS_LEFT_AFTER_PROMISE
     }
 
-    fn enough_gas_left_for_async_call(&self) -> bool {
-        self.blockchain().get_gas_left() > MIN_GAS_FOR_ASYNC_CALL + MIN_GAS_FOR_CALLBACK
+    fn enough_gas_left_for_view_call(&self) -> bool {
+        self.enough_gas_for_promise(MIN_GAS_FOR_VIEW_CALL, MIN_GAS_FOR_VIEW_CALLBACK)
+    }
+
+    fn enough_gas_left_for_nodes_call(&self) -> bool {
+        self.enough_gas_for_promise(
+            MIN_GAS_FOR_GET_ALL_NODE_STATES_CALL,
+            MIN_GAS_FOR_VIEW_CALLBACK,
+        )
+    }
+
+    fn enough_gas_left_for_async_call(&self, call_gas: u64) -> bool {
+        self.enough_gas_for_promise(call_gas, MIN_GAS_FOR_CALLBACK)
     }
 
     fn empty_provider(&self) -> ProviderConfig<Self::Api> {

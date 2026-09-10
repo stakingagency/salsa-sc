@@ -15,11 +15,11 @@ where
     pub fee: u64,
 }
 
-impl<'a, O> OnedexCache<O>
+impl<O> OnedexCache<O>
 where
     O: OnedexModule,
 {
-    pub fn new(sc_ref: &'a O) -> Self {
+    pub fn new(sc_ref: &O) -> Self {
         let pair = sc_ref.get_onedex_pair_info();
         let lp_balance = sc_ref.blockchain()
             .get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(pair.lp_token_id.clone()), 0);
