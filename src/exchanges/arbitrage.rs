@@ -26,7 +26,8 @@ pub trait ArbitrageModule:
             let wegld_id: TokenIdentifier = self.egld_wrap_proxy_obj()
                 .contract(self.wrap_sc().get())
                 .wrapped_egld_token_id()
-                .execute_on_dest_context();
+                .returns(ReturnsResult)
+                .sync_call();
             self.wegld_id().set(wegld_id);
         }
 

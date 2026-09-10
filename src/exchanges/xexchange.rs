@@ -27,7 +27,8 @@ pub trait XexchangeModule:
             let lp: TokenIdentifier = self.xexchange_proxy_obj()
                 .contract(xexchange_sc_address)
                 .get_lp_token_identifier()
-                .execute_on_dest_context();
+                .returns(ReturnsResult)
+                .sync_call();
             self.xexchange_lp().set(lp);
         }
 
@@ -67,7 +68,8 @@ pub trait XexchangeModule:
         let res: MultiValue3<BigUint, BigUint, BigUint> = self.xexchange_proxy_obj()
             .contract(xexchange_sc_address)
             .get_reserves_and_total_supply()
-            .execute_on_dest_context();
+            .returns(ReturnsResult)
+            .sync_call();
         let (ls_reserve, egld_reserve, lp_supply) = res.into_tuple();
 
         (ls_reserve, egld_reserve, lp_supply)
@@ -78,7 +80,8 @@ pub trait XexchangeModule:
         let state: X_State = self.xexchange_proxy_obj()
             .contract(xexchange_sc_address)
             .state()
-            .execute_on_dest_context();
+            .returns(ReturnsResult)
+            .sync_call();
 
         state
     }
@@ -88,7 +91,8 @@ pub trait XexchangeModule:
         let fee: u64 = self.xexchange_proxy_obj()
             .contract(xexchange_sc_address)
             .total_fee_percent()
-            .execute_on_dest_context();
+            .returns(ReturnsResult)
+            .sync_call();
 
         fee
     }
@@ -108,7 +112,8 @@ pub trait XexchangeModule:
         self.xexchange_proxy_obj()
             .contract(xexchange_cache.sc_address.clone())
             .get_amount_out_view(in_token, in_amount)
-            .execute_on_dest_context()
+            .returns(ReturnsResult)
+            .sync_call()
     }
 
     fn do_arbitrage_on_xexchange(
@@ -155,14 +160,14 @@ pub trait XexchangeModule:
                 .contract(xexchange_cache.wrap_sc_address.clone())
                 .wrap_egld()
                 .with_egld_transfer(in_amount.clone())
-                .execute_on_dest_context::<()>();
+                .sync_call();
             let payment =
                 EsdtTokenPayment::new(wegld_id, 0, in_amount.clone());
             self.xexchange_proxy_obj()
                 .contract(xexchange_cache.sc_address.clone())
                 .swap_tokens_fixed_input(liquid_token_id, out_amount)
                 .with_esdt_transfer(payment)
-                .execute_on_dest_context::<()>();
+                .sync_call();
         } else {
             let mut payment =
                 EsdtTokenPayment::new(liquid_token_id, 0, in_amount.clone());
@@ -170,7 +175,7 @@ pub trait XexchangeModule:
                 .contract(xexchange_cache.sc_address.clone())
                 .swap_tokens_fixed_input(wegld_id.clone(), out_amount)
                 .with_esdt_transfer(payment)
-                .execute_on_dest_context::<()>();
+                .sync_call();
             let wegld_balance =
                 self.blockchain().get_sc_balance(&EgldOrEsdtTokenIdentifier::esdt(wegld_id.clone()), 0);
             payment = EsdtTokenPayment::new(wegld_id, 0, wegld_balance);
@@ -178,7 +183,7 @@ pub trait XexchangeModule:
                 .contract(xexchange_cache.wrap_sc_address.clone())
                 .unwrap_egld()
                 .with_esdt_transfer(payment)
-                .execute_on_dest_context::<()>();
+                .sync_call();
         }
     }
 

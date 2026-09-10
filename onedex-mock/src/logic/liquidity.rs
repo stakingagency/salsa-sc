@@ -320,7 +320,7 @@ pub trait LiquidityLogicModule:
             )
                 .unwrap_egld()
                 .with_multi_token_transfer(unwrap_payment)
-                .execute_on_dest_context::<()>();
+                .sync_call();
 
             self.send().direct_egld(
                 &self.blockchain().get_caller(),
@@ -350,7 +350,7 @@ pub trait LiquidityLogicModule:
             )
                 .unwrap_egld()
                 .with_multi_token_transfer(unwrap_payment)
-                .execute_on_dest_context::<()>();
+                .sync_call();
 
             self.send().direct_egld(
                 &self.blockchain().get_caller(),

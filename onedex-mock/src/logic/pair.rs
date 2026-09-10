@@ -20,7 +20,7 @@ pub trait PairLogicModule:
         &self,
         pair_id: usize
     ) {
-        let registering_cost = self.call_value().egld_value().clone_value();
+        let registering_cost = self.call_value().egld().clone_value();
 
         require!(
             registering_cost == self.registering_cost().get(),
@@ -122,7 +122,7 @@ pub trait PairLogicModule:
         self.require_pair_owner_or_admin(pair_id);
 
         let caller = self.blockchain().get_caller();
-        let issue_cost = self.call_value().egld_value();
+        let issue_cost = self.call_value().egld();
 
         require!(
             self.pair_lp_token_id(pair_id).is_empty(),
@@ -156,7 +156,7 @@ pub trait PairLogicModule:
                 issue_cost.clone_value(),
                 &lp_name,
                 &lp_ticker,
-                &BigUint::zero(), // Initial Supply
+                BigUint::zero(), // Initial Supply
                 FungibleTokenProperties {
                     num_decimals: LP_TOKEN_DECIMALS,
                     can_freeze: true,
@@ -175,7 +175,7 @@ pub trait PairLogicModule:
                     &caller,
                     pair_id
                 ))
-            .call_and_exit()
+            .async_call_and_exit()
     }
 
     #[callback]
@@ -196,7 +196,7 @@ pub trait PairLogicModule:
                 self.lp_token_pair_id_map().insert(token_identifier, pair_id);
             },
             ManagedAsyncCallResult::Err(_) => {
-                let issue_cost = self.call_value().egld_value();
+                let issue_cost = self.call_value().egld();
 
                 self.send()
                     .direct_egld(caller, &issue_cost);
@@ -225,11 +225,11 @@ pub trait PairLogicModule:
         self.send()
             .esdt_system_sc_proxy()
             .set_special_roles(
-                &self.blockchain().get_sc_address(),
-                &self.pair_lp_token_id(pair_id).get(),
+                self.blockchain().get_sc_address(),
+                self.pair_lp_token_id(pair_id).get(),
                 roles[..].iter().cloned(),
             )
-            .call_and_exit()
+            .async_call_and_exit()
     }
 
 

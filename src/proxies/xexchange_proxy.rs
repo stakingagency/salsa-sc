@@ -11,7 +11,8 @@ pub type AddLiquidityResultType<BigUint> =
 pub type RemoveLiquidityResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
-#[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Copy, Clone, Debug)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, PartialEq, Copy, Clone, Debug)]
 pub enum State {
     Inactive,
     Active,
@@ -54,10 +55,8 @@ pub trait XexchangeProxy {
     ) -> RemoveLiquidityResultType<Self::Api>;
 
     #[view(getState)]
-    #[storage_mapper("state")]
-    fn state(&self) -> SingleValueMapper<State>;
+    fn state(&self) -> State;
 
     #[view(getTotalFeePercent)]
-    #[storage_mapper("total_fee_percent")]
-    fn total_fee_percent(&self) -> SingleValueMapper<u64>;
+    fn total_fee_percent(&self) -> u64;
 }

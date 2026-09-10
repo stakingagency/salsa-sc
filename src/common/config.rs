@@ -3,26 +3,30 @@ multiversx_sc::derive_imports!();
 
 use crate::{common::consts::*, common::errors::*};
 
-#[derive(ManagedVecItem, TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Eq, Copy, Clone, Debug)]
+#[type_abi]
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Eq, Copy, Clone, Debug)]
 pub enum State {
     Inactive,
     Active,
 }
 
-#[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Eq, Copy, Clone, Debug)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, PartialEq, Eq, Copy, Clone, Debug)]
 pub enum UndelegationType {
     UserList,
     TotalUsersList,
     ReservesList,
 }
 
-#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
+#[type_abi]
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, PartialEq, Eq, Debug)]
 pub struct Undelegation<M: ManagedTypeApi> {
     pub amount: BigUint<M>,
     pub unbond_epoch: u64,
 }
 
-#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
+#[type_abi]
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, PartialEq, Eq, Debug)]
 pub enum KnightState {
     Undefined,
     InactiveKnight,
@@ -30,20 +34,23 @@ pub enum KnightState {
     ActiveKnight,
 }
 
-#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
+#[type_abi]
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, PartialEq, Eq, Debug)]
 pub struct Knight<M: ManagedTypeApi> {
     pub address: ManagedAddress<M>,
     pub state: KnightState,
 }
 
-#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
+#[type_abi]
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, PartialEq, Eq, Debug)]
 pub struct Heir<M: ManagedTypeApi> {
     pub address: ManagedAddress<M>,
     pub inheritance_epochs: u64,
     pub last_accessed_epoch: u64,
 }
 
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, PartialEq, Eq, Debug)]
 pub struct UserInfo<M: ManagedTypeApi + multiversx_sc::api::StorageMapperApi> {
     pub undelegations: ManagedVec<M, Undelegation<M>>,
     pub reserve: BigUint<M>,
@@ -55,7 +62,8 @@ pub struct UserInfo<M: ManagedTypeApi + multiversx_sc::api::StorageMapperApi> {
     pub heir_users: ManagedVec<M, Heir<M>>,
 }
 
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, PartialEq, Eq, Debug)]
 pub struct ContractInfo<M: ManagedTypeApi + multiversx_sc::api::StorageMapperApi> {
     pub state: State,
     pub liquid_token_id: TokenIdentifier<M>,
@@ -70,14 +78,16 @@ pub struct ContractInfo<M: ManagedTypeApi + multiversx_sc::api::StorageMapperApi
     pub token_price: BigUint<M>,
 }
 
-#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
+#[type_abi]
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, PartialEq, Eq, Debug)]
 pub enum Exchange {
     None,
     Onedex,
     Xexchange,
 }
 
-#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
+#[type_abi]
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, PartialEq, Eq, Debug)]
 pub struct LpInfo<M: ManagedTypeApi> {
     pub exchange: Exchange,
     pub liquid_reserve: BigUint<M>,
@@ -87,7 +97,8 @@ pub struct LpInfo<M: ManagedTypeApi> {
     pub lp_balance: BigUint<M>,
 }
 
-#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
+#[type_abi]
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, PartialEq, Eq, Debug)]
 pub struct ProviderConfig<M: ManagedTypeApi> {
     pub state: State,
     pub address: ManagedAddress<M>,
@@ -147,14 +158,16 @@ where M: ManagedTypeApi
     }
 }
 
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, PartialEq, Eq, Debug)]
 pub struct Challenge<M: ManagedTypeApi> {
     pub end_epoch: u64,
     pub target_undelegated: BigUint<M>,
     pub status: ChallengeStatus,
 }
 
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq, Eq, Debug)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, PartialEq, Eq, Debug)]
 pub enum ChallengeStatus {
     Pending,
     Failed,
@@ -175,7 +188,7 @@ pub trait ConfigModule:
     ) {
         require!(!self.is_state_active(), ERROR_ACTIVE);
         require!(self.liquid_token_id().is_empty(), ERROR_TOKEN_ALREADY_SET);
-        let payment_amount = self.call_value().egld_value();
+        let payment_amount = self.call_value().egld();
         self.liquid_token_id().issue_and_set_all_roles(
             payment_amount.clone_value(),
             token_display_name,
@@ -401,7 +414,7 @@ pub trait ConfigModule:
 
     #[view(isProviderUpToDate)]
     fn view_provider_updated(&self, provider_address: &ManagedAddress) -> bool {
-        let current_timestamp = self.blockchain().get_block_timestamp();
+        let current_timestamp = self.blockchain().get_block_timestamp_seconds().as_u64_seconds();
         let current_epoch = self.blockchain().get_block_epoch();
 
         let provider = self.providers().get(provider_address).unwrap();
@@ -410,7 +423,7 @@ pub trait ConfigModule:
 
     #[view(areProvidersUpToDate)]
     fn view_providers_updated(&self) -> bool {
-        let current_timestamp = self.blockchain().get_block_timestamp();
+        let current_timestamp = self.blockchain().get_block_timestamp_seconds().as_u64_seconds();
         let current_epoch = self.blockchain().get_block_epoch();
         let mut result = false;
         for (_, provider) in self.providers().iter() {

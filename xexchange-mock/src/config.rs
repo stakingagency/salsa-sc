@@ -6,14 +6,16 @@ use super::errors::*;
 pub const MAX_PERCENTAGE: u64 = 100_000;
 pub const MAX_FEE_PERCENTAGE: u64 = 5_000;
 
-#[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Copy, Clone, Debug)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, PartialEq, Copy, Clone, Debug)]
 pub enum State {
     Inactive,
     Active,
     PartialActive,
 }
 
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, TypeAbi, Eq)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Eq)]
 pub struct TokenPair<M: ManagedTypeApi> {
     pub first_token: TokenIdentifier<M>,
     pub second_token: TokenIdentifier<M>,

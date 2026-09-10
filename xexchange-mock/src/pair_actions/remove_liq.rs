@@ -52,7 +52,7 @@ pub trait RemoveLiquidityModule:
         );
 
         let mut remove_liq_context = RemoveLiquidityContext::new(
-            payment.amount,
+            payment.amount.clone(),
             first_token_amount_min,
             second_token_amount_min,
         );
@@ -85,6 +85,6 @@ pub trait RemoveLiquidityModule:
 
         self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
 
-        self.build_remove_liq_results(output_payments)
+        self.build_remove_liq_results(output_payments.clone())
     }
 }

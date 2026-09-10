@@ -1,3 +1,4 @@
+mod common;
 mod consts;
 mod contract_interactions;
 mod modules_tests;
@@ -31,10 +32,9 @@ use salsa::{
     },
     providers::ProvidersModule
 };
+pub use common::*;
 
-use multiversx_sc::{
-    storage::mappers::StorageTokenWrapper as _, types::{Address, BigUint}
-};
+use multiversx_sc::types::{Address, BigUint};
 
 use multiversx_sc_scenario::{
     managed_address, managed_token_id, rust_biguint,

@@ -1,8 +1,8 @@
 [package]
 name = "salsa"
 version = "0.0.2"
-authors = [ "DrDelphi" ]
-edition = "2021"
+authors = ["DrDelphi"]
+edition = "2024"
 publish = false
 
 [lib]
@@ -11,14 +11,14 @@ path = "src/salsa.rs"
 [dev-dependencies]
 num-bigint = "0.4.3"
 
+[dev-dependencies.multiversx-sc-scenario]
+version = "0.66.2"
+
 [dependencies.multiversx-sc]
-version = "0.50.5"
+version = "0.66.2"
 
 [dependencies.multiversx-sc-modules]
-version = "0.50.5"
-
-[dev-dependencies.multiversx-sc-scenario]
-version = "0.50.5"
+version = "0.66.2"
 
 [dependencies.delegation-mock]
 path = "./delegation-mock"
@@ -43,5 +43,5 @@ members = [
     "onedex-mock",
     "onedex-mock/meta",
     "xexchange-mock",
-    "xexchange-mock/meta"
+    "xexchange-mock/meta",
 ]

@@ -3,14 +3,16 @@ multiversx_sc::derive_imports!();
 
 pub const MAX_PERCENTAGE: u64 = 10_000;
 
-#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone, PartialEq)]
+#[type_abi]
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, PartialEq)]
 pub enum State {
     Inactive,
     Active,
     ActiveButNoSwap,
 }
 
-#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
+#[type_abi]
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone)]
 pub struct Pair<M: ManagedTypeApi> {
     pub pair_id: usize,
     pub state: State,
@@ -68,6 +70,5 @@ pub trait OneDexProxy {
     );
 
     #[view(getTotalFeePercent)]
-    #[storage_mapper("total_fee_percent")]
-    fn total_fee_percent(&self) -> SingleValueMapper<u64>;
+    fn total_fee_percent(&self) -> u64;
 }

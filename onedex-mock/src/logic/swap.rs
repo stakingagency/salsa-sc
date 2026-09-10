@@ -51,7 +51,7 @@ pub trait SwapLogicModule:
             )
                 .wrap_egld()
                 .with_egld_transfer(amount_in_arg.clone())
-                .execute_on_dest_context::<()>();
+                .sync_call();
         } else {
             require!(
                 token_in.unwrap_esdt() == *path.get(0),
@@ -98,7 +98,7 @@ pub trait SwapLogicModule:
             )
             .unwrap_egld()
             .with_multi_token_transfer(unwrap_payment)
-            .execute_on_dest_context::<()>();
+            .sync_call();
 
             self.send().direct_egld(
                 &self.blockchain().get_caller(),
@@ -154,7 +154,7 @@ pub trait SwapLogicModule:
             )
                 .wrap_egld()
                 .with_egld_transfer(amount_in_arg.clone())
-                .execute_on_dest_context::<()>();
+                .sync_call();
         } else {
             require!(
                 token_in.unwrap_esdt() == *path.get(0),
@@ -213,7 +213,7 @@ pub trait SwapLogicModule:
             )
                 .unwrap_egld()
                 .with_multi_token_transfer(unwrap_payment)
-                .execute_on_dest_context::<()>();
+                .sync_call();
 
             self.send().direct_egld(
                 &self.blockchain().get_caller(),

@@ -72,7 +72,13 @@ pub fn refresh_providers_test(
 ) {
     let salsa_whitebox = WhiteboxContract::new(SALSA_ADDRESS_EXPR, salsa::contract_obj);
     let mut up_to_date = false;
+    let mut attempts = 0;
     while !up_to_date {
+        attempts += 1;
+        assert!(
+            attempts <= 20,
+            "refresh_providers did not converge after {attempts} attempts"
+        );
         world.whitebox_call(
             &salsa_whitebox,
             ScCallStep::new()

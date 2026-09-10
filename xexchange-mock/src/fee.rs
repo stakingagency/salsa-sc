@@ -54,9 +54,7 @@ pub trait FeeModule:
         let remaining_fee = if fees_collector_configured {
             let fees_collector_cut_percentage = self.fees_collector_cut_percentage().get();
             let cut_amount = fee_amount * fees_collector_cut_percentage / MAX_PERCENTAGE;
-            let reminder = fee_amount - &cut_amount;
-
-            reminder
+            fee_amount - &cut_amount
         } else {
             fee_amount.clone()
         };
@@ -200,12 +198,12 @@ pub trait FeeModule:
     ) {
         let pair_address = self.get_extern_swap_pair_address(available_token, requested_token);
 
-        let _: IgnoreValue = self
+        self
             .pair_proxy()
             .contract(pair_address)
             .swap_no_fee(requested_token.clone(), destination_address.clone())
             .with_esdt_transfer((available_token.clone(), 0, available_amount.clone()))
-            .execute_on_dest_context();
+            .sync_call();
     }
 
     #[inline]

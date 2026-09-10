@@ -15,11 +15,11 @@ where
     pub fee: u64,
 }
 
-impl<'a, X> XexchangeCache<X>
+impl<X> XexchangeCache<X>
 where
     X: XexchangeModule,
 {
-    pub fn new(sc_ref: &'a X) -> Self {
+    pub fn new(sc_ref: &X) -> Self {
         let state = sc_ref.get_xexchange_state();
         let is_active = state == State::Active;
         let (first_reserve, second_reserve, lp_supply) =

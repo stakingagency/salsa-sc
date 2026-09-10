@@ -11,6 +11,5 @@ pub trait WrapProxy {
     fn unwrap_egld(&self);
 
     #[view(getWrappedEgldTokenId)]
-    #[storage_mapper("wrappedEgldTokenId")]
-    fn wrapped_egld_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
+    fn wrapped_egld_token_id(&self) -> TokenIdentifier;
 }

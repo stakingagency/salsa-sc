@@ -1,15 +1,15 @@
 [package]
 name = "wrap-mock"
 version = "0.0.0"
-authors = [ "DrDelphi <drdelphi@gmail.com>",]
-edition = "2021"
+authors = ["DrDelphi <drdelphi@gmail.com>"]
+edition = "2024"
 publish = false
 
 [lib]
 path = "src/wrap.rs"
 
 [dependencies.multiversx-sc]
-version = "0.50.5"
+version = "0.66.2"
 
 [dependencies.itertools]
 version = "0.10.1"

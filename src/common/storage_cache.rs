@@ -30,7 +30,12 @@ where
             total_stake: sc_ref.total_egld_staked().get(),
             liquid_supply: sc_ref.liquid_token_supply().get(),
             liquid_token_id: sc_ref.liquid_token_id().get_token_id(),
-            wegld_id: sc_ref.wegld_id().get(),
+            // Empty TokenIdentifier storage no longer decodes (0.64+ rejects EGLD/empty as ESDT).
+            wegld_id: if sc_ref.wegld_id().is_empty() {
+                TokenIdentifier::from_esdt_bytes(&b"UNSET-000000"[..])
+            } else {
+                sc_ref.wegld_id().get()
+            },
             legld_in_custody: sc_ref.legld_in_custody().get(),
             available_egld_reserve: sc_ref.available_egld_reserve().get(),
             egld_to_delegate: sc_ref.egld_to_delegate().get(),
@@ -42,7 +47,7 @@ where
     }
 }
 
-impl<'a, C> Drop for StorageCache<'a, C>
+impl<C> Drop for StorageCache<'_, C>
 where
     C: crate::common::config::ConfigModule,
 {

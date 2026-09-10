@@ -5,6 +5,12 @@ pub const MIN_GAS_FOR_CALLBACK: u64 = 12_000_000;
 pub const MIN_GAS_FOR_VIEW_CALL: u64 = 1_000_000;
 pub const MIN_GAS_FOR_VIEW_CALLBACK: u64 = 12_000_000;
 pub const MIN_GAS_FOR_GET_ALL_NODE_STATES_CALL: u64 = 40_000_000;
+/// Extra gas the parent must keep beyond `with_gas_limit` + callback when
+/// calling `register_promise`. This is only the parent-side reservation, not
+/// the extra gas the inner metachain tx later shows as used (~9M).
+pub const GAS_OVERHEAD_PER_PROMISE: u64 = 2_000_000;
+/// Gas that must remain after reserving a promise so the parent can finish the loop.
+pub const GAS_LEFT_AFTER_PROMISE: u64 = 3_000_000;
 pub const MAX_PERCENT: u64 = 10_000;
 pub const MIN_UNDELEGATE_NOW_FEE: u64 = 3;
 pub const MAX_UNBOND_PERIOD: u64 = 20;
