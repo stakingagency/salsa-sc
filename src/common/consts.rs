@@ -6,9 +6,16 @@ pub const MIN_GAS_FOR_VIEW_CALL: u64 = 1_000_000;
 pub const MIN_GAS_FOR_VIEW_CALLBACK: u64 = 12_000_000;
 pub const MIN_GAS_FOR_GET_ALL_NODE_STATES_CALL: u64 = 40_000_000;
 /// Extra gas the parent must keep beyond `with_gas_limit` + callback when
-/// calling `register_promise`. This is only the parent-side reservation, not
-/// the extra gas the inner metachain tx later shows as used (~9M).
-pub const GAS_OVERHEAD_PER_PROMISE: u64 = 2_000_000;
+/// calling `register_promise`. The VM deducts all of this from the caller's
+/// gas left, on top of the call gas and the callback gas:
+///   CreateAsyncCall api cost                  200_000
+///   UseGasForAsyncStep (AsyncCallStep)        100_000
+///   code_size * AoTPreparePerByte      ~50_200 * 100 = 5_020_000
+///   AsyncCallStep + AsyncCallbackGasLock    4_100_000
+/// which is ~9.42M today. 10M keeps a margin for code sizes up to ~56KB;
+/// if the wasm grows past that, this constant must grow with it, otherwise
+/// `register_promise` fails with `not enough gas` after the check passed.
+pub const GAS_OVERHEAD_PER_PROMISE: u64 = 10_000_000;
 /// Gas that must remain after reserving a promise so the parent can finish the loop.
 pub const GAS_LEFT_AFTER_PROMISE: u64 = 3_000_000;
 pub const MAX_PERCENT: u64 = 10_000;
